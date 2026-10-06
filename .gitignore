@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+# UD treebank files are downloaded by `bun run fetch-ud` (CC BY-SA 4.0; not redistributed here)
+data/ud/
+# Jev response cache written by the recording client
+.cache/
+results/runs/
+baselines/.venv/
+baselines/out/
+__pycache__/
+.DS_Store

@@ -1,0 +1,27 @@
+{
+  "name": "system-one-parsers",
+  "version": "0.0.1",
+  "description": "A lab for building a generic dependency parser out of a System One model (Jev) by asking many small closed questions.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "Nick Gideo",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "fetch-ud": "bun eval/fetch-ud.ts",
+    "eval": "bun eval/run.ts",
+    "eval:score": "bun eval/score-file.ts",
+    "smoke": "bun eval/smoke.ts",
+    "demo": "bun demo/server.ts",
+    "demo:dev": "bun --hot demo/server.ts",
+    "coffee": "bun examples/coffee/run.ts"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^5.9.0"
+  }
+}
