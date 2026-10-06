@@ -124,7 +124,10 @@ export function decodeSingleRoot(scores: number[][]): { heads: number[]; score: 
   for (let r = 1; r < n; r++) {
     const constrained = scores.map((row, h) => (h === 0 ? row.map((v, d) => (d === r ? v : NEG)) : row));
     const heads = chuLiuEdmonds(constrained);
-    const score = treeScore(scores, heads);
+    // Score against the constrained matrix. When no valid tree has r as the only main word (e.g.
+    // code rules ban every way into part of the sentence), the decoder falls back to a forbidden
+    // root edge, and this score is what rules that tree out.
+    const score = treeScore(constrained, heads);
     if (score > bestScore) {
       bestScore = score;
       bestHeads = heads;

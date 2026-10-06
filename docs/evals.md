@@ -53,8 +53,9 @@ How to read it:
   - **Example question, exactly as sent:** the instructions and the first options, then the same
     question with the paths replaced by the words ("In plain words").
   - **Its answer, exactly as returned:** the JSON Jev sent back.
-  - **All answers:** one line per question: what it's about → Jev's top answer, its probability, a
-    bar, the runners-up, and ✓/✗ against the treebank when you use `--id`.
+  - **All answers:** a table with one row per question: what it's about, Jev's top answer, its
+    probability (`p`) and a bar, the runners-up, and with `--id` a `treebank` column: ✓, or ✗ and
+    the treebank's answer.
   - **Two-level questions** (word type in groups, relationships) show the first level, then
     `›`, then the second-level answer, following the best path.
 - **Code:** what code did between calls, e.g. which phrases it formed, or how many attachments the

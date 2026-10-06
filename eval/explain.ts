@@ -22,7 +22,7 @@ import { QUESTION_SETS } from "../src/question-sets/index.ts";
 import { getStrategy, usesJev } from "../src/strategies/index.ts";
 import { loadSplit, type Split } from "./data.ts";
 import { rowOf } from "./metrics.ts";
-import { answerLine, formatAnswerLines, renderTree, resolvePaths } from "./render.ts";
+import { answerLine, formatAnswerLines, notScored, renderTree, resolvePaths } from "./render.ts";
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,
@@ -193,12 +193,27 @@ function printCall(call: CallRecord): void {
             ...line.ranked.filter((r) => r.label !== best.group),
           ];
         }
-        if (gold) line.verdict = [line.verdict, l2.verdict].filter(Boolean).join(" ");
+        if (gold) line.verdict = twoLevelVerdict(id, best.group, best.second, ids, call);
         return line;
       });
-    console.log(`     All answers${gold ? " (✓/✗ against the treebank)" : ""}:`);
+    console.log(`     All answers${gold ? " (treebank: ✓ right, or ✗ and the right answer)" : ""}:`);
     console.log(indent(formatAnswerLines(lines), 7));
   }
+}
+
+/** One verdict for a two-level answer: right kind and right specific answer, or what the treebank says. */
+function twoLevelVerdict(firstId: string, pickedGroup: string, secondId: string, ids: string[], call: CallRecord): string {
+  if (!gold) return "";
+  const meta = call.meta[firstId]!;
+  const set = QUESTION_SETS[meta.set]!;
+  const rightGroup = set.expected(meta, gold);
+  if (rightGroup === undefined) return notScored(meta.set);
+  const rightSecondId = ids.find((x) => call.meta[x]?.word === meta.word && call.meta[x]?.level === rightGroup);
+  const rightSecond = rightSecondId ? set.expected(call.meta[rightSecondId]!, gold) : undefined;
+  const picked = call.response.answers[secondId];
+  const pickedSecond = picked && "choice" in picked ? picked.choice : undefined;
+  if (rightGroup === pickedGroup && rightSecond === pickedSecond) return "✓";
+  return `✗ ${String(rightGroup)} › ${String(rightSecond ?? "?")}`;
 }
 
 function compactAnswer(a: unknown): string {

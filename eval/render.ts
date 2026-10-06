@@ -6,6 +6,7 @@ import type { ChoiceAnswer, NoulAnswer, Question } from "../src/jev/types.ts";
 import { QUESTION_SETS } from "../src/question-sets/index.ts";
 import type { ParseResult } from "../src/types.ts";
 import { universalDeprel } from "../src/ud/deprel.ts";
+import { formatTable } from "./table.ts";
 
 /** A horizontal bar for a probability: width characters at p = 1. */
 export function bar(p: number, width = 12): string {
@@ -77,26 +78,37 @@ export function answerLine(id: string, q: Question, call: CallRecord, words: str
   let verdict = "";
   if (gold && meta) {
     const right = QUESTION_SETS[meta.set]?.expected(meta, gold);
-    if (right === undefined) verdict = "· no right answer offered";
+    if (right === undefined) verdict = notScored(meta.set);
     else if (right === top) verdict = "✓";
-    else verdict = `✗ treebank: ${typeof right === "boolean" ? (right ? "yes" : "no") : optionLabel(meta, right, words)}`;
+    else verdict = `✗ ${typeof right === "boolean" ? (right ? "yes" : "no") : optionLabel(meta, right, words)}`;
   }
   return { subject: subjectLabel(meta, words), ranked, verdict };
 }
 
+/** The treebank column when a question can't be scored. */
+export function notScored(set: string): string {
+  return set === "relationship" ? "not scored: attached to the wrong word" : "not scored: right answer not offered";
+}
+
+/**
+ * Every answer as a table, in the same style as the eval report:
+ *   about | Jev's answer | p | bar | runners-up | treebank (✓, or ✗ and the treebank's answer)
+ */
 export function formatAnswerLines(lines: AnswerLine[], topK = 3): string[] {
-  const w = Math.max(...lines.map((l) => l.subject.length), 4);
-  return lines.map((l) => {
+  const rows = lines.map((l) => {
     const [first, ...rest] = l.ranked;
-    if (!first) return `${l.subject.padEnd(w)}  (no answer)`;
-    const head = `${first.label} ${first.p.toFixed(2)} ${bar(first.p, 10)}`;
     const others = rest
       .slice(0, topK - 1)
       .filter((r) => r.p >= 0.005)
       .map((r) => `${r.label} ${r.p.toFixed(2)}`)
       .join(" · ");
-    return `${l.subject.padEnd(w)}  → ${head.padEnd(30)}${others ? `  ${others}` : ""}${l.verdict ? `   ${l.verdict}` : ""}`;
+    return [l.subject, first?.label ?? "(no answer)", first ? first.p.toFixed(2) : "", first ? bar(first.p, 10) : "", others, l.verdict];
   });
+  const header = ["about", "Jev's answer", "p", "", "runners-up", "treebank"];
+  // Drop the columns that are empty on every row (e.g. no treebank without --id).
+  const keep = header.map((_, c) => c < 4 || rows.some((r) => r[c] !== ""));
+  const pick = <T,>(r: T[]) => r.filter((_, c) => keep[c]);
+  return formatTable(pick(header), rows.map(pick), 0);
 }
 
 /**
