@@ -360,9 +360,7 @@ if (!args["no-save"]) {
     const body = scored(s.name).map((o) => `# sent_id = ${o.gold.sentId}\n${o.result!.conllu}`).join("\n");
     await writeFile(join(dir, "runs", `${stamp}${label}.${s.name.replace(/[^\w.-]/g, "_")}.conllu`), body + "\n");
   }
-  const real = mode !== "oracle" && mode !== "dry";
-  if (real) await writeFile(join(dir, "latest.json"), JSON.stringify(runJson, null, 1));
-  console.log(`saved ${runPath}${real ? " and results/latest.json" : ""}`);
+  console.log(`saved ${runPath}`);
 }
 
 // ------------------------------------------------------------------ helpers

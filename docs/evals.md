@@ -152,7 +152,7 @@ Each run (unless `--no-save`) writes to `results/runs/`:
 - `<time>[-label].<strategy>.conllu`: each strategy's parses in CoNLL-U, which standard UD tools
   read.
 
-Live runs also write `results/latest.json`. `results/runs/` and `.cache/` are git-ignored.
+`results/` and `.cache/` are git-ignored: runs stay on your machine.
 
 ## Recipes
 
