@@ -24,8 +24,10 @@ export class LiveJevClient implements JevClient {
   }
 
   async systemOne(request: JevRequest): Promise<JevResponse> {
-    // Our wire types mirror the SDK's; the cast bridges its stricter generic question types.
-    const res = await this.client.systemOne(request as Parameters<TypeSafeClient["systemOne"]>[0]);
+    // Send only what the API takes (never `meta`). Our wire types mirror the SDK's; the cast bridges
+    // its stricter generic question types.
+    const body = { state: request.state, questions: request.questions, ...(request.model ? { model: request.model } : {}) };
+    const res = await this.client.systemOne(body as Parameters<TypeSafeClient["systemOne"]>[0]);
     return res as unknown as JevResponse;
   }
 }

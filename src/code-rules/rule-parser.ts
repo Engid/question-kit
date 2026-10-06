@@ -1,14 +1,11 @@
-// Rules-only floors: no Jev at all. They exist so the evals can show what Jev adds.
+// Code-only parsing rules: no Jev. Used three ways:
+//   rung 0 (rules):                  tag words with a small lexicon, then attach by rules
+//   rung 1 (rules-with-jev-types):   the same attachment rules, using Jev's word types
+//   rung 2 (code-proposes-jev-picks): the rules propose a few candidate heads; Jev picks
 //
-// `rules`:    a small English lexicon + suffix tagger, then "attach to the nearest plausible head"
-//             rules by part of speech, decoded into a valid tree with the same MST decoder.
-// `adjacent`: every word attaches to the next word; the last word is the root.
-//
-// These are deliberately simple. They are a floor, not a competitor.
+// Deliberately simple: a floor to measure Jev against, not a competitor.
 
 import { decodeSingleRoot, NEG } from "../decode/cle.ts";
-import type { Edge, ParseInput, ParsedToken, ParseResult, Strategy } from "../types.ts";
-import { emptyStats, normalizeInput, toConllu } from "./common.ts";
 
 const words = (s: string) => new Set(s.split(/\s+/).filter(Boolean));
 
@@ -26,7 +23,7 @@ const LEX: [string, Set<string>][] = [
 const lexicon = (tag: string) => LEX.find(([t]) => t === tag)?.[1] ?? new Set<string>();
 const POSSESSIVE = words("my your his her its our their");
 const SUBJECT_PRONOUNS = words("i you he she we they");
-const COMMON_ADJ = words("good new large small big great other hot cold iced little old long high different important same few last own early young sure able happy bad best better free full real nice");
+const COMMON_ADJ = words("good new large small big great other hot cold little old long high different important same few last own early young sure able happy bad best better free full real nice");
 const NOMINAL = new Set(["NOUN", "PROPN", "PRON", "NUM"]);
 
 export function ruleTag(forms: string[]): string[] {
@@ -160,42 +157,30 @@ export function ruleParse(forms: string[], tags: string[]): { heads: number[]; d
   return { heads: decoded, deprels };
 }
 
-function result(name: string, text: string, tokens: ParsedToken[], edges: Edge[]): ParseResult {
-  return {
-    strategy: name,
-    text,
-    tokens,
-    edges,
-    conllu: toConllu(text, tokens, edges, name),
-    trace: [],
-    stats: emptyStats(),
+/**
+ * A short list of plausible heads for each word, for Jev to choose from (rung 2): the rules' own
+ * pick, both neighbors, the nearest two content words and the nearest noun and verb on each side,
+ * and root. With the treebank's own word types this list contains the right head for 91% of words
+ * on EWT dev, at about 6 candidates per word (vs ~20 for "every other word").
+ * tags/ruleHeads are 0-based (word i + 1); returns word ids (0 = root).
+ */
+export function proposeCandidates(tags: string[], ruleHeads: number[]): number[][] {
+  const n = tags.length;
+  const content = (t: string) => ["NOUN", "PROPN", "VERB", "ADJ", "PRON", "NUM"].includes(t);
+  const nearest = (from: number, dir: 1 | -1, ok: (t: string) => boolean) => {
+    for (let i = from + dir; i >= 0 && i < n; i += dir) if (ok(tags[i] as string)) return i;
+    return -1;
   };
+  return tags.map((_, i) => {
+    const d = i + 1;
+    const c = new Set<number>([ruleHeads[i] as number, 0, d - 1, d + 1]);
+    for (const dir of [-1, 1] as const) {
+      const first = nearest(i, dir, content);
+      c.add(first + 1);
+      if (first >= 0) c.add(nearest(first, dir, content) + 1);
+      c.add(nearest(i, dir, (t) => t === "NOUN" || t === "PROPN") + 1);
+      c.add(nearest(i, dir, (t) => t === "VERB") + 1);
+    }
+    return [...c].filter((h) => h >= 0 && h <= n && h !== d).sort((a, b) => a - b);
+  });
 }
-
-export const rulesStrategy: Strategy = {
-  name: "rules",
-  description: "No Jev: lexicon + suffix tagger and nearest-plausible-head rules, MST-repaired into a tree",
-  async parse(input: ParseInput) {
-    const { words: forms, text } = normalizeInput(input);
-    const tags = ruleTag(forms);
-    const { heads, deprels } = ruleParse(forms, tags);
-    const tokens = forms.map((form, i) => ({ id: i + 1, form, upos: tags[i] as string, uposDist: {}, uposSeparation: Infinity }));
-    const edges = heads.map((h, i) => ({ dep: i + 1, head: h, deprel: deprels[i] as string, p: 1, separation: Infinity, argmaxHead: h, headDist: {} }));
-    return result("rules", text, tokens, edges);
-  },
-};
-
-export const adjacentStrategy: Strategy = {
-  name: "adjacent",
-  description: "No Jev: every word attaches to the next word; the last word is the root",
-  async parse(input: ParseInput) {
-    const { words: forms, text } = normalizeInput(input);
-    const n = forms.length;
-    const tokens = forms.map((form, i) => ({ id: i + 1, form, upos: "X", uposDist: {}, uposSeparation: Infinity }));
-    const edges = forms.map((_, i) => {
-      const h = i + 1 === n ? 0 : i + 2;
-      return { dep: i + 1, head: h, deprel: h === 0 ? "root" : "dep", p: 1, separation: Infinity, argmaxHead: h, headDist: {} };
-    });
-    return result("adjacent", text, tokens, edges);
-  },
-};

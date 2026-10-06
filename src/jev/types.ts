@@ -33,6 +33,11 @@ export interface JevRequest {
   state: Entry;
   questions: Questions;
   model?: string;
+  /**
+   * Not sent to Jev. What each question is about (see src/calls.ts), so test doubles like the
+   * gold-tree oracle can answer, and so recorded calls can be explained later.
+   */
+  meta?: Record<string, unknown>;
 }
 
 export interface NoulAnswer {

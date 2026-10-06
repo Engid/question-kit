@@ -12,7 +12,7 @@
     "fetch-ud": "bun eval/fetch-ud.ts",
     "eval": "bun eval/run.ts",
     "eval:score": "bun eval/score-file.ts",
-    "smoke": "bun eval/smoke.ts",
+    "explain": "bun eval/explain.ts",
     "demo": "bun demo/server.ts",
     "demo:dev": "bun --hot demo/server.ts",
     "coffee": "bun examples/coffee/run.ts"

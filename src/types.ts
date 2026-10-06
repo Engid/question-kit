@@ -1,59 +1,54 @@
-import type { JevClient, JevRequest, JevResponse } from "./jev/types.ts";
+import type { CallRecord, CallStats, CodeStep } from "./calls.ts";
+import type { JevClient } from "./jev/types.ts";
+import type { ParseInput } from "./sentence.ts";
 
-/** What a strategy parses: raw text (tokenized by `tokenize`) or pre-split words (gold tokens in evals). */
-export type ParseInput = string | { words: string[]; text?: string };
+export type { ParseInput } from "./sentence.ts";
 
 export interface ParsedToken {
   /** 1-based position, as in CoNLL-U. */
   id: number;
   form: string;
+  /** Word type (UD part of speech). */
   upos: string;
-  /** Distribution over UPOS tags (empty for rule baselines). */
+  /** Probability per word type (empty when code decided). */
   uposDist: Record<string, number>;
-  /** Best / second-best score for the tag; Infinity when there was no model judgment. */
+  /** Best / second-best probability for the word type; Infinity when code decided. */
   uposSeparation: number;
 }
 
+/** Who decided an attachment. */
+export type DecidedBy =
+  /** Jev's (combined) top answer. */
+  | "jev"
+  /** The tree builder picked something other than Jev's top answer, to make a valid tree. */
+  | "tree"
+  /** A code cleanup rule moved it. */
+  | "cleanup"
+  /** Rules only. */
+  | "rules";
+
 export interface Edge {
   dep: number;
-  /** 0 means the artificial root. */
+  /** 0 means the root (this is the main word). */
   head: number;
   deprel: string;
-  /** Jev's probability for the head the decoder chose (1 for rule baselines). */
+  by: DecidedBy;
+  /** Jev's (combined) probability for the chosen head; 1 when code decided. */
   p: number;
-  /** Top / second probability among the head options: Jev's ambiguity about this attachment. */
+  /** Top / second probability among head candidates: how clear-cut Jev's answer was. */
   separation: number;
-  /** The head Jev ranked first, before decoding. */
+  /** The head Jev ranked first. */
   argmaxHead: number;
-  /** Head option probabilities keyed by word id ("0" is root). */
+  /** Probability per head id (combined over question sets); empty when code decided. */
   headDist: Record<string, number>;
-  /** Relation distribution and separation, when a model labeled the edge. */
   deprelDist?: Record<string, number>;
   deprelSeparation?: number;
 }
 
-export interface TraceEntry {
-  stage: string;
-  request: JevRequest;
-  response: JevResponse;
-  ms: number;
-}
-
-export interface ParseStats {
-  requests: number;
-  questions: number;
-  /** Wall time spent waiting on the Jev client. */
-  jevMs: number;
-  inputTokens: number;
-  outputTokens: number;
-  /** Size of the request bodies sent (JSON characters), a cost proxy that works offline. */
-  requestChars: number;
-  /** Words whose decoded head differs from Jev's first-ranked head. */
+export interface ParseStats extends CallStats {
+  /** Words whose final head differs from Jev's first-ranked head. */
   argmaxDisagreements: number;
-  /**
-   * Pairs of words whose first-ranked heads point at each other (a 2-cycle before decoding), e.g.
-   * "across" → "yard" and "yard" → "across". A sign that Jev and UD disagree about which word heads.
-   */
+  /** Pairs of words whose first-ranked heads point at each other (a 2-word loop before tree building). */
   argmaxMutualPairs: number;
 }
 
@@ -63,12 +58,22 @@ export interface ParseResult {
   tokens: ParsedToken[];
   edges: Edge[];
   conllu: string;
-  trace: TraceEntry[];
+  /** Every Jev call, with questions, answers and what each question was about. */
+  calls: CallRecord[];
+  /** What code did between calls, in plain words. */
+  steps: CodeStep[];
   stats: ParseStats;
 }
 
 export interface Strategy {
   name: string;
-  description: string;
-  parse(input: ParseInput, client: JevClient): Promise<ParseResult>;
+  /** Rung on the ladder (0 = all code … 4 = all Jev), when the strategy is part of it. */
+  rung?: number;
+  /** One line, plain English. */
+  summary: string;
+  /** Where it sits: the ladder, question design, or an experiment on a single knob. */
+  group: "ladder" | "question-design" | "experiment" | "baseline";
+  parse(input: ParseInput, jev: JevClient): Promise<ParseResult>;
+  /** The same strategy without the relationship questions (for attachment-only runs). */
+  unlabeled?(): Strategy;
 }
