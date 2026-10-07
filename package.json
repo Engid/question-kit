@@ -16,9 +16,8 @@
     "fetch-pizza": "bun examples/pizza/fetch.ts",
     "pizza": "bun examples/pizza/run.ts",
     "pizza:explain": "bun examples/pizza/explain.ts",
-    "demo": "bun demo/server.ts",
-    "demo:dev": "bun --hot demo/server.ts",
-    "coffee": "bun examples/coffee/run.ts"
+    "pizza:verify-library": "bun examples/pizza/verify-library.ts",
+    "order": "bun examples/pizza/take-order.ts"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.6.0"

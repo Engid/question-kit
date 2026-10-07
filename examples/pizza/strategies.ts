@@ -39,6 +39,7 @@ import {
 } from "./questions.ts";
 import { loadMenu, type Menu, type WordTag } from "./menu.ts";
 import { type Item, orderToExr, sameOrder } from "./order.ts";
+import { PIZZA_LIBRARY } from "./library.ts";
 import { assemble, keywordTags } from "./rules.ts";
 
 export interface PizzaInput {
@@ -66,7 +67,7 @@ export interface PizzaResult {
 
 export interface PizzaStrategy {
   name: string;
-  group: "ladder" | "experiment";
+  group: "ladder" | "experiment" | "library";
   rung?: number;
   summary: string;
   usesJev: boolean;
@@ -376,6 +377,7 @@ export function gatesOf(r: PizzaResult): Record<string, boolean> {
   if (r.check) {
     out["check, whole order: P(wrong) < 0.5"] = r.check.whole < 0.5;
     out["check, each part: all P(wrong) < 0.5"] = r.check.parts < 0.5;
+    out["check, each part: all P(wrong) < 0.3"] = r.check.parts < 0.3;
     if (r.confidence !== undefined) out[`every answer ≥ ${SURE}, or each part passes`] = r.confidence >= SURE || r.check.parts < 0.5;
   }
   if (r.agreed !== undefined) {
@@ -442,7 +444,7 @@ export const PIZZA_EXPERIMENTS: PizzaStrategy[] = [
   ),
 ];
 
-export const PIZZA_ALL = [...PIZZA_LINEUP, ...PIZZA_EXPERIMENTS];
+export const PIZZA_ALL = [...PIZZA_LINEUP, ...PIZZA_EXPERIMENTS, ...PIZZA_LIBRARY];
 
 export function getPizzaStrategy(name: string): PizzaStrategy {
   const s = PIZZA_ALL.find((x) => x.name === name);

@@ -45,6 +45,12 @@ so on orders that have already been run only the new calls cost anything:
 | `pick-rung-1-or-3` | Runs rungs 1 and 3; when their orders differ, Jev sees both read back and picks the one that matches | Does a second design plus a pick beat either design alone? |
 | `jev-tags-words/examples`, `code-splits-jev-fills/named-candidates/examples` | Options as TypeSafe's [structured criteria](https://docs.typesafe.ai/primitives/advanced.md): what it is, what it's not for, and examples. The examples are generic (the menu's own spellings and made-up phrases), never taken from the orders | Do examples in the questions help where Jev is already good (word tags) and where it struggles (per-topping questions)? |
 
+The library in [`lib/pizza-order-taker`](../../lib/pizza-order-taker/README.md) packages the best
+designs as `takeOrder(text, menu, jev)`. Its three designs run here as `order-taker`,
+`order-taker/every-word` and `order-taker/pick`, with a menu built from the dataset's catalogs, so
+they ask exactly the questions measured above. `bun run pizza:verify-library [--split test]`
+replays both side by side and compares them order by order.
+
 Every Jev strategy reports how an app could decide between accepting an order as is and reading it
 back to the customer: when every answer used was ≥ 90% sure, when the check passes, when the two
 designs agree. For each, it shows the share of orders accepted, how often those were right, and how
@@ -61,6 +67,8 @@ bun run pizza:explain "two large pizzas with extra cheese and a diet coke"
 bun run pizza --client oracle                         # perfect answers: each strategy's ceiling, and cost estimates
 bun run pizza --split test --client record            # the final numbers: run once, at the end
 bun run pizza:explain --id dev-17 --strategy keywords-jev-fills-gaps+check --client replay
+bun run pizza:verify-library --split test              # the library vs the lab, order by order (free, from the cache)
+bun run order "two large pizzas with extra cheese and a diet coke"   # one order through the library
 ```
 
 Estimated cost (from `--client oracle` request sizes, which overestimate by ~15%): about $2 for the

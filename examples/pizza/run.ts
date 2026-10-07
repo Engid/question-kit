@@ -26,6 +26,7 @@ import { goldOf, type PizzaGold } from "./gold.ts";
 import { pizzaOracle } from "./oracle.ts";
 import { describeItem, type Item, itemsFromExr, itemsMatched, sameOrder } from "./order.ts";
 import { PIZZA_QUESTION_SETS, pizzaRowOf, WORD_TAG } from "./questions.ts";
+import { PIZZA_LIBRARY } from "./library.ts";
 import { gatesOf, getPizzaStrategy, PIZZA_ALL, PIZZA_EXPERIMENTS, PIZZA_LINEUP, type PizzaResult, type PizzaStrategy, SURE } from "./strategies.ts";
 
 /** TypeSafe's listed price for jev-1.13 input tokens; output tokens are free. https://docs.typesafe.ai/models.md (checked 2026-10-06) */
@@ -52,6 +53,8 @@ if (args.list) {
   for (const s of PIZZA_LINEUP) console.log(`  ${s.rung ?? " "} ${s.name.padEnd(36)} ${s.summary}`);
   console.log("\nExperiments (--all, or by name)");
   for (const s of PIZZA_EXPERIMENTS) console.log(`    ${s.name.padEnd(36)} ${s.summary}`);
+  console.log("\nThe library, lib/pizza-order-taker (--all, or by name)");
+  for (const s of PIZZA_LIBRARY) console.log(`    ${s.name.padEnd(36)} ${s.summary}`);
   process.exit(0);
 }
 
@@ -238,7 +241,7 @@ console.log(`  whole order right  the predicted order equals the answer key, ign
                      (the paper's "unordered exact match")
   items right        share of the answer key's items (one kind of pizza or drink each) reproduced exactly
   PCFG               the paper's grammar-based parser, from the dataset's own per-order flag
-  rung               0 = all code … 4 = almost all Jev; · = experiments
+  rung               0 = all code … 4 = almost all Jev; · = experiments and the library
   $                  at $${USD_PER_MTOK} per million input tokens (≈ = estimated from request size)
   For scale, the paper's best model (BART trained on 2.46M synthetic orders) reports 78.6% whole
   order right on the test split.`);
