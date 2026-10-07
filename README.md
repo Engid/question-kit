@@ -3,7 +3,8 @@
 **How far can you get turning what people say into structured data for your code, using a System
 One model and plain code, with no second LLM?**
 
->[!WARNING] **Active research.** This repo is in a prototype phase: the packages here are early, and their
+>[!WARNING] 
+> **Active research.** This repo is in a prototype phase: the packages here are early, and their
 > APIs will change as the research goes on. If you're interested in using them, or have a use case
 > you think they'd fit, please open an issue and tell us; feedback is what we're after right now.
 
