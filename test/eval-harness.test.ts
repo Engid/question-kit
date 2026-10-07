@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { calibration, scoreSentence, aggregate, type EdgeObs } from "../eval/metrics.ts";
-import { bucketOf, sample, shuffled } from "../eval/data.ts";
-import { MockJevClient, peakedChoice } from "../src/jev/mock.ts";
-import { CacheMissError, RecordingJevClient } from "../src/jev/recording.ts";
-import type { JevRequest } from "../src/jev/types.ts";
-import { parseConllu } from "../src/ud/conllu.ts";
+import { calibration, scoreSentence, aggregate, type EdgeObs } from "../research/parsing/eval/metrics.ts";
+import { bucketOf, sample, shuffled } from "../research/parsing/eval/data.ts";
+import { MockJevClient, peakedChoice } from "../research/lab/jev/mock.ts";
+import { CacheMissError, RecordingJevClient } from "../research/lab/jev/recording.ts";
+import type { JevRequest } from "../research/lab/jev/types.ts";
+import { parseConllu } from "../research/parsing/src/ud/conllu.ts";
 
 const REQ: JevRequest = {
   state: { sentence: "hi there" },
@@ -62,6 +62,14 @@ describe("metrics", () => {
     expect(s.las).toBe(2); // nsubj:pass counts as nsubj; word 3 has the right head but the wrong label
   });
 
+  test("right pair counts treebank links found in either direction", () => {
+    // Words 1 and 2 are linked the wrong way round; 3 and 4 hang off the right word.
+    const s = scoreSentence(GOLD, { upos: ["X", "X", "X", "X"], heads: [0, 1, 2, 2], deprels: ["root", "nsubj", "advmod", "punct"] });
+    expect(s.uas).toBe(2);
+    expect(s.links).toBe(3);
+    expect(s.pairs).toBe(3);
+  });
+
   test("aggregate is micro-averaged over words", () => {
     const a = scoreSentence(GOLD, { upos: ["X", "X", "X", "X"], heads: [2, 0, 2, 2], deprels: ["nsubj", "root", "advmod", "punct"] });
     const b = scoreSentence({ ...GOLD, words: GOLD.words.slice(0, 2) }, { upos: ["X", "X"], heads: [0, 0], deprels: ["root", "root"] });
@@ -71,7 +79,9 @@ describe("metrics", () => {
   });
 
   test("calibration bins and separation flags", () => {
-    const e = (p: number, separation: number, ok: boolean): EdgeObs => ({ judged: true, p, separation, headCorrect: ok, labelCorrect: ok, argmaxCorrect: ok, goldDeprel: "dep" });
+    const e = (p: number, separation: number, ok: boolean): EdgeObs => ({
+      word: 1, goldHead: 0, head: 0, argmax: 0, judged: true, p, separation, headCorrect: ok, labelCorrect: ok, argmaxCorrect: ok, goldDeprel: "dep",
+    });
     const cal = calibration([e(0.95, 10, true), e(0.92, 8, true), e(0.35, 1.1, false), e(0.3, 1.2, true)]);
     expect(cal.bins[9]!.count).toBe(2);
     expect(cal.bins[3]!.count).toBe(2);

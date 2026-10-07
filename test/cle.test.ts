@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { chuLiuEdmonds, decodeSingleRoot, findCycle, treeScore } from "../src/decode/cle.ts";
+import { chuLiuEdmonds, decodeSingleRoot, findCycle, treeScore } from "../research/parsing/src/decode/cle.ts";
 
 // Deterministic PRNG so failures reproduce.
 function rng(seed: number) {
@@ -89,5 +89,45 @@ describe("Chu-Liu/Edmonds", () => {
       expect(heads.filter((h, d) => d > 0 && h === 0).length).toBe(1);
       expect(score).toBeCloseTo(bruteForce(s, true), 9);
     }
+  });
+
+  test("single root with banned heads: never falls back to a second root", () => {
+    // Like the "function words can't be heads" rule: some words can't be anyone's head. Then some
+    // choices of main word leave part of the sentence unreachable, and those must lose.
+    const rand = rng(11);
+    for (let trial = 0; trial < 300; trial++) {
+      const n = 2 + Math.floor(rand() * 4);
+      const s = randomScores(n, rand);
+      const banned = Array.from({ length: n }, (_, i) => i + 1).filter(() => rand() < 0.4);
+      if (banned.length === n) banned.pop();
+      for (const h of banned) for (let d = 1; d <= n; d++) (s[h] as number[])[d] = -1e9;
+      const { heads, score } = decodeSingleRoot(s);
+      expect(findCycle(heads)).toBeUndefined();
+      expect(heads.filter((h, d) => d > 0 && h === 0).length).toBe(1);
+      expect(score).toBeCloseTo(bruteForce(s, true), 6);
+    }
+  });
+
+  test("regression: 'Attached is an image of the GISB.' gets one main word", () => {
+    // Jev's top answer for "is" is root, but "is" (AUX) is banned as a head, so with "is" as the
+    // only main word nothing can reach "Attached", "image" or "GISB".
+    const P: Record<number, Record<number, number>> = {
+      1: { 0: 0.16, 2: 0.545, 4: 0.283, 8: 0.0101 },
+      2: { 0: 0.4, 1: 0.22, 4: 0.37, 7: 0.01 },
+      3: { 4: 0.99999 },
+      4: { 0: 0.13, 1: 0.08, 2: 0.29, 3: 0.25, 5: 0.24, 7: 0.01 },
+      5: { 2: 0.01, 4: 0.7, 6: 0.02, 7: 0.27 },
+      6: { 4: 0.07, 5: 0.01, 7: 0.92 },
+      7: { 0: 0.01, 2: 0.01, 4: 0.09, 5: 0.77, 6: 0.11, 8: 0.01 },
+      8: { 0: 0.07, 1: 0.44, 2: 0.07, 4: 0.04, 7: 0.38 },
+    };
+    const banned = new Set([2, 3, 5, 6, 8]);
+    const s = Array.from({ length: 9 }, (_, h) =>
+      Array.from({ length: 9 }, (_, d) => (d === 0 || h === d || banned.has(h) ? -1e9 : Math.log(Math.max(P[d]?.[h] ?? 0, 1e-6)))),
+    );
+    const { heads } = decodeSingleRoot(s);
+    expect(heads.filter((h, d) => d > 0 && h === 0)).toEqual([0]);
+    expect(heads[4]).toBe(0); // "image" is the main word; "is" attaches to it
+    expect(heads[2]).toBe(4);
   });
 });

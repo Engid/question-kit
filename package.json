@@ -1,23 +1,29 @@
 {
-  "name": "system-one-parsers",
+  "name": "question-kit",
   "version": "0.0.1",
-  "description": "A lab for building a generic dependency parser out of a System One model (Jev) by asking many small closed questions.",
+  "description": "Turning what people say into structured data for code, with a System One model (Jev) and plain code: research and prototype packages.",
   "private": true,
   "type": "module",
   "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
   "author": "Nick Gideo",
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "fetch-ud": "bun eval/fetch-ud.ts",
-    "eval": "bun eval/run.ts",
-    "eval:score": "bun eval/score-file.ts",
-    "smoke": "bun eval/smoke.ts",
-    "demo": "bun demo/server.ts",
-    "demo:dev": "bun --hot demo/server.ts",
-    "coffee": "bun examples/coffee/run.ts"
+    "fetch-ud": "bun research/parsing/eval/fetch-ud.ts",
+    "eval": "bun research/parsing/eval/run.ts",
+    "eval:score": "bun research/parsing/eval/score-file.ts",
+    "explain": "bun research/parsing/eval/explain.ts",
+    "fetch-pizza": "bun research/pizza/fetch.ts",
+    "pizza": "bun research/pizza/run.ts",
+    "pizza:explain": "bun research/pizza/explain.ts",
+    "order:pizza": "bun examples/order-kit/pizza/take-order.ts",
+    "order:pizza:verify": "bun examples/order-kit/pizza/verify.ts"
   },
   "dependencies": {
+    "@question-kit/order-kit": "workspace:*",
     "@typesafe-ai/sdk": "^0.6.0"
   },
   "devDependencies": {
