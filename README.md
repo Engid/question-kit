@@ -1,7 +1,6 @@
 # question-kit
 
-**How far can you get turning what people say into structured data for your code, using a System
-One model and plain code, with no second LLM?**
+**Generate system-one questions from your domain and state**
 
 >[!WARNING] 
 > **Active research.** This repo is in a prototype phase: the packages here are early, and their
