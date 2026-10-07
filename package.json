@@ -13,6 +13,9 @@
     "eval": "bun eval/run.ts",
     "eval:score": "bun eval/score-file.ts",
     "explain": "bun eval/explain.ts",
+    "fetch-pizza": "bun examples/pizza/fetch.ts",
+    "pizza": "bun examples/pizza/run.ts",
+    "pizza:explain": "bun examples/pizza/explain.ts",
     "demo": "bun demo/server.ts",
     "demo:dev": "bun --hot demo/server.ts",
     "coffee": "bun examples/coffee/run.ts"

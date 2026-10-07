@@ -23,6 +23,10 @@ export interface QuestionMeta {
   phrase?: number[];
   /** For two-level questions: which level ("kind" or a specific group). */
   level?: string;
+  /** For questions about one item of an order (examples/pizza): its index, from 1. */
+  item?: number;
+  /** For questions about one menu entry (examples/pizza): its id, e.g. "OLIVES". */
+  entity?: string;
   /**
    * What each option means: a word id (0 = root), a list of word ids (a phrase), or a label like
    * "outside". Lets explain print "across" instead of "w7".

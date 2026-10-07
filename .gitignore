@@ -4,6 +4,8 @@ node_modules/
 !.env.example
 # UD treebank files are downloaded by `bun run fetch-ud` (CC BY-SA 4.0; not redistributed here)
 data/ud/
+# PIZZA orders and menu, downloaded by `bun run fetch-pizza` (CC BY-NC 4.0; not redistributed here)
+data/pizza/
 # Jev response cache written by the recording client
 .cache/
 # Eval output (bun run eval): local only, one set of files per run
