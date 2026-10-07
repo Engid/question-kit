@@ -1,10 +1,10 @@
 // The pizza order taker, run on the PIZZA benchmark like any of the experiment's strategies, so its
-// numbers sit next to the designs it packages (`bun run pizza --strategies order-taker,…`):
+// numbers sit next to the designs it packages (`bun run pizza --strategies order-kit,…`):
 //
-//   order-taker              takeOrder's defaults: the menu tags what it knows, Jev the rest, then the
+//   order-kit              takeOrder's defaults: the menu tags what it knows, Jev the rest, then the
 //                            check (the experiment's keywords-jev-fills-gaps+check)
-//   order-taker/every-word   design "every-word" (jev-tags-words+check)
-//   order-taker/pick         design "pick", with the check (pick-dial-1-or-3, then the check)
+//   order-kit/every-word   design "every-word" (jev-tags-words+check)
+//   order-kit/pick         design "pick", with the check (pick-dial-1-or-3, then the check)
 //
 // With the menu in menu.ts it asks exactly the questions the experiment asked, so on orders the
 // experiment has run, the cached answers are reused; `bun run order:pizza:verify` checks that the
@@ -12,7 +12,7 @@
 
 import type { CallRecord, CallStats, QuestionMeta } from "../../../research/lab/calls.ts";
 import type { JevClient as LabJevClient, JevRequest as LabJevRequest } from "../../../research/lab/jev/types.ts";
-import { type Design, type JevCall, type JevClient, type OrderItem, type OrderResult, takeOrder } from "../../../packages/order-taker/index.ts";
+import { type Design, type JevCall, type JevClient, type OrderItem, type OrderResult, takeOrder } from "@question-kit/order-kit";
 import { itemToExr, orderToExr } from "../../../research/pizza/order.ts";
 import type { PizzaResult, PizzaStrategy } from "../../../research/pizza/strategies.ts";
 import { pizzaMenu, toPizzaItem } from "./menu.ts";
@@ -95,7 +95,7 @@ function orderTaker(name: string, design: Design, summary: string): PizzaStrateg
 }
 
 export const PIZZA_ORDER_TAKER: PizzaStrategy[] = [
-  orderTaker("order-taker", "gaps", "packages/order-taker's takeOrder with the pizza menu and its defaults: the menu tags what it knows, Jev the rest, then Jev checks the order read back (keywords-jev-fills-gaps+check)."),
-  orderTaker("order-taker/every-word", "every-word", "takeOrder with design \"every-word\": Jev tags every word, then the check (jev-tags-words+check)."),
-  orderTaker("order-taker/pick", "pick", "takeOrder with design \"pick\": both designs, Jev picks when they differ, then the check (pick-dial-1-or-3, then the check)."),
+  orderTaker("order-kit", "gaps", "packages/order-kit's takeOrder with the pizza menu and its defaults: the menu tags what it knows, Jev the rest, then Jev checks the order read back (keywords-jev-fills-gaps+check)."),
+  orderTaker("order-kit/every-word", "every-word", "takeOrder with design \"every-word\": Jev tags every word, then the check (jev-tags-words+check)."),
+  orderTaker("order-kit/pick", "pick", "takeOrder with design \"pick\": both designs, Jev picks when they differ, then the check (pick-dial-1-or-3, then the check)."),
 ];

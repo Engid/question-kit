@@ -3,7 +3,7 @@
 The experiments behind [question-kit](../README.md). **Can a model that only answers
 multiple-choice questions take a pizza order, or diagram a sentence?** We built both out of
 [Jev](https://docs.typesafe.ai), TypeSafe AI's System One model, and measured them on public answer
-keys. What worked became the [order taker](../packages/order-taker/README.md); what we learned about
+keys. What worked became the [order taker](../packages/order-kit/README.md); what we learned about
 asking Jev questions is what question-kit is meant to package.
 
 Jev doesn't write text. You send it some state (here, a customer's order or a sentence) and a batch
@@ -12,7 +12,7 @@ every option. A job here takes one to four rounds of questions, each sending eve
 can be asked at that point, from a handful to a few hundred. Plain code turns the answers into the
 result. There's no LLM and no trained parser.
 
-The part you can use is an order taker, [`packages/order-taker`](../packages/order-taker/README.md). Give it a
+The part you can use is an order taker, [`packages/order-kit`](../packages/order-kit/README.md). Give it a
 menu, and it turns "two large pizzas with extra cheese and a diet coke" into a structured order and
 says whether to accept the order or read it back to the customer first. On Amazon's PIZZA
 benchmark it gets **95.1%** of 1,357 test orders exactly right (the benchmark paper's best trained
@@ -358,13 +358,13 @@ nearly perfect, so ask fewer, better-worded questions.
 
 ## The order taker
 
-[`packages/order-taker`](../packages/order-taker/README.md) packages what worked, for any menu: describe the
+[`packages/order-kit`](../packages/order-kit/README.md) packages what worked, for any menu: describe the
 kinds of item you sell, their fields (size, milk, toppings…) and the ways customers say each
 value, and call `takeOrder`.
 
 ```ts
-import { takeOrder } from "./packages/order-taker/index.ts";
-import { pizzaMenu } from "./examples/order-taker/pizza/menu.ts";
+import { takeOrder } from "@question-kit/order-kit";
+import { pizzaMenu } from "./examples/order-kit/pizza/menu.ts";
 
 const order = await takeOrder("i need one pizza pesto more cheese and don't include tuna", pizzaMenu(), jev);
 
@@ -374,48 +374,16 @@ order.accept;    // true: every check answer is under 0.3
 order.confirm;   // what to read back when accept is false: { items: [], missing: false }
 ```
 
-The [pizza example](../examples/order-taker/pizza/README.md) builds the PIZZA menu with it and runs
+The [pizza example](../examples/order-kit/pizza/README.md) builds the PIZZA menu with it and runs
 it on the benchmark: it asks Jev exactly the questions measured above and gets exactly the same
 results, order for order (95.1% by default, 96.3% with `design: "pick"`). Only the pizza menu has
 been measured; the library's default wording for other menus is untested.
 
 ## Build your own order taker
 
-*Later.* The tutorial waits for question-kit, since that is what most people will build on. The outline as it stood for [`packages/order-taker`](../packages/order-taker/README.md):
-
-1. Describe a menu with `defineMenu`: kinds of item, fields, and how customers say each value.
-2. Connect Jev: a `JevClient` around TypeSafe's SDK, with a cache so re-runs are free.
-3. Take an order with `takeOrder`, and read what it decided: the words, the items, the check.
-4. Decide what to read back: `accept`, `confirm`, and choosing `readBackAt`.
-5. Measure it: write a few dozen orders with their right answers, score whole orders, and look at
-   the ones it gets wrong.
-6. Improve it: more ways of saying things in the menu, `design: "every-word"` or `"pick"`, and the
-   wording settings.
-
-Until then: [`examples/order-taker/README.md`](../examples/order-taker/README.md) has the short
-version, and the [library README](../packages/order-taker/README.md) documents every option.
-
-## Next steps: conversations
-
-Everything above takes an order in one message. A drive-through is a conversation: "actually, make
-that a medium", "what drinks do you have?", "anything else?", "that's all". That's the next phase,
-and it isn't built yet:
-
-- **A state machine around `takeOrder`, with Jev as the evaluator.** The conversation's states
-  (taking the order, confirming, done) live in code; Jev answers closed questions about each new
-  message: is the customer adding to the order, changing it, answering a read-back, or finished?
-  Code decides what happens next. Stately's [jevspresso](https://github.com/statelyai/jevspresso)
-  demo takes the other approach: its `@xstate/jev` package makes Jev the policy, picking the
-  machine's next event. We'd rather complement that than compete with it, so our side is the
-  evaluator: turning what the customer says into facts that any machine, XState's included, can
-  act on.
-- **Real conversations to measure against.** Google's
-  [Taskmaster-1](https://github.com/google-research-datasets/Taskmaster) (CC BY 4.0) has 5,507
-  spoken two-person dialogs, including 766 coffee orders and 970 pizza orders, with the drinks,
-  sizes and other details annotated turn by turn. Its annotations have errors (a "cappuccino"
-  tagged as a number of drinks), so it needs checking before it can score anything.
-- **A drive-through demo.** Speech in, `takeOrder` on each turn, the read-back spoken out, and the
-  order on screen.
+A tutorial will come with question-kit's `core`. Until then,
+[`examples/order-kit/README.md`](../examples/order-kit/README.md) has the short version, and the
+[library README](../packages/order-kit/README.md) documents every option.
 
 ## Try it
 
@@ -448,8 +416,8 @@ one.
 ## What's where
 
 ```
-packages/order-taker/          the order taker: any menu, Jev reads and checks
-examples/order-taker/          order takers built with it (pizza, measured on the benchmark)
+packages/order-kit/            the order taker: any menu, Jev reads and checks
+examples/order-kit/            order takers built with it (pizza, measured on the benchmark)
 research/lab/                  shared harness: Jev clients, the answer cache, the call log, tables
 research/parsing/              experiment 1: the parser designs, its eval and explain, the Stanza baseline
   src/question-sets/           the parser's questions, one file per kind of question

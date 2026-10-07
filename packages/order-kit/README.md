@@ -1,19 +1,22 @@
-# order-taker
+# order-kit
 
 Takes an order in one message, for any menu you describe, and returns a structured order, a
 read-back line per item, and whether to accept the order as is or read it back to the customer
 first. Code reads what the menu knows; [Jev](https://docs.typesafe.ai) reads the words it doesn't
 and checks the finished order.
 
-It packages the best designs from the repo's [pizza experiment](../../research/pizza/README.md). [`examples/order-taker`](../../examples/order-taker/README.md)
+It packages the best designs from the repo's [pizza experiment](../../research/pizza/README.md). [`examples/order-kit`](../../examples/order-kit/README.md)
 has worked examples, starting with a pizza shop measured on Amazon's PIZZA benchmark.
+
+It isn't published yet. In this repo it's a workspace package, so after `bun install` you import it
+as `@question-kit/order-kit`.
 
 ## Use it
 
 Describe the menu: the kinds of item, the fields they have, and the ways customers say each value.
 
 ```ts
-import { defineMenu, takeOrder } from "./packages/order-taker/index.ts";
+import { defineMenu, takeOrder } from "@question-kit/order-kit";
 
 const cafe = defineMenu({
   name: "coffee",                    // "`order` is a customer's coffee order"
@@ -44,7 +47,7 @@ order.confirm;   // { items: [], missing: false }: what to read back when accept
 
 ```ts
 import { TypeSafeClient } from "@typesafe-ai/sdk";
-import type { JevClient } from "./packages/order-taker/index.ts";
+import type { JevClient } from "@question-kit/order-kit";
 
 const client = new TypeSafeClient({ apiKey: process.env.TYPESAFE_API_KEY! });
 const jev: JevClient = {
@@ -105,7 +108,7 @@ const jev: JevClient = {
 ## How well it works
 
 Measured with the pizza menu on the 1,357 PIZZA test orders (written by people; the designs were
-built on the 348 dev orders). Full details in [the pizza example](../../examples/order-taker/pizza/README.md).
+built on the 348 dev orders). Full details in [the pizza example](../../examples/order-kit/pizza/README.md).
 
 | Design | Whole order right | $ per 1,000 orders |
 | --- | --- | --- |

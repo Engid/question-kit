@@ -1,6 +1,6 @@
 # A pizza order taker
 
-[`packages/order-taker`](../../../packages/order-taker/README.md) with the menu of Amazon's
+[`packages/order-kit`](../../../packages/order-kit/README.md) with the menu of Amazon's
 [PIZZA benchmark](https://github.com/amazon-science/pizza-semantic-parsing-dataset): every size,
 style, topping, drink, container and volume (85 toppings, 23 styles, 22 drinks), and every way the
 benchmark's catalogs say customers name them.
@@ -19,7 +19,7 @@ order read back, the check's probabilities, and whether to accept the order or w
 | File | What it is |
 | --- | --- |
 | `menu.ts` | The menu, described with `defineMenu`: two kinds of item (pizza, drink), six fields, the read-backs ("2 large thin crust pizzas with extra cheese and no olives", "1 diet coke, in a can"), and `toPizzaItem`, which turns an order item into the benchmark's answer format. |
-| `eval.ts` | The order taker as three strategies of the pizza experiment's report card: `order-taker`, `order-taker/every-word`, `order-taker/pick`. |
+| `eval.ts` | The order taker as three strategies of the pizza experiment's report card: `order-kit`, `order-kit/every-word`, `order-kit/pick`. |
 | `verify.ts` | Runs each one next to the experiment's design it packages and compares them order by order. |
 | `take-order.ts` | The `order:pizza` command. |
 
@@ -32,9 +32,9 @@ like the benchmark's paper (the whole order must be right):
 | --- | --- | --- |
 | The paper's grammar parser | 68.0% | |
 | The paper's best trained model | 78.6% | |
-| `order-taker` (default: the menu tags what it knows, Jev the rest, then the check) | 95.1% | 1.43 |
-| `order-taker/every-word` | 95.1% | 2.95 |
-| `order-taker/pick` | 96.3% | 4.35 |
+| `order-kit` (default: the menu tags what it knows, Jev the rest, then the check) | 95.1% | 1.43 |
+| `order-kit/every-word` | 95.1% | 2.95 |
+| `order-kit/pick` | 96.3% | 4.35 |
 
 Paper: [Arkoudas et al. 2022](https://arxiv.org/abs/2212.00265).
 
@@ -52,7 +52,7 @@ splits, so they show the shape of the trade-off rather than held-out estimates. 
 let none of the 9 wrong orders through.
 
 ```sh
-bun run pizza --split test --strategies order-taker,order-taker/every-word,order-taker/pick   # the report card
+bun run pizza --split test --strategies order-kit,order-kit/every-word,order-kit/pick   # the report card
 ```
 
 ## Checked against the experiment
@@ -68,7 +68,7 @@ bun run order:pizza:verify --split test
 
 For every order it compares the requests sent to Jev (byte for byte), the order built, and the
 check's probabilities. Result: identical on all 348 dev and 1,357 test orders, for all three
-designs. The unit tests (test/order-taker.test.ts) also check, without calling Jev, that the menu
+designs. The unit tests (test/order-kit.test.ts) also check, without calling Jev, that the menu
 tags, the grouping rules, and the check and pick questions match the experiment's on all 1,705
 orders.
 

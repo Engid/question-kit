@@ -16,14 +16,14 @@ import {
   pickQuestion,
   plural,
   wordTagQuestions,
-} from "../packages/order-taker/index.ts";
-import { pizzaMenu, toPizzaItem } from "../examples/order-taker/pizza/menu.ts";
+} from "../packages/order-kit/index.ts";
+import { pizzaMenu, toPizzaItem } from "../examples/order-kit/pizza/menu.ts";
 import { loadPizza, PIZZA_DIR } from "../research/pizza/data.ts";
 import { goldOf } from "../research/pizza/gold.ts";
 import { BACK_ON_WORDS, loadMenu, NOT_WORDS } from "../research/pizza/menu.ts";
 import { askOrderCheck, askOrderPick, askWordTags, readBackOrder as experimentReadBack } from "../research/pizza/questions.ts";
 import { assemble as experimentAssemble, keywordTags } from "../research/pizza/rules.ts";
-import { DEFAULT_WORDS } from "../packages/order-taker/menu.ts";
+import { DEFAULT_WORDS } from "../packages/order-kit/menu.ts";
 
 // A small cafe: nothing in the library knows about pizza.
 const CAFE = defineMenu({
@@ -158,7 +158,7 @@ describe("order taker: takeOrder", () => {
   });
 });
 
-// The pizza example (examples/order-taker/pizza) must ask exactly the questions the pizza experiment
+// The pizza example (examples/order-kit/pizza) must ask exactly the questions the pizza experiment
 // measured and build exactly its orders. Skipped without `bun run fetch-pizza`.
 const haveMenu = existsSync(join(PIZZA_DIR, "utils", "catalogs", "topping.txt"));
 

@@ -30,17 +30,21 @@ flowchart LR
 
 The questions point at named parts of the state (`words.w3`, `summary.i1`) and offer every option
 the domain allows, each described ("Topping: green peppers; not the same as peppers"). Writing
-those by hand is tedious and easy to get wrong. The goal of **question-kit** is to generate them
-from your domain and state.
+those by hand is tedious and easy to get wrong. The goal of question-kit's **core** is to generate
+them from your domain and state.
 
 ## Packages
 
-### `order-taker` (prototype)
+question-kit is one repo with a package per job: `core`, which generates the questions, and kits
+for particular uses, side by side. The kits will build on `core`; today there is only `order-kit`.
+Each is its own package under the `@question-kit` scope, and none is published yet.
+
+### `order-kit` (prototype)
 
 Takes an order in one message, for any menu you describe:
 
 ```ts
-import { defineMenu, takeOrder } from "./packages/order-taker/index.ts";
+import { defineMenu, takeOrder } from "@question-kit/order-kit";
 
 const cafe = defineMenu({
   name: "coffee",
@@ -63,22 +67,15 @@ order.confirm;   // otherwise, which items to read back, and whether to ask "any
 ```
 
 `jev` is any client with a `systemOne(request)` method; the
-[package README](packages/order-taker/README.md) shows one for TypeSafe's SDK, and every option.
+[package README](packages/order-kit/README.md) shows one for TypeSafe's SDK, and every option.
 
 **How it was measured.** The design comes from the experiments in [`research/`](research/README.md).
 With the menu of Amazon's [PIZZA benchmark](https://github.com/amazon-science/pizza-semantic-parsing-dataset),
 it got 95.1% of 1,357 test orders exactly right (the benchmark paper's best trained model: 78.6%),
 for about $1.43 per 1,000 orders. Its check accepted 75.7% of orders without a read-back, and 7 of
 the 66 wrong orders were among them. That's one benchmark of single-message pizza orders, in
-English, with jev-1.13; other menus haven't been measured. The [pizza example](examples/order-taker/pizza/README.md)
+English, with jev-1.13; other menus haven't been measured. The [pizza example](examples/order-kit/pizza/README.md)
 runs it on the benchmark.
-
-### `question-kit` (planned)
-
-The general version: describe your domain and your state, and get the questions, the references
-and the option lists generated, plus the check pass and a way to measure the result. We'll pull it
-out of the order taker once a second use case shows what's really shared. The plan and notes are in
-[`research/question-kit-plan.md`](research/question-kit-plan.md).
 
 ## Model support
 
@@ -106,18 +103,7 @@ the [report](research/report.md) every number.
 
 ## What's next
 
-1. **A second use case: customer-service intake** ("where's my order?"). One message in, out come
-   what the customer wants (from a list of intents you can add to), which of their orders they mean
-   (options from live data, not a fixed menu), and identifiers like order numbers, names and dates
-   (located by Jev, parsed by code). We'll measure it on public data:
-   [Banking77](https://huggingface.co/datasets/PolyAI/banking77) for intents and
-   [ABCD](https://github.com/asappresearch/abcd) for customer-service conversations with order
-   IDs, names and phone numbers.
-2. **Extract `question-kit`** from what the order taker and the intake have in common.
-3. **Conversations.** Jev as an evaluator ("is the customer adding, changing, confirming?"),
-   alongside state machines like XState's.
-4. **Other decision models.** Review how questions written for Jev translate to other decision
-   APIs, and whether their probabilities are reliable enough for the check pass.
+More kits, and the `core` they'll share. We'll add them here once they've been measured.
 
 ## Try it
 
@@ -133,9 +119,9 @@ Calls to Jev need `TYPESAFE_API_KEY` in `.env`; answers are cached, so re-runnin
 ## What's where
 
 ```
-packages/     the packages: order-taker (question-kit to come)
+packages/     the packages: order-kit, so far
 examples/     things built with them: a pizza order taker, measured on the PIZZA benchmark
-research/     the experiments, the write-up, the detailed report, and the plan
+research/     the experiments, the write-up, and the detailed report
 ```
 
 ## Contributing

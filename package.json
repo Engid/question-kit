@@ -5,6 +5,9 @@
   "private": true,
   "type": "module",
   "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
   "author": "Nick Gideo",
   "scripts": {
     "test": "bun test",
@@ -16,10 +19,11 @@
     "fetch-pizza": "bun research/pizza/fetch.ts",
     "pizza": "bun research/pizza/run.ts",
     "pizza:explain": "bun research/pizza/explain.ts",
-    "order:pizza": "bun examples/order-taker/pizza/take-order.ts",
-    "order:pizza:verify": "bun examples/order-taker/pizza/verify.ts"
+    "order:pizza": "bun examples/order-kit/pizza/take-order.ts",
+    "order:pizza:verify": "bun examples/order-kit/pizza/verify.ts"
   },
   "dependencies": {
+    "@question-kit/order-kit": "workspace:*",
     "@typesafe-ai/sdk": "^0.6.0"
   },
   "devDependencies": {

@@ -1,14 +1,12 @@
-# Order takers built with packages/order-taker
+# Order takers built with packages/order-kit
 
 Each folder here is one shop's order taker: a menu described with `defineMenu`, and whatever
 that shop needs around it. The library itself, and every option, is documented in
-[`packages/order-taker`](../../packages/order-taker/README.md).
+[`packages/order-kit`](../../packages/order-kit/README.md).
 
 | Example | What it shows |
 | --- | --- |
 | [`pizza/`](pizza/README.md) | The menu of Amazon's PIZZA benchmark (85 toppings, 23 styles, 22 drinks, every way its catalogs say them), measured on the benchmark's 1,705 orders and checked against the pizza experiment order by order. |
-
-More to come: a cafe, a deli.
 
 ## Making your own
 

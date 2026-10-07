@@ -9,7 +9,7 @@ result with its uncertainty, and what the numbers do and don't show. Terms are d
 1. [Setup common to both experiments](#1-setup-common-to-both-experiments)
 2. [Experiment 1: dependency parsing](#2-experiment-1-dependency-parsing)
 3. [Experiment 2: pizza orders](#3-experiment-2-pizza-orders)
-4. [The order taker library](#4-the-order-taker-library)
+4. [The order-kit library](#4-the-order-kit-library)
 5. [Cost](#5-cost)
 6. [Caveats](#6-caveats)
 7. [Reproducing the numbers](#7-reproducing-the-numbers)
@@ -521,15 +521,15 @@ cost is both designs together, $4.33 per 1,000 orders on test. When the two desi
 of test orders), the shared order was right 96.5% of the time, so agreement alone isn't a useful
 gate.
 
-## 4. The order taker library
+## 4. The order-kit library
 
-[`packages/order-taker`](../packages/order-taker/README.md) packages the designs above for any menu: a menu
+[`packages/order-kit`](../packages/order-kit/README.md) packages the designs above for any menu: a menu
 names the kinds of item, their fields (one value, a name, or a list with "no", "extra" and
 "light"), and the ways customers say each value. `takeOrder` runs dial 1 and the check by default,
 with dial 3 (`design: "every-word"`) and the pick (`design: "pick"`) as options, and accepts an
 order when every part of the check is under `readBackAt` (default 0.3).
 
-[`examples/order-taker/pizza`](../examples/order-taker/pizza/README.md) describes the PIZZA menu
+[`examples/order-kit/pizza`](../examples/order-kit/pizza/README.md) describes the PIZZA menu
 with it. Checked against the experiment's designs:
 
 - **Questions:** byte-for-byte identical requests for the word, check and pick questions (unit

@@ -39,7 +39,7 @@ import {
 } from "./questions.ts";
 import { loadMenu, type Menu, type WordTag } from "./menu.ts";
 import { type Item, orderToExr, sameOrder } from "./order.ts";
-import { PIZZA_ORDER_TAKER } from "../../examples/order-taker/pizza/eval.ts";
+import { PIZZA_ORDER_TAKER } from "../../examples/order-kit/pizza/eval.ts";
 import { assemble, keywordTags } from "./rules.ts";
 
 export interface PizzaInput {

@@ -1,0 +1,11 @@
+{
+  "name": "@question-kit/order-kit",
+  "version": "0.0.0",
+  "description": "Take an order from one message, for any menu you describe, with Jev and plain code.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.ts"
+  }
+}

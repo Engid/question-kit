@@ -2,18 +2,37 @@
 
 Working notes, not a promise: nothing here is built yet. Last updated 2026-10-07.
 
-## What question-kit is for
+## What `core` is for
 
 Building with Jev means turning a task into classification questions: a state with parts the
 questions can point at (`words.w3`, `summary.i1`), and for each question the options the domain
 allows, each described well. Today that's hand-written strings stitched to code by hand, which is
 tedious, error-prone, and expensive to check (every wording change is a new paid run).
-question-kit should generate those questions from a description of your domain and your state, so
-the strings come out right by construction, and give you the tools to measure what you built.
+question-kit's `core` should generate those questions from a description of your domain and your
+state, so the strings come out right by construction, and give you the tools to measure what you
+built.
 
-We'll extract it once there are two real users of it: the order taker, and the next use case below.
+We'll extract it once two kits need it: `order-kit`, and `service-kit` for the use case below.
 
-## Next use case: customer-service intake ("where's my order?")
+## Layout (decided 2026-10-07)
+
+```
+packages/
+  core/          generates questions from a domain + state, the check pass, measuring (planned)
+  order-kit/     menus, grouping rules, read-backs (today's order taker)
+  service-kit/   intents, values like order numbers and dates, options from records (planned)
+```
+
+- One repo, `question-kit`. Each package is published separately under the `@question-kit` npm
+  scope (`@question-kit/core`, `@question-kit/order-kit`, `@question-kit/service-kit`); none is
+  published yet. The packages are Bun workspaces, so examples import them by name.
+- Kits sit side by side and stay evaluators: they return structured results with probabilities.
+  Routing between them (`service-kit` working out that a customer wants to order, then handing the
+  message to `order-kit`) is left to the app, a state machine such as XState, or a workflow engine.
+- When `order-kit` is rebuilt on `core`, `bun run order:pizza:verify` (the same questions on all
+  1,705 pizza orders) is the regression test.
+
+## Next use case: customer-service intake, as `service-kit` ("where's my order?")
 
 One message from a customer, for example "hi, this is Dana, order 48213 still hasn't shipped" or
 "where's my package? it was supposed to come tuesday". What comes out:
@@ -66,7 +85,7 @@ compare against the cookbooks.
 - [ ] Options from data: "which of these orders?" over a customer's recent orders, with
       made-up account data, including the hard cases (two similar orders, no matching order).
 - [ ] The read-back check for intake.
-- [ ] Write down what the order taker and intake share, then extract question-kit.
+- [ ] Write down what `order-kit` and intake share, then extract `core` and build `service-kit` on it.
 
 ### Where the work goes (proposed)
 
@@ -86,17 +105,13 @@ experiments look like.
 
 ## Open questions
 
-- **One kit, or a core with kits on top?** question-kit as the core (domain → questions,
-  addressable state, the check pass, measuring), with higher-level kits built on it: the order
-  taker, maybe a customer-service kit. Or only question-kit, made easy enough that an order taker
-  is an example. Decide after intake shows what's shared. If the order taker is rebuilt on
-  question-kit, `order:pizza:verify` (the same questions on all 1,705 orders) is the regression
-  test. Magewind's studio work has the same shape: a domain-free core with packs on top.
-- **The tutorial** waits for question-kit, and the examples may move onto it.
+- **The tutorial** waits for `core`, and the examples may move onto it.
+- **A routing helper** for passing a message from one kit to another, if a pattern shows up. Not
+  before there's a routing framework to fit into.
 - **A Python port**, run against the same recorded answers and tests. Not now.
 - **Moving under a Magewind GitHub organization.** Not decided.
 
-## What question-kit should cover (from what we know so far)
+## What `core` should cover (from what we know so far)
 
 - **Domain → options.** Names, other ways of saying them, and "not the same as" notes generated
   from the domain; optionally structured criteria with examples (they took the per-topping design
@@ -132,3 +147,57 @@ experiments look like.
   from wrong orders; consider a router such as OpenRouter.
 - **Run-to-run variation:** does Jev give the same answers to the same request?
   (`bun run order:pizza:verify --client live` measures it on the pizza dev orders.)
+
+## Moved out of the public docs (2026-10-07)
+
+Kept here so nothing is lost; Nick asked to keep unfinished plans private until they're done. The
+links below are relative to `research/`.
+
+### The tutorial outline (from the write-up's "Build your own order taker")
+
+*Later.* The tutorial waits for question-kit's `core`, since that is what most people will build on. The outline as it stood for [`packages/order-kit`](../packages/order-kit/README.md):
+
+1. Describe a menu with `defineMenu`: kinds of item, fields, and how customers say each value.
+2. Connect Jev: a `JevClient` around TypeSafe's SDK, with a cache so re-runs are free.
+3. Take an order with `takeOrder`, and read what it decided: the words, the items, the check.
+4. Decide what to read back: `accept`, `confirm`, and choosing `readBackAt`.
+5. Measure it: write a few dozen orders with their right answers, score whole orders, and look at
+   the ones it gets wrong.
+6. Improve it: more ways of saying things in the menu, `design: "every-word"` or `"pick"`, and the
+   wording settings.
+
+Until then: [`examples/order-kit/README.md`](../examples/order-kit/README.md) has the short
+version, and the [library README](../packages/order-kit/README.md) documents every option.
+
+### Next steps: conversations (from the write-up)
+
+Everything above takes an order in one message. A drive-through is a conversation: "actually, make
+that a medium", "what drinks do you have?", "anything else?", "that's all". That's the next phase,
+and it isn't built yet:
+
+- **A state machine around `takeOrder`, with Jev as the evaluator.** The conversation's states
+  (taking the order, confirming, done) live in code; Jev answers closed questions about each new
+  message: is the customer adding to the order, changing it, answering a read-back, or finished?
+  Code decides what happens next. Stately's [jevspresso](https://github.com/statelyai/jevspresso)
+  demo takes the other approach: its `@xstate/jev` package makes Jev the policy, picking the
+  machine's next event. We'd rather complement that than compete with it, so our side is the
+  evaluator: turning what the customer says into facts that any machine, XState's included, can
+  act on.
+- **Real conversations to measure against.** Google's
+  [Taskmaster-1](https://github.com/google-research-datasets/Taskmaster) (CC BY 4.0) has 5,507
+  spoken two-person dialogs, including 766 coffee orders and 970 pizza orders, with the drinks,
+  sizes and other details annotated turn by turn. Its annotations have errors (a "cappuccino"
+  tagged as a number of drinks), so it needs checking before it can score anything.
+- **A drive-through demo.** Speech in, `takeOrder` on each turn, the read-back spoken out, and the
+  order on screen.
+
+### The README's "What's next" list (before it was shortened)
+
+1. `service-kit`: customer-service intake ("where's my order?"): intents from a list you can add
+   to, options from live data (the customer's orders), identifiers like order numbers, names and
+   dates (located by Jev, parsed by code); measured on Banking77 and ABCD.
+2. Extract `core` from what `order-kit` and `service-kit` have in common, and rebuild the kits on it.
+3. Conversations: Jev as an evaluator ("is the customer adding, changing, confirming?"), alongside
+   state machines like XState's.
+4. Other decision models: review how questions written for Jev translate to other decision APIs,
+   and whether their probabilities are reliable enough for the check pass.

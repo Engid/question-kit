@@ -27,7 +27,7 @@ import { goldOf, type PizzaGold } from "./gold.ts";
 import { pizzaOracle } from "./oracle.ts";
 import { describeItem, type Item, itemsFromExr, itemsMatched, sameOrder } from "./order.ts";
 import { PIZZA_QUESTION_SETS, pizzaRowOf, WORD_TAG } from "./questions.ts";
-import { PIZZA_ORDER_TAKER } from "../../examples/order-taker/pizza/eval.ts";
+import { PIZZA_ORDER_TAKER } from "../../examples/order-kit/pizza/eval.ts";
 import { gatesOf, getPizzaStrategy, PIZZA_ALL, PIZZA_EXPERIMENTS, PIZZA_LINEUP, type PizzaResult, type PizzaStrategy, SURE } from "./strategies.ts";
 
 /** TypeSafe's listed price for jev-1.13 input tokens; output tokens are free. https://docs.typesafe.ai/models.md (checked 2026-10-06) */
@@ -54,7 +54,7 @@ if (args.list) {
   for (const s of PIZZA_LINEUP) console.log(`  ${s.rung ?? " "} ${s.name.padEnd(36)} ${s.summary}`);
   console.log("\nExperiments (--all, or by name)");
   for (const s of PIZZA_EXPERIMENTS) console.log(`    ${s.name.padEnd(36)} ${s.summary}`);
-  console.log("\nThe pizza order taker: packages/order-taker with examples/order-taker/pizza (--all, or by name)");
+  console.log("\nThe pizza order taker: packages/order-kit with examples/order-kit/pizza (--all, or by name)");
   for (const s of PIZZA_ORDER_TAKER) console.log(`    ${s.name.padEnd(36)} ${s.summary}`);
   process.exit(0);
 }

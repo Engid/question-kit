@@ -2,8 +2,8 @@
 
 > These are the original pizza experiments: every design we measured, the scoring, and the report
 > card (`bun run pizza`). The reusable order taker built from what they found is
-> [`packages/order-taker`](../../packages/order-taker/README.md), and its pizza example is
-> [`examples/order-taker/pizza`](../../examples/order-taker/pizza/README.md).
+> [`packages/order-kit`](../../packages/order-kit/README.md), and its pizza example is
+> [`examples/order-kit/pizza`](../../examples/order-kit/pizza/README.md).
 
 The parsing lab found what Jev is good at (sorting things into a fixed list of categories) and what
 it isn't (working out structure across a sentence). This example applies that to taking orders,
@@ -50,9 +50,9 @@ so on orders that have already been run only the new calls cost anything:
 | `pick-dial-1-or-3` | Runs dials 1 and 3; when their orders differ, Jev sees both read back and picks the one that matches | Does a second design plus a pick beat either design alone? |
 | `jev-tags-words/examples`, `code-splits-jev-fills/named-candidates/examples` | Options as TypeSafe's [structured criteria](https://docs.typesafe.ai/primitives/advanced.md): what it is, what it's not for, and examples. The examples are generic (the menu's own spellings and made-up phrases), never taken from the orders | Do examples in the questions help where Jev is already good (word tags) and where it struggles (per-topping questions)? |
 
-The pizza order taker in [`examples/order-taker/pizza`](../../examples/order-taker/pizza/README.md) packages
-the best designs with [`packages/order-taker`](../../packages/order-taker/README.md). Its three designs also
-run here, as `order-taker`, `order-taker/every-word` and `order-taker/pick`, and ask exactly the
+The pizza order taker in [`examples/order-kit/pizza`](../../examples/order-kit/pizza/README.md) packages
+the best designs with [`packages/order-kit`](../../packages/order-kit/README.md). Its three designs also
+run here, as `order-kit`, `order-kit/every-word` and `order-kit/pick`, and ask exactly the
 questions measured above; `bun run order:pizza:verify [--split test]` compares them with these
 designs order by order.
 

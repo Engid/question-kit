@@ -1,4 +1,4 @@
-// The pizza shop's menu for packages/order-taker: the menu of Amazon's PIZZA benchmark, with every
+// The pizza shop's menu for packages/order-kit: the menu of Amazon's PIZZA benchmark, with every
 // size, style, topping, drink, container and volume, and every way its catalogs say customers name
 // them (85 toppings, 23 styles, 22 drinks…).
 //
@@ -9,7 +9,7 @@
 // The wording settings and read-backs below are the ones the pizza experiment measured, so this
 // menu asks Jev exactly the questions behind its numbers.
 
-import { defineMenu, type Menu, type OrderItem, type ReadBack } from "../../../packages/order-taker/index.ts";
+import { defineMenu, type Menu, type OrderItem, type ReadBack } from "@question-kit/order-kit";
 import { BACK_ON_WORDS, loadMenu, NOT_WORDS, type Slot } from "../../../research/pizza/menu.ts";
 import type { Drink, Item, Pizza } from "../../../research/pizza/order.ts";
 

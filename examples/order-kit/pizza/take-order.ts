@@ -1,4 +1,4 @@
-// bun run order:pizza — take one pizza order with packages/order-taker and the pizza menu, and show what it did.
+// bun run order:pizza — take one pizza order with packages/order-kit and the pizza menu, and show what it did.
 //
 //   bun run order:pizza "two large pizzas with extra cheese and no onions and a diet coke"
 //   bun run order:pizza "…" --design every-word        # or pick
@@ -10,7 +10,7 @@ import { CACHE_DIR } from "../../../research/lab/paths.ts";
 import { parseArgs } from "node:util";
 import { LiveJevClient } from "../../../research/lab/jev/live.ts";
 import { RecordingJevClient } from "../../../research/lab/jev/recording.ts";
-import { type Design, takeOrder } from "../../../packages/order-taker/index.ts";
+import { type Design, takeOrder } from "@question-kit/order-kit";
 import { formatTable } from "../../../research/lab/table.ts";
 import { pizzaMenu } from "./menu.ts";
 

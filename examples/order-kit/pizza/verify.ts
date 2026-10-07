@@ -1,7 +1,7 @@
-// bun run order:pizza:verify — does the pizza order taker (packages/order-taker with menu.ts) do exactly
+// bun run order:pizza:verify — does the pizza order taker (packages/order-kit with menu.ts) do exactly
 // what the pizza experiment measured?
 //
-// Runs each order-taker design next to the experiment's design it packages, on every order of a
+// Runs each order-kit design next to the experiment's design it packages, on every order of a
 // split, and compares them order by order: the requests sent to Jev (byte for byte), the order
 // built, and the check's probabilities. With --client replay (the default) it never calls Jev: the
 // order taker's requests must be the experiment's, or the cache has no answer for them and the
@@ -9,9 +9,9 @@
 //
 //   bun run order:pizza:verify                      # dev, from the cache
 //   bun run order:pizza:verify --split test
-//   bun run order:pizza:verify --client live        # ask Jev again (order-taker only, ~$0.50 on dev):
+//   bun run order:pizza:verify --client live        # ask Jev again (order-kit only, ~$0.50 on dev):
 //                                                     how much do its answers vary from run to run?
-//   bun run order:pizza:verify --only order-taker,order-taker/pick
+//   bun run order:pizza:verify --only order-kit,order-kit/pick
 
 import { CACHE_DIR } from "../../../research/lab/paths.ts";
 import { parseArgs } from "node:util";
@@ -33,12 +33,12 @@ const { values: args } = parseArgs({
 });
 
 const ALL_PAIRS: [experiment: string, orderTaker: string][] = [
-  ["keywords-jev-fills-gaps+check", "order-taker"],
-  ["jev-tags-words+check", "order-taker/every-word"],
-  ["pick-dial-1-or-3", "order-taker/pick"],
+  ["keywords-jev-fills-gaps+check", "order-kit"],
+  ["jev-tags-words+check", "order-kit/every-word"],
+  ["pick-dial-1-or-3", "order-kit/pick"],
 ];
 // Asking Jev again costs money, so a live run checks only the default design unless told otherwise.
-const only = args.only ? args.only.split(",") : args.client === "replay" ? undefined : ["order-taker"];
+const only = args.only ? args.only.split(",") : args.client === "replay" ? undefined : ["order-kit"];
 const PAIRS = ALL_PAIRS.filter(([, lib]) => !only || only.includes(lib));
 
 const cacheDir = CACHE_DIR;
