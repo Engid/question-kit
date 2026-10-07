@@ -9,7 +9,7 @@
 
 import type { Answers, QuestionBatch, QuestionMeta } from "../../src/calls.ts";
 import { type PizzaGold, goldItemOfSpan } from "./gold.ts";
-import { aliasesOf, idOf, lookalikesOf, type Menu, type MenuEntry, type Slot, tagOf, type WordTag } from "./menu.ts";
+import { aliasesOf, broaderOf, idOf, lookalikesOf, type Menu, type MenuEntry, type Slot, stems, tagOf, type WordTag } from "./menu.ts";
 import { type Drink, emptyDrink, emptyPizza, type Item, type Pizza } from "./order.ts";
 
 export interface PizzaQuestionSet {
@@ -18,8 +18,15 @@ export interface PizzaQuestionSet {
   expected(meta: QuestionMeta, gold: PizzaGold): string | boolean | undefined;
 }
 
-/** How much the questions explain: aliases and "these are different" notes, or bare names. */
-export type Wording = "full" | "bare";
+/**
+ * How the questions are worded:
+ *   full   names with other spellings, and "these are different" notes (the default)
+ *   bare   menu names only
+ *   named  like full, but the per-style and per-topping questions ask whether the customer *names*
+ *          the entry ("counts only if they say…; don't infer it"), with notes in both directions
+ *          ("plain 'peppers' is a different topping" on green peppers)
+ */
+export type Wording = "full" | "bare" | "named";
 
 const ref = (w: number) => `\`words.w${w}\``;
 const itemRef = (k: number) => `\`items.i${k}\``;
@@ -227,7 +234,7 @@ const STYLE_ANSWERS: Record<string, string> = {
  * Every menu question about item k, asked whatever the item turns out to be (code reads the ones
  * that apply once Jev says whether it's a pizza or a drink).
  */
-export function askItem(k: number, span: number[], menu: Menu, wording: Wording = "full"): QuestionBatch {
+export function askItem(k: number, span: number[], menu: Menu, wording: Wording = "full", only?: Set<string>): QuestionBatch {
   const it = itemRef(k);
   const meta = (set: string, extra: Partial<QuestionMeta> = {}): QuestionMeta => ({ set, item: k, phrase: span, ...extra });
   const choiceOf = (none: string, slot: Slot) => ({
@@ -272,17 +279,69 @@ export function askItem(k: number, span: number[], menu: Menu, wording: Wording 
       meta: meta(ITEM_VOLUME),
     },
   };
-  for (const e of menu.bySlot.style) {
+  const asked = (e: MenuEntry) => !only || only.has(e.entity);
+  for (const e of menu.bySlot.style.filter(asked)) {
     out[`style_i${k}_${idOf(e.entity)}`] = {
-      question: { type: "choice", instructions: `Does the customer want ${it} to be ${describe(e, wording)}?${separate(e, wording, menu, "styles")}`, criteria: STYLE_ANSWERS },
+      question:
+        wording === "named"
+          ? { type: "choice", instructions: `Does the customer name the style ${e.label} for ${it}? ${countsOnly(e)} Don't infer a style from the toppings or from other styles they name.${bothWays(e, menu, "styles")}`, criteria: STYLE_NAMED }
+          : { type: "choice", instructions: `Does the customer want ${it} to be ${describe(e, wording)}?${separate(e, wording, menu, "styles")}`, criteria: STYLE_ANSWERS },
       meta: meta(ITEM_STYLE, { entity: e.entity }),
     };
   }
-  for (const e of menu.bySlot.topping) {
+  for (const e of menu.bySlot.topping.filter(asked)) {
     out[`topping_i${k}_${idOf(e.entity)}`] = {
-      question: { type: "choice", instructions: `Does the customer want ${describe(e, wording)} on ${it}?${separate(e, wording, menu, "toppings")}`, criteria: TOPPING_ANSWERS },
+      question:
+        wording === "named"
+          ? { type: "choice", instructions: `Does the customer name ${e.label} for ${it}? ${countsOnly(e)} Don't infer it from anything else they say.${bothWays(e, menu, "toppings")}`, criteria: TOPPING_NAMED }
+          : { type: "choice", instructions: `Does the customer want ${describe(e, wording)} on ${it}?${separate(e, wording, menu, "toppings")}`, criteria: TOPPING_ANSWERS },
       meta: meta(ITEM_TOPPING, { entity: e.entity }),
     };
+  }
+  return out;
+}
+
+const TOPPING_NAMED: Record<string, string> = {
+  no: "Not named for this item",
+  yes: "Named, a normal amount",
+  extra: "Named with more of it: extra, more, lots of, heavy on",
+  light: "Named with less of it: light, a little, not much",
+  not: "Named as unwanted: no …, without …, hold the …, avoid …",
+  not_extra: "Named as 'not extra' ('no extra cheese')",
+};
+
+const STYLE_NAMED: Record<string, string> = {
+  no: "Not named for this item",
+  yes: "Named as wanted",
+  not: "Named as unwanted ('not thin crust', 'without the deep dish'); picking a different style doesn't count",
+};
+
+/** "It counts only if they say thin crust (or: thin crusts)." */
+function countsOnly(e: MenuEntry): string {
+  const also = aliasesOf(e);
+  return `It counts only if they say ${e.label}${also.length ? ` (or: ${also.join(", ")})` : ""}.`;
+}
+
+/** Notes in both directions: plainer names are different entries, and so are more specific ones. */
+function bothWays(e: MenuEntry, menu: Menu, what: string): string {
+  const broader = broaderOf(e, menu).map((o) => `"${o.label}"`);
+  const narrower = lookalikesOf(e, menu).map((o) => o.label);
+  return (
+    (broader.length ? ` If they only say ${broader.join(" or ")}, that is a different entry, so the answer here is "not named".` : "") +
+    (narrower.length ? ` ${narrower.join(", ")} are separate ${what} with their own questions.` : "")
+  );
+}
+
+/**
+ * Menu entries worth asking about for a part of the order: those sharing a word with it ("cheese"
+ * brings in every cheese). The rest can't have been named, so code answers "not named" for them.
+ */
+export function candidateEntries(text: string, menu: Menu): Set<string> {
+  const STOP = new Set(["with", "and", "the", "a", "an", "of", "on", "in", "no", "not", "i", "to", "it", "me", "my", "please", "pizza", "pie", "want", "like", "order", "get", "have", "some", "extra", "light", "but", "for", "can", "one"]);
+  const words = new Set(stems(text).filter((w) => w.length > 1 && !STOP.has(w)));
+  const out = new Set<string>();
+  for (const e of [...menu.bySlot.topping, ...menu.bySlot.style]) {
+    if (e.surfaces.some((s) => stems(s).some((w) => words.has(w)))) out.add(e.entity);
   }
   return out;
 }

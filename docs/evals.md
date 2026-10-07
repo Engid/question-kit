@@ -42,6 +42,7 @@ bun run explain "…" --raw                                 # every question and
 | `--split dev\|test` | `dev` | Where `--id` looks. |
 | `--client` | `record` | `record`: use the cache and call Jev on a miss. `replay`: cache only. `live`: always call Jev. `dry`: fake uniform answers (sizes only). `oracle`: answers from the treebank (needs `--id`; a plumbing check). |
 | `--raw` | off | Print every question and answer in full JSON instead of one example per question set. |
+| `--mermaid` | off | Print only the resulting tree, as a Mermaid diagram to paste into Markdown (wrong attachments in red with `--id`). |
 
 How to read it:
 

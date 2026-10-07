@@ -112,6 +112,31 @@ export function formatAnswerLines(lines: AnswerLine[], topK = 3): string[] {
 }
 
 /**
+ * The parse as a Mermaid flowchart (GitHub renders these in Markdown). Arrows go from each word to
+ * the words attached to it, labelled with the relationship. With gold, a word the parse attached
+ * wrongly is drawn in red and names the word the treebank attaches it to.
+ */
+export function mermaidTree(r: ParseResult, gold?: Gold): string[] {
+  const esc = (s: string) => s.replace(/"/g, "#quot;");
+  const lines = ["flowchart TD", '  root(("main word"))'];
+  const wrong: string[] = [];
+  r.tokens.forEach((t, i) => {
+    const d = i + 1;
+    const g = gold?.words[i];
+    const bad = g !== undefined && g.head !== r.edges[i]!.head;
+    const note = bad ? `<br/>✗ treebank: on ${g!.head === 0 ? "nothing (main word)" : `“${esc(gold!.words[g!.head - 1]?.form ?? "?")}”`}` : "";
+    lines.push(`  w${d}["${esc(t.form)}${note}"]`);
+    if (bad) wrong.push(`w${d}`);
+  });
+  for (const e of r.edges) lines.push(`  ${e.head === 0 ? "root" : `w${e.head}`} -->|${e.deprel}| w${e.dep}`);
+  if (wrong.length) {
+    lines.push("  classDef wrong fill:#fdecea,stroke:#c0392b,color:#7b241c");
+    lines.push(`  class ${wrong.join(",")} wrong`);
+  }
+  return lines;
+}
+
+/**
  * The parse as an indented tree from the main word down. With gold, wrong attachments are marked
  * with the word the treebank attaches them to.
  */

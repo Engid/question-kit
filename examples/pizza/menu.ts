@@ -108,9 +108,25 @@ export function aliasesOf(e: MenuEntry, max = 4): string[] {
  * answers about this exact entry.
  */
 export function lookalikesOf(e: MenuEntry, menu: Menu): MenuEntry[] {
+  // (A simpler plural rule than stems(): kept as it was so recorded questions stay byte-identical.)
   const words = (s: string) => s.split(" ").map((w) => w.replace(/s$/, ""));
   const mine = words(e.label);
   return menu.bySlot[e.slot].filter((o) => o !== e && mine.every((w) => words(o.label).includes(w)));
+}
+
+/** The reverse: plainer entries whose names are inside this one's ("peppers" for green peppers). */
+export function broaderOf(e: MenuEntry, menu: Menu): MenuEntry[] {
+  const mine = stems(e.label);
+  return menu.bySlot[e.slot].filter((o) => o !== e && stems(o.label).every((w) => mine.includes(w)));
+}
+
+/** Words without plural endings: "tomatoes" → "tomato", "olives" → "olive". */
+export function stems(s: string): string[] {
+  return s
+    .toLowerCase()
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map((w) => (w.endsWith("oes") ? w.slice(0, -2) : w.replace(/s$/, "")));
 }
 
 /** A safe option or question id for an entity: "16.9 FLOZ" → "16_9_FLOZ". */

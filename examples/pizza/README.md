@@ -28,9 +28,12 @@ and measures it on a public answer key: Amazon's
 | 3 | `jev-tags-words` | tags every word with one Choice over the whole menu (~170 options) | the same rules as rung 0 group the tags |
 | 4 | `jev-splits-jev-fills` | says where each item starts, then answers the menu questions | cuts the order where Jev said |
 
-Experiments: `jev-tags-words/nested` (what kind of thing, then which one), and `/bare-names`
+Experiments: `jev-tags-words/nested` (what kind of thing, then which one), `/bare-names`
 versions of rungs 2 and 3 (menu names only: no other spellings, no "not the same as green
-peppers" notes).
+peppers" notes), and `/named` versions of rungs 2 and 4, where each style and topping question
+asks whether the customer *names* it ("counts only if they say…; don't infer it", with notes in
+both directions), plus `code-splits-jev-fills/named-candidates`, where code only asks about the
+styles and toppings that share a word with the item.
 
 Every Jev strategy also reports a confidence gate: the share of orders where every answer used was
 ≥ 90% sure, and how often those were right.
@@ -51,16 +54,19 @@ Estimated cost (from `--client oracle` request sizes, which overestimate by ~15%
 lineup on dev, $2 more for the experiments, and about $9 for the lineup on test. `--client dry`
 isn't useful here: with uniform answers, rung 4 starts a new item at every word.
 
-## Numbers measured without Jev
+## Results
 
-| | dev (in-sample) | test |
+On the 1,357 test orders, run once at the end (designs were built on the 348 dev orders):
+
+| Design | Whole order right | $ / 1k orders |
 | --- | --- | --- |
-| The paper's grammar parser (PCFG), from the dataset's own per-order flag | 69.5% | 68.0% |
-| `keywords` (rung 0) | 96.0% | 93.3% |
-| The rules given the answer key's tags (the ceiling of rungs 0, 1 and 3) | 98.3% | 96.6% |
+| The paper's grammar parser (PCFG) | 68.0% | |
+| The paper's best trained model (BART) | 78.6% | |
+| `keywords` (rung 0) | 93.3% | 0 |
+| `keywords-jev-fills-gaps` (rung 1) | 95.1% | 1.40 |
+| `jev-tags-words` (rung 3) | 95.1% | 2.93 |
+| `code-splits-jev-fills/named-candidates` | 73.2% | 0.20 |
 
-The keyword rules were written while looking at dev orders, so dev is in-sample; the test number
-was measured once, without looking at test orders. Even so, the menu's own word lists and ~150
-lines of rules beat both of the paper's systems on this dataset. Jev has to earn its place on the
-remaining few percent: phrasing the word lists don't cover ("more cheese", "do not add any
-peppers", "coca-cola", "hamburger").
+The one-question-per-topping designs (rungs 2 and 4) got 8.3% and 6.0% of dev orders right as first
+worded, and 69–75% after rewording. The [detailed report](../../docs/report.md#3-experiment-2-pizza-orders)
+has every design, the paired tests, the confidence gate, and why the per-topping designs failed.

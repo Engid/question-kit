@@ -11,7 +11,7 @@
 
 import { CallLog, type CallRecord, type CallStats, type CodeStep } from "../../src/calls.ts";
 import type { Entry, JevClient } from "../../src/jev/types.ts";
-import { askItem, askItemStarts, askWordTags, readItem, readWordTags, type Wording } from "./questions.ts";
+import { askItem, askItemStarts, askWordTags, candidateEntries, readItem, readWordTags, type Wording } from "./questions.ts";
 import { loadMenu, type WordTag } from "./menu.ts";
 import { type Item, orderToExr } from "./order.ts";
 import { assemble, keywordTags } from "./rules.ts";
@@ -109,11 +109,19 @@ export const keywordsJevFillsGaps: PizzaStrategy = {
 
 // ------------------------------------------------------------------ rungs 2 and 4: menu questions per item
 
-async function fillItems(name: string, input: PizzaInput, log: CallLog, spans: [number, number][], wording: Wording, extraConfidence: number[] = []): Promise<PizzaResult> {
+interface FillOptions {
+  wording: Wording;
+  /** Ask only about styles and toppings sharing a word with the part (code answers "no" for the rest). */
+  candidates?: boolean;
+}
+
+async function fillItems(name: string, input: PizzaInput, log: CallLog, spans: [number, number][], o: FillOptions, extraConfidence: number[] = []): Promise<PizzaResult> {
   const menu = loadMenu();
   const spanText = (s: [number, number]) => input.words.slice(s[0] - 1, s[1]).join(" ");
   const state: Entry = { order: input.text, items: Object.fromEntries(spans.map((s, k) => [`i${k + 1}`, spanText(s)])) };
-  const batches = spans.map((s, k) => askItem(k + 1, range(s[0], s[1]), menu, wording));
+  const only = o.candidates ? spans.map((s) => candidateEntries(spanText(s), menu)) : undefined;
+  if (only) log.note(`Code kept the styles and toppings that share a word with each part: ${only.map((c, k) => `item ${k + 1}: ${[...c].map((e) => e.toLowerCase().replace(/_/g, " ")).join(", ") || "none"}`).join("; ")}.`);
+  const batches = spans.map((s, k) => askItem(k + 1, range(s[0], s[1]), menu, o.wording, only?.[k]));
   const answers = await log.call(`menu questions for ${spans.length} item${spans.length === 1 ? "" : "s"}`, state, ...batches);
   const readings = spans.map((_, k) => readItem(answers, k + 1, menu));
   const items = readings.flatMap((r) => (r.item ? [r.item] : []));
@@ -123,7 +131,7 @@ async function fillItems(name: string, input: PizzaInput, log: CallLog, spans: [
   return result(name, items, spans, log, confidence);
 }
 
-function codeSplitsJevFills(name: string, wording: Wording, group: PizzaStrategy["group"], summary: string, rung?: number): PizzaStrategy {
+function codeSplitsJevFills(name: string, fill: FillOptions, group: PizzaStrategy["group"], summary: string, rung?: number): PizzaStrategy {
   return {
     name,
     group,
@@ -136,42 +144,52 @@ function codeSplitsJevFills(name: string, wording: Wording, group: PizzaStrategy
       // An order where the word lists find nothing is still one item for Jev to read.
       const parts: [number, number][] = spans.length ? spans : [[1, input.words.length]];
       log.note(`Code split the order into ${parts.length} part${parts.length === 1 ? "" : "s"}: ${parts.map((s) => `"${input.words.slice(s[0] - 1, s[1]).join(" ")}"`).join(" | ")}`);
-      return fillItems(name, input, log, parts, wording);
+      return fillItems(name, input, log, parts, fill);
     },
   };
 }
 
 export const codeSplitsJevFillsStrategy = codeSplitsJevFills(
   "code-splits-jev-fills",
-  "full",
+  { wording: "full" },
   "ladder",
   "Code splits the order into items (word lists + rules); Jev answers menu questions about each item: pizza or drink, how many, size, and one question per style and topping (1 call).",
   2,
 );
 
-export const jevSplitsJevFills: PizzaStrategy = {
-  name: "jev-splits-jev-fills",
-  group: "ladder",
-  rung: 4,
-  usesJev: true,
-  summary: "Jev says where each item starts (call 1); code cuts the order there; Jev answers the menu questions about each item (call 2).",
-  async parse(input, jev) {
-    const log = new CallLog(jev);
-    const n = input.words.length;
-    const answers = await log.call("where items start", wordsState(input), askItemStarts(n));
-    const starts = [1];
-    const ps: number[] = [];
-    for (let w = 2; w <= n; w++) {
-      const a = answers[`start_w${w}`];
-      const p = a && "noul" in a ? a.noul : 0;
-      ps.push(Math.max(p, 1 - p));
-      if (p >= 0.5) starts.push(w);
-    }
-    const spans: [number, number][] = starts.map((s, k) => [s, (starts[k + 1] ?? n + 1) - 1]);
-    log.note(`Cut the order where Jev said items start: ${spans.map((s) => `"${input.words.slice(s[0] - 1, s[1]).join(" ")}"`).join(" | ")}`);
-    return fillItems("jev-splits-jev-fills", input, log, spans, "full", ps);
-  },
-};
+export const jevSplitsJevFills = jevSplits(
+  "jev-splits-jev-fills",
+  { wording: "full" },
+  "ladder",
+  "Jev says where each item starts (call 1); code cuts the order there; Jev answers the menu questions about each item (call 2).",
+  4,
+);
+
+function jevSplits(name: string, fill: FillOptions, group: PizzaStrategy["group"], summary: string, rung?: number): PizzaStrategy {
+  return {
+    name,
+    group,
+    ...(rung !== undefined ? { rung } : {}),
+    usesJev: true,
+    summary,
+    async parse(input, jev) {
+      const log = new CallLog(jev);
+      const n = input.words.length;
+      const answers = await log.call("where items start", wordsState(input), askItemStarts(n));
+      const starts = [1];
+      const ps: number[] = [];
+      for (let w = 2; w <= n; w++) {
+        const a = answers[`start_w${w}`];
+        const p = a && "noul" in a ? a.noul : 0;
+        ps.push(Math.max(p, 1 - p));
+        if (p >= 0.5) starts.push(w);
+      }
+      const spans: [number, number][] = starts.map((s, k) => [s, (starts[k + 1] ?? n + 1) - 1]);
+      log.note(`Cut the order where Jev said items start: ${spans.map((s) => `"${input.words.slice(s[0] - 1, s[1]).join(" ")}"`).join(" | ")}`);
+      return fillItems(name, input, log, spans, fill, ps);
+    },
+  };
+}
 
 // ------------------------------------------------------------------ rung 3
 
@@ -212,7 +230,20 @@ export const PIZZA_LINEUP: PizzaStrategy[] = [keywords, keywordsJevFillsGaps, co
 export const PIZZA_EXPERIMENTS: PizzaStrategy[] = [
   jevTagsWords("jev-tags-words/nested", { nested: true }, "experiment", "Like jev-tags-words, but each word is asked in two levels: what kind of thing (topping, size, drink…), then which one."),
   jevTagsWords("jev-tags-words/bare-names", { wording: "bare" }, "experiment", "Like jev-tags-words, but options are bare menu names: no other spellings, no \"not the same as\" notes."),
-  codeSplitsJevFills("code-splits-jev-fills/bare-names", "bare", "experiment", "Like code-splits-jev-fills, but the questions use bare menu names: no other spellings, no \"not the same as\" notes."),
+  codeSplitsJevFills("code-splits-jev-fills/bare-names", { wording: "bare" }, "experiment", "Like code-splits-jev-fills, but the questions use bare menu names: no other spellings, no \"not the same as\" notes."),
+  codeSplitsJevFills(
+    "code-splits-jev-fills/named",
+    { wording: "named" },
+    "experiment",
+    "Like code-splits-jev-fills, but each style and topping question asks whether the customer names it (\"counts only if they say…; don't infer it\"), with notes both ways (\"plain 'peppers' is a different topping\").",
+  ),
+  codeSplitsJevFills(
+    "code-splits-jev-fills/named-candidates",
+    { wording: "named", candidates: true },
+    "experiment",
+    "Like code-splits-jev-fills/named, but code only asks about styles and toppings that share a word with the item (\"cheese\" brings in every cheese); the rest are \"not named\".",
+  ),
+  jevSplits("jev-splits-jev-fills/named", { wording: "named" }, "experiment", "Like jev-splits-jev-fills, with the named wording of code-splits-jev-fills/named."),
 ];
 
 export const PIZZA_ALL = [...PIZZA_LINEUP, ...PIZZA_EXPERIMENTS];

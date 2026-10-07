@@ -8,6 +8,7 @@
 //   bun run explain "…" --client replay            cached answers only (never calls the API)
 //   bun run explain --id <sent_id> --client oracle the gold-tree oracle (a plumbing check)
 //   bun run explain "…" --raw                      print every question and answer as raw JSON
+//   bun run explain --id <sent_id> --mermaid       just the result, as a Mermaid diagram for Markdown
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -22,7 +23,7 @@ import { QUESTION_SETS } from "../src/question-sets/index.ts";
 import { getStrategy, usesJev } from "../src/strategies/index.ts";
 import { loadSplit, type Split } from "./data.ts";
 import { rowOf } from "./metrics.ts";
-import { answerLine, formatAnswerLines, notScored, renderTree, resolvePaths } from "./render.ts";
+import { answerLine, formatAnswerLines, mermaidTree, notScored, renderTree, resolvePaths } from "./render.ts";
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,
@@ -32,6 +33,7 @@ const { values: args, positionals } = parseArgs({
     id: { type: "string" },
     split: { type: "string", default: "dev" },
     raw: { type: "boolean", default: false },
+    mermaid: { type: "boolean", default: false },
   },
 });
 
@@ -70,6 +72,12 @@ function client(): JevClient {
 const strategy = getStrategy(args.strategy as string);
 const r = await strategy.parse(input, usesJev(strategy) ? client() : new MockJevClient());
 const words = r.tokens.map((t) => t.form);
+
+// --mermaid: just the result as a Mermaid diagram, for pasting into Markdown.
+if (args.mermaid) {
+  console.log(["```mermaid", ...mermaidTree(r, gold), "```"].join("\n"));
+  process.exit(0);
+}
 
 const rule = (title: string) => console.log(`\n━━ ${title} ${"━".repeat(Math.max(0, 76 - title.length))}`);
 const indent = (lines: string[], n = 3) => lines.map((l) => " ".repeat(n) + l).join("\n");
