@@ -26,11 +26,10 @@ import { goldOf, type PizzaGold } from "./gold.ts";
 import { pizzaOracle } from "./oracle.ts";
 import { describeItem, type Item, itemsFromExr, itemsMatched, sameOrder } from "./order.ts";
 import { PIZZA_QUESTION_SETS, pizzaRowOf, WORD_TAG } from "./questions.ts";
-import { getPizzaStrategy, PIZZA_ALL, PIZZA_EXPERIMENTS, PIZZA_LINEUP, type PizzaResult, type PizzaStrategy } from "./strategies.ts";
+import { gatesOf, getPizzaStrategy, PIZZA_ALL, PIZZA_EXPERIMENTS, PIZZA_LINEUP, type PizzaResult, type PizzaStrategy, SURE } from "./strategies.ts";
 
 /** TypeSafe's listed price for jev-1.13 input tokens; output tokens are free. https://docs.typesafe.ai/models.md (checked 2026-10-06) */
 const USD_PER_MTOK = 0.042;
-const SURE = 0.9;
 
 const { values: args } = parseArgs({
   options: {
@@ -288,17 +287,33 @@ if (jevStrategies.length) {
   console.log(`  scored:   the answer key says what the right answer is (it doesn't for words like "with", or for
             a part the strategy cut that matches no item).`);
 
-  section(`Trust the confident orders? (every answer the order was built from ≥ ${SURE} sure)`);
-  printTable(
-    ["strategy", "orders that sure", "right among them", "right among the rest"],
-    jevStrategies.map((s) => {
-      const os = scored(s.name);
-      const sure = os.filter((o) => (o.result!.confidence ?? 0) >= SURE);
-      const rest = os.filter((o) => (o.result!.confidence ?? 0) < SURE);
-      return [s.name, pct(sure.length / os.length), sure.length ? pct(share(sure, (o) => !!o.right)) : "—", rest.length ? pct(share(rest, (o) => !!o.right)) : "—"];
-    }),
-  );
-  console.log("  An app could accept the sure orders as they are and read the rest back to the customer.");
+  section("Accept the order as is, or read it back? Each way of deciding, and the mistakes it catches");
+  const gateRows: (string | number)[][] = [];
+  for (const s of jevStrategies) {
+    const os = scored(s.name);
+    const names = [...new Set(os.flatMap((o) => Object.keys(gatesOf(o.result!))))];
+    for (const [i, g] of names.entries()) {
+      const accepted = os.filter((o) => gatesOf(o.result!)[g]);
+      const flagged = os.filter((o) => !gatesOf(o.result!)[g]);
+      const wrong = os.filter((o) => !o.right);
+      const caught = flagged.filter((o) => !o.right).length;
+      gateRows.push([
+        i === 0 ? s.name : "",
+        g,
+        pct(accepted.length / os.length),
+        accepted.length ? pct(share(accepted, (o) => !!o.right)) : "—",
+        `${caught} of ${wrong.length}`,
+        flagged.length ? pct(caught / flagged.length) : "—",
+      ]);
+    }
+  }
+  printTable(["strategy", "accept as is when", "accepted", "right among accepted", "wrong orders caught", "read-backs that were wrong"], gateRows);
+  console.log(`  accepted                    orders an app would take without reading them back
+  wrong orders caught         wrong orders that would be read back to the customer instead (the rest slip through)
+  read-backs that were wrong  of the orders read back, how many were actually wrong (the rest were right all along)
+  every answer ≥ ${SURE}          Jev's top answer was at least ${SURE} likely for every answer the order was built from
+  check                       P(wrong) from the order-check questions: the whole order in one question, or the
+                              worst of one question per item and one for "anything missing?"`);
 }
 
 // Examples: wrong orders from the best Jev strategy (or the baseline).
@@ -341,7 +356,16 @@ if (!args["no-save"]) {
               rung: s.rung,
               summary: s.summary,
               right: share(scored(s.name), (o) => !!o.right),
-              orders: scored(s.name).map((o) => ({ id: o.row.id, text: o.row.text, right: o.right, exr: o.result!.exr, gold: o.row.exr, confidence: o.result!.confidence })),
+              orders: scored(s.name).map((o) => ({
+                id: o.row.id,
+                text: o.row.text,
+                right: o.right,
+                exr: o.result!.exr,
+                gold: o.row.exr,
+                confidence: o.result!.confidence,
+                ...(o.result!.check ? { check: o.result!.check } : {}),
+                ...(o.result!.agreed !== undefined ? { agreed: o.result!.agreed, pick: o.result!.pick } : {}),
+              })),
             },
           ]),
         ),

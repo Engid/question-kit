@@ -35,8 +35,20 @@ asks whether the customer *names* it ("counts only if they say…; don't infer i
 both directions), plus `code-splits-jev-fills/named-candidates`, where code only asks about the
 styles and toppings that share a word with the item.
 
-Every Jev strategy also reports a confidence gate: the share of orders where every answer used was
-≥ 90% sure, and how often those were right.
+Three more sets of experiments ask what a real order taker would need. They reuse the designs above,
+so on orders that have already been run only the new calls cost anything:
+
+| Experiment | What it adds | Why |
+| --- | --- | --- |
+| `keywords-jev-fills-gaps/follow-up`, `jev-tags-words/follow-up` | Words Jev was under 90% sure of are asked again, with only the options it was torn between plus "none", pointing at the words around it | Does a second, narrower question fix mistakes, or make more orders safe to accept? |
+| `keywords+check`, `keywords-jev-fills-gaps+check`, `jev-tags-words+check`, `code-splits-jev-fills/named-candidates+check` | The finished order is read back to Jev next to what the customer said: is it wrong? Asked for the whole order, for each item, and "is anything missing?" (yes means wrong, as in TypeSafe's [verification cascade](https://docs.typesafe.ai/cookbooks/sde_cascade.md)) | Can Jev catch wrong orders, so only those are read back to the customer? |
+| `pick-rung-1-or-3` | Runs rungs 1 and 3; when their orders differ, Jev sees both read back and picks the one that matches | Does a second design plus a pick beat either design alone? |
+| `jev-tags-words/examples`, `code-splits-jev-fills/named-candidates/examples` | Options as TypeSafe's [structured criteria](https://docs.typesafe.ai/primitives/advanced.md): what it is, what it's not for, and examples. The examples are generic (the menu's own spellings and made-up phrases), never taken from the orders | Do examples in the questions help where Jev is already good (word tags) and where it struggles (per-topping questions)? |
+
+Every Jev strategy reports how an app could decide between accepting an order as is and reading it
+back to the customer: when every answer used was ≥ 90% sure, when the check passes, when the two
+designs agree. For each, it shows the share of orders accepted, how often those were right, and how
+many of the wrong orders would have been caught.
 
 ## Run it
 
@@ -48,11 +60,15 @@ bun run pizza:explain --id dev-17 --client replay     # one order: every questio
 bun run pizza:explain "two large pizzas with extra cheese and a diet coke"
 bun run pizza --client oracle                         # perfect answers: each strategy's ceiling, and cost estimates
 bun run pizza --split test --client record            # the final numbers: run once, at the end
+bun run pizza:explain --id dev-17 --strategy keywords-jev-fills-gaps+check --client replay
 ```
 
 Estimated cost (from `--client oracle` request sizes, which overestimate by ~15%): about $2 for the
-lineup on dev, $2 more for the experiments, and about $9 for the lineup on test. `--client dry`
-isn't useful here: with uniform answers, rung 4 starts a new item at every word.
+lineup on dev, $2 more for the first experiments, and about $9 for the lineup on test. Of the newer
+experiments, the follow-ups, checks and pick add about $0.06 on dev and $0.20 on test (their first
+calls are the lineup's, already cached once run); `jev-tags-words/examples` is about $1.70 on dev
+and `code-splits-jev-fills/named-candidates/examples` about $0.11. `--client dry` isn't useful here:
+with uniform answers, rung 4 starts a new item at every word.
 
 ## Results
 

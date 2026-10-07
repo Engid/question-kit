@@ -27,6 +27,8 @@ export interface QuestionMeta {
   item?: number;
   /** For questions about one menu entry (examples/pizza): its id, e.g. "OLIVES". */
   entity?: string;
+  /** For questions that check an order (examples/pizza): what is checked as an EXR tree, or one per option. */
+  exr?: string | Record<string, string>;
   /**
    * What each option means: a word id (0 = root), a list of word ids (a phrase), or a label like
    * "outside". Lets explain print "across" instead of "w7".

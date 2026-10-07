@@ -160,6 +160,27 @@ export function itemsMatched(predicted: Item[], gold: Item[]): number {
   return n;
 }
 
+/**
+ * An item read back the way a clerk would say it, with the menu's names:
+ * "2 large thin crust pizzas with ham, extra cheese and no olives", "1 diet coke, 2 liter, in a can".
+ * The whole-order check shows these to Jev next to what the customer said.
+ */
+export function readBack(item: Item, label: (slot: string, entity: string) => string): string {
+  const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+  if (item.kind === "drink") {
+    const name = item.drink ? label("drink", item.drink) : "drink";
+    const bits = [item.size ? label("size", item.size) : "", item.volume ? label("volume", item.volume) : ""].filter(Boolean);
+    const container = item.container ? `in ${item.number === 1 ? "a " : ""}${label("container", item.container)}${item.number === 1 ? "" : "s"}` : "";
+    return [`${item.number} ${name}`, ...bits, container].filter(Boolean).join(", ");
+  }
+  const size = item.size ? `${label("size", item.size)} ` : "";
+  const wanted = item.styles.filter((s) => !s.not).map((s) => `${label("style", s.name)} `).join("");
+  const notStyles = item.styles.filter((s) => s.not).map((s) => `not ${label("style", s.name)}`);
+  const tops = item.toppings.map((t) => `${t.not ? (t.quantity === "EXTRA" ? "not extra " : "no ") : t.quantity === "EXTRA" ? "extra " : t.quantity === "LIGHT" ? "light " : ""}${label("topping", t.name)}`);
+  const head = `${item.number} ${size}${wanted}pizza${item.number === 1 ? "" : "s"}`;
+  return [head + (tops.length ? ` with ${list(tops)}` : ""), ...notStyles].join(", ");
+}
+
 /** One line per item, for people: "2 × large pizza: ham, extra cheese, no olives · thin crust". */
 export function describeItem(item: Item): string {
   const lower = (s: string) => s.toLowerCase().replace(/_/g, " ");

@@ -8,12 +8,37 @@
 //   rung 4  jev-splits-jev-fills       Jev says where each item starts, then answers the menu questions
 //
 // Each one is a short function: the Jev calls and the code between them.
+//
+// Experiments on top of the ladder (--all):
+//   …/follow-up     ask again about the words Jev was under 90% sure of, with fewer options
+//   …+check         read the finished order back to Jev: is anything wrong? (an accept-or-confirm signal)
+//   pick-rung-1-or-3  run rungs 1 and 3; when they disagree, Jev picks the order that matches
+//   …/examples      TypeSafe's structured criteria: each option with what, not_for and examples
 
-import { CallLog, type CallRecord, type CallStats, type CodeStep } from "../../src/calls.ts";
+import { type Answers, CallLog, type CallRecord, type CallStats, type CodeStep } from "../../src/calls.ts";
 import type { Entry, JevClient } from "../../src/jev/types.ts";
-import { askItem, askItemStarts, askWordTags, candidateEntries, readItem, readWordTags, type Wording } from "./questions.ts";
-import { loadMenu, type WordTag } from "./menu.ts";
-import { type Item, orderToExr } from "./order.ts";
+import {
+  askItem,
+  askItemStarts,
+  askOrderCheck,
+  askOrderPick,
+  askTagFollowUps,
+  askWordTags,
+  candidateEntries,
+  type OrderCheck,
+  readBackOrder,
+  readItem,
+  readOrderCheck,
+  readOrderPick,
+  readTagFollowUps,
+  readWordTags,
+  type TagOptions,
+  type TagReading,
+  topOptions,
+  type Wording,
+} from "./questions.ts";
+import { loadMenu, type Menu, type WordTag } from "./menu.ts";
+import { type Item, orderToExr, sameOrder } from "./order.ts";
 import { assemble, keywordTags } from "./rules.ts";
 
 export interface PizzaInput {
@@ -32,6 +57,11 @@ export interface PizzaResult {
   stats: CallStats;
   /** For Jev strategies: the lowest top-answer probability among the answers the order was built from. */
   confidence?: number;
+  /** With a whole-order check: Jev's probability that the order read back is wrong. */
+  check?: OrderCheck;
+  /** For pick-between: whether the two designs built the same order, and how sure Jev was of its pick when they didn't. */
+  agreed?: boolean;
+  pick?: { choice: "first" | "second" | "neither"; p: number };
 }
 
 export interface PizzaStrategy {
@@ -78,34 +108,70 @@ export const keywords: PizzaStrategy = {
 
 // ------------------------------------------------------------------ rung 1
 
-export const keywordsJevFillsGaps: PizzaStrategy = {
-  name: "keywords-jev-fills-gaps",
-  group: "ladder",
-  rung: 1,
-  usesJev: true,
-  summary: "The word lists tag what they know; Jev tags only the words they don't (\"more\", \"hamburger\", \"coca-cola\"); the same rules group them.",
-  async parse(input, jev) {
-    const menu = loadMenu();
-    const log = new CallLog(jev);
-    const tags = keywordTags(input.words, menu);
-    const unknown = range(1, input.words.length).filter((w) => tags[w] === "none");
-    log.note(`Word lists: ${describeTags(input, tags) || "(nothing recognized)"}. Asking Jev about the other ${unknown.length} words.`);
-    const answers = await log.call("tags for the words the lists don't know", wordsState(input), askWordTags(unknown, menu));
-    const readings = readWordTags(answers, unknown);
-    const changed: string[] = [];
-    for (const [w, r] of readings) {
-      if (r.tag !== "none") {
-        tags[w] = r.tag;
-        changed.push(`${input.words[w - 1]}=${r.tag}`);
+/** Below this, a word's tag counts as unsure: the follow-up experiments ask about it again. */
+export const SURE = 0.9;
+
+/** Ask again about the words Jev was unsure of; the follow-up answers replace the first ones. */
+async function followUpUnsure(input: PizzaInput, log: CallLog, menu: Menu, opts: TagOptions, answers: Answers, readings: Map<number, TagReading>): Promise<Map<number, TagReading>> {
+  const unsure = [...readings].filter(([, r]) => r.p < SURE).map(([word]) => {
+    const a = answers[`tag_w${word}`];
+    return { word, options: a && "probabilities" in a ? topOptions(a.probabilities) : [] };
+  });
+  if (!unsure.length) {
+    log.note(`Jev was at least ${SURE * 100}% sure of every word: no follow-up.`);
+    return readings;
+  }
+  log.note(`Asking again about the ${unsure.length} word${unsure.length === 1 ? "" : "s"} Jev was less than ${SURE * 100}% sure of, with only the options it was torn between (plus "none"): ${unsure.map((u) => `"${input.words[u.word - 1]}"`).join(", ")}.`);
+  const again = readTagFollowUps(await log.call("follow-up for unsure words", wordsState(input), askTagFollowUps(input.words, unsure, menu, opts)), unsure.map((u) => u.word));
+  const out = new Map(readings);
+  const changed: string[] = [];
+  for (const [w, r] of again) {
+    if (r.tag !== readings.get(w)?.tag) changed.push(`"${input.words[w - 1]}" ${readings.get(w)?.tag} → ${r.tag}`);
+    out.set(w, r);
+  }
+  log.note(changed.length ? `The follow-up changed: ${changed.join(", ")}.` : "The follow-up kept every tag (with new probabilities).");
+  return out;
+}
+
+function keywordsJevFills(name: string, opts: TagOptions & { followUp?: boolean }, group: PizzaStrategy["group"], summary: string, rung?: number): PizzaStrategy {
+  return {
+    name,
+    group,
+    ...(rung !== undefined ? { rung } : {}),
+    usesJev: true,
+    summary,
+    async parse(input, jev) {
+      const menu = loadMenu();
+      const log = new CallLog(jev);
+      const tags = keywordTags(input.words, menu);
+      const unknown = range(1, input.words.length).filter((w) => tags[w] === "none");
+      log.note(`Word lists: ${describeTags(input, tags) || "(nothing recognized)"}. Asking Jev about the other ${unknown.length} words.`);
+      const answers = await log.call("tags for the words the lists don't know", wordsState(input), askWordTags(unknown, menu, opts));
+      let readings = readWordTags(answers, unknown);
+      if (opts.followUp) readings = await followUpUnsure(input, log, menu, opts, answers, readings);
+      const changed: string[] = [];
+      for (const [w, r] of readings) {
+        if (r.tag !== "none") {
+          tags[w] = r.tag;
+          changed.push(`${input.words[w - 1]}=${r.tag}`);
+        }
       }
-    }
-    log.note(changed.length ? `Jev tagged: ${changed.join(" ")}` : "Jev found nothing more in those words.");
-    const { items, spans } = assemble(input.words, tags, menu);
-    log.note(`Rules grouped them into ${items.length} item${items.length === 1 ? "" : "s"}.`);
-    const ps = [...readings.values()].map((r) => r.p);
-    return result("keywords-jev-fills-gaps", items, spans, log, ps.length ? Math.min(...ps) : 1);
-  },
-};
+      log.note(changed.length ? `Jev tagged: ${changed.join(" ")}` : "Jev found nothing more in those words.");
+      const { items, spans } = assemble(input.words, tags, menu);
+      log.note(`Rules grouped them into ${items.length} item${items.length === 1 ? "" : "s"}.`);
+      const ps = [...readings.values()].map((r) => r.p);
+      return result(name, items, spans, log, ps.length ? Math.min(...ps) : 1);
+    },
+  };
+}
+
+export const keywordsJevFillsGaps = keywordsJevFills(
+  "keywords-jev-fills-gaps",
+  {},
+  "ladder",
+  "The word lists tag what they know; Jev tags only the words they don't (\"more\", \"hamburger\", \"coca-cola\"); the same rules group them.",
+  1,
+);
 
 // ------------------------------------------------------------------ rungs 2 and 4: menu questions per item
 
@@ -113,6 +179,8 @@ interface FillOptions {
   wording: Wording;
   /** Ask only about styles and toppings sharing a word with the part (code answers "no" for the rest). */
   candidates?: boolean;
+  /** The style and topping answers as structured criteria with examples. */
+  examples?: boolean;
 }
 
 async function fillItems(name: string, input: PizzaInput, log: CallLog, spans: [number, number][], o: FillOptions, extraConfidence: number[] = []): Promise<PizzaResult> {
@@ -121,7 +189,7 @@ async function fillItems(name: string, input: PizzaInput, log: CallLog, spans: [
   const state: Entry = { order: input.text, items: Object.fromEntries(spans.map((s, k) => [`i${k + 1}`, spanText(s)])) };
   const only = o.candidates ? spans.map((s) => candidateEntries(spanText(s), menu)) : undefined;
   if (only) log.note(`Code kept the styles and toppings that share a word with each part: ${only.map((c, k) => `item ${k + 1}: ${[...c].map((e) => e.toLowerCase().replace(/_/g, " ")).join(", ") || "none"}`).join("; ")}.`);
-  const batches = spans.map((s, k) => askItem(k + 1, range(s[0], s[1]), menu, o.wording, only?.[k]));
+  const batches = spans.map((s, k) => askItem(k + 1, range(s[0], s[1]), menu, o.wording, only?.[k], o.examples));
   const answers = await log.call(`menu questions for ${spans.length} item${spans.length === 1 ? "" : "s"}`, state, ...batches);
   const readings = spans.map((_, k) => readItem(answers, k + 1, menu));
   const items = readings.flatMap((r) => (r.item ? [r.item] : []));
@@ -193,7 +261,7 @@ function jevSplits(name: string, fill: FillOptions, group: PizzaStrategy["group"
 
 // ------------------------------------------------------------------ rung 3
 
-function jevTagsWords(name: string, opts: { nested?: boolean; wording?: Wording }, group: PizzaStrategy["group"], summary: string, rung?: number): PizzaStrategy {
+function jevTagsWords(name: string, opts: TagOptions & { followUp?: boolean }, group: PizzaStrategy["group"], summary: string, rung?: number): PizzaStrategy {
   return {
     name,
     group,
@@ -205,7 +273,8 @@ function jevTagsWords(name: string, opts: { nested?: boolean; wording?: Wording 
       const log = new CallLog(jev);
       const words = range(1, input.words.length);
       const answers = await log.call("what each word is", wordsState(input), askWordTags(words, menu, opts));
-      const readings = readWordTags(answers, words, opts.nested);
+      let readings = readWordTags(answers, words, opts.nested);
+      if (opts.followUp) readings = await followUpUnsure(input, log, menu, opts, answers, readings);
       const tags: WordTag[] = ["", ...words.map((w) => readings.get(w)?.tag ?? "none")];
       log.note(`Jev's tags: ${describeTags(input, tags) || "(nothing)"}`);
       const { items, spans } = assemble(input.words, tags, menu);
@@ -223,9 +292,109 @@ export const jevTagsWordsStrategy = jevTagsWords(
   3,
 );
 
+// ------------------------------------------------------------------ checking the finished order
+
+/** A result with more calls made after it (a check, or a second design), as one result. */
+function extend(name: string, base: PizzaResult, log: Pick<PizzaResult, "calls" | "steps" | "stats">, more: Partial<PizzaResult> = {}): PizzaResult {
+  const stats = { ...base.stats };
+  for (const k of Object.keys(stats) as (keyof CallStats)[]) stats[k] += log.stats[k];
+  return {
+    ...base,
+    strategy: name,
+    calls: [...base.calls, ...log.calls],
+    steps: [...base.steps, ...log.steps.map((s) => ({ ...s, afterRequest: s.afterRequest + base.calls.length }))],
+    stats,
+    ...more,
+  };
+}
+
+/**
+ * The base strategy, then one more call: the order read back next to what the customer said, and
+ * Jev asked whether it's wrong (whole order, each item, anything missing). The order itself is
+ * unchanged; the check is a signal for accepting it or reading it back to the customer.
+ */
+function withCheck(base: PizzaStrategy): PizzaStrategy {
+  return {
+    name: `${base.name}+check`,
+    group: "experiment",
+    usesJev: true,
+    summary: `${base.name}, then the order is read back to Jev next to what the customer said: is anything wrong? (whole order, each item, anything missing; 1 more call)`,
+    async parse(input, jev) {
+      const r = await base.parse(input, jev);
+      const menu = loadMenu();
+      const log = new CallLog(jev);
+      const check = readOrderCheck(await log.call("check the order read back", { order: input.text, summary: readBackOrder(r.items, menu) }, askOrderCheck(r.items)), r.items.length);
+      log.note(`Jev's check, P(wrong): whole order ${check.whole.toFixed(2)}; worst of each item and anything missing ${check.parts.toFixed(2)}.`);
+      return extend(`${base.name}+check`, r, log, { check });
+    },
+  };
+}
+
+/**
+ * Two designs on the same order. When they build the same order, that's the answer; when they
+ * don't, Jev sees both read back and picks the one that matches (or neither, and the first design's
+ * order is kept but flagged).
+ */
+function pickBetween(name: string, first: PizzaStrategy, second: PizzaStrategy): PizzaStrategy {
+  return {
+    name,
+    group: "experiment",
+    usesJev: true,
+    summary: `Runs ${first.name} and ${second.name}; when their orders differ, Jev sees both read back and picks the one that matches what the customer said (1 more call, only then).`,
+    async parse(input, jev) {
+      const a = await first.parse(input, jev);
+      const b = await second.parse(input, jev);
+      const both = extend(name, a, b);
+      const log = new CallLog(jev);
+      const confidence = Math.max(a.confidence ?? 0, b.confidence ?? 0);
+      if (sameOrder(a.exr, b.exr)) {
+        log.note(`${first.name} and ${second.name} built the same order.`);
+        return extend(name, both, log, { agreed: true, confidence });
+      }
+      // Which design is shown first alternates with the order text, so neither always gets position a.
+      const swap = [...input.text].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 1000003, 7) % 2 === 1;
+      const { state, questions } = askOrderPick(input.text, a.items, b.items, loadMenu(), swap);
+      const pick = readOrderPick(await log.call("pick between the two orders", state, questions), swap);
+      const chosen = pick.pick === "second" ? b : a;
+      log.note(`The designs disagree. Jev picked ${pick.pick === "neither" ? `neither (keeping ${first.name}'s order, flagged)` : pick.pick === "first" ? first.name : second.name} (p ${pick.p.toFixed(2)}).`);
+      return extend(name, { ...both, items: chosen.items, exr: chosen.exr, spans: chosen.spans }, log, {
+        agreed: false,
+        confidence: chosen.confidence ?? 0,
+        pick: { choice: pick.pick, p: pick.p },
+      });
+    },
+  };
+}
+
+/**
+ * Ways an app could decide to accept an order as is (true) or read it back to the customer
+ * (false), from what a strategy reports.
+ */
+export function gatesOf(r: PizzaResult): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  if (r.confidence !== undefined && r.agreed === undefined) out[`every answer ≥ ${SURE}`] = r.confidence >= SURE;
+  if (r.check) {
+    out["check, whole order: P(wrong) < 0.5"] = r.check.whole < 0.5;
+    out["check, each part: all P(wrong) < 0.5"] = r.check.parts < 0.5;
+    if (r.confidence !== undefined) out[`every answer ≥ ${SURE}, or each part passes`] = r.confidence >= SURE || r.check.parts < 0.5;
+  }
+  if (r.agreed !== undefined) {
+    out["the two designs agree"] = r.agreed;
+    out[`agree, or Jev's pick ≥ ${SURE}`] = r.agreed || (r.pick !== undefined && r.pick.choice !== "neither" && r.pick.p >= SURE);
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------ experiments and lineup
 
 export const PIZZA_LINEUP: PizzaStrategy[] = [keywords, keywordsJevFillsGaps, codeSplitsJevFillsStrategy, jevTagsWordsStrategy, jevSplitsJevFills];
+
+const namedCandidates = codeSplitsJevFills(
+  "code-splits-jev-fills/named-candidates",
+  { wording: "named", candidates: true },
+  "experiment",
+  "Like code-splits-jev-fills/named, but code only asks about styles and toppings that share a word with the item (\"cheese\" brings in every cheese); the rest are \"not named\".",
+);
 
 export const PIZZA_EXPERIMENTS: PizzaStrategy[] = [
   jevTagsWords("jev-tags-words/nested", { nested: true }, "experiment", "Like jev-tags-words, but each word is asked in two levels: what kind of thing (topping, size, drink…), then which one."),
@@ -237,13 +406,40 @@ export const PIZZA_EXPERIMENTS: PizzaStrategy[] = [
     "experiment",
     "Like code-splits-jev-fills, but each style and topping question asks whether the customer names it (\"counts only if they say…; don't infer it\"), with notes both ways (\"plain 'peppers' is a different topping\").",
   ),
-  codeSplitsJevFills(
-    "code-splits-jev-fills/named-candidates",
-    { wording: "named", candidates: true },
-    "experiment",
-    "Like code-splits-jev-fills/named, but code only asks about styles and toppings that share a word with the item (\"cheese\" brings in every cheese); the rest are \"not named\".",
-  ),
+  namedCandidates,
   jevSplits("jev-splits-jev-fills/named", { wording: "named" }, "experiment", "Like jev-splits-jev-fills, with the named wording of code-splits-jev-fills/named."),
+  // Follow-up when unsure
+  keywordsJevFills(
+    "keywords-jev-fills-gaps/follow-up",
+    { followUp: true },
+    "experiment",
+    `Like keywords-jev-fills-gaps, then any word Jev was under ${SURE * 100}% sure of is asked again with only the options it was torn between, plus "none" (1 more call, only then).`,
+  ),
+  jevTagsWords(
+    "jev-tags-words/follow-up",
+    { followUp: true },
+    "experiment",
+    `Like jev-tags-words, then any word Jev was under ${SURE * 100}% sure of is asked again with only the options it was torn between, plus "none" (1 more call, only then).`,
+  ),
+  // Whole-order check
+  withCheck(keywords),
+  withCheck(keywordsJevFillsGaps),
+  withCheck(jevTagsWordsStrategy),
+  withCheck(namedCandidates),
+  pickBetween("pick-rung-1-or-3", keywordsJevFillsGaps, jevTagsWordsStrategy),
+  // Examples in questions
+  jevTagsWords(
+    "jev-tags-words/examples",
+    { examples: true },
+    "experiment",
+    "Like jev-tags-words, but every option is TypeSafe's structured criteria: what it is, what it's not for, and examples (the menu's own spellings and made-up phrases).",
+  ),
+  codeSplitsJevFills(
+    "code-splits-jev-fills/named-candidates/examples",
+    { wording: "named", candidates: true, examples: true },
+    "experiment",
+    "Like code-splits-jev-fills/named-candidates, but each style and topping answer is structured criteria with made-up examples (\"extra olives\", \"hold the olives\") and what it's not for.",
+  ),
 ];
 
 export const PIZZA_ALL = [...PIZZA_LINEUP, ...PIZZA_EXPERIMENTS];

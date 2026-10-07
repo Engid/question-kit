@@ -21,8 +21,8 @@ import { goldOf, type PizzaGold } from "./gold.ts";
 import { entryOfTag, idOf, loadMenu } from "./menu.ts";
 import { pizzaOracle } from "./oracle.ts";
 import { describeItem, itemsFromExr, sameOrder } from "./order.ts";
-import { ITEM_START, ITEM_STYLE, ITEM_TOPPING, PIZZA_QUESTION_SETS, WORD_TAG } from "./questions.ts";
-import { getPizzaStrategy } from "./strategies.ts";
+import { ITEM_START, ITEM_STYLE, ITEM_TOPPING, ORDER_CHECK, ORDER_PICK, PIZZA_QUESTION_SETS, WORD_TAG, WORD_TAG_FOLLOW_UP } from "./questions.ts";
+import { gatesOf, getPizzaStrategy } from "./strategies.ts";
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,
@@ -117,13 +117,18 @@ rule("Result");
 console.log(`   ${r.items.length ? r.items.map(describeItem).join("\n   ") : "(nothing ordered)"}`);
 console.log(indent(wrap(`EXR: ${r.exr}`), 3));
 if (gold) console.log(`   ${sameOrder(r.exr, gold.row.exr) ? "✓ matches the answer key" : `✗ the answer key is: ${itemsFromExr(gold.row.exr).map(describeItem).join("  |  ")}`}`);
-if (r.confidence !== undefined) console.log(`   Least sure answer used: ${r.confidence.toFixed(2)}${r.confidence >= 0.9 ? " (an app could accept this order as is)" : " (an app would read this order back to the customer)"}`);
+if (r.confidence !== undefined) console.log(`   Least sure answer used: ${r.confidence.toFixed(2)}`);
+if (r.check) console.log(`   Order check, P(wrong): whole order ${r.check.whole.toFixed(2)} · worst of each item and "anything missing?" ${r.check.parts.toFixed(2)}`);
+if (r.agreed !== undefined) console.log(`   ${r.agreed ? "The two designs built the same order." : `The two designs disagreed; Jev picked ${r.pick?.choice} (p ${r.pick?.p.toFixed(2)}).`}`);
+const gates = Object.entries(gatesOf(r));
+if (gates.length) console.log(`   Accept as is, or read back?\n${gates.map(([g, ok]) => `     ${ok ? "accept   " : "read back"}  when ${g}`).join("\n")}`);
 console.log(`   ${r.stats.requests} request${r.stats.requests === 1 ? "" : "s"} · ${r.stats.questions} questions · ${r.stats.jevMs.toFixed(0)} ms waiting on Jev`);
 
 // ------------------------------------------------------------------ one call
 
 function label(meta: QuestionMeta, option: string): string {
-  if (meta.set === WORD_TAG) {
+  if (meta.set === ORDER_PICK || meta.set === ORDER_CHECK) return option;
+  if (meta.set === WORD_TAG || meta.set === WORD_TAG_FOLLOW_UP) {
     const e = entryOfTag(option, menu);
     return e ? `${e.slot}: ${e.label}` : option;
   }
@@ -134,6 +139,8 @@ function label(meta: QuestionMeta, option: string): string {
 
 function subject(meta: QuestionMeta): string {
   if (meta.word !== undefined) return `"${words[meta.word - 1]}"`;
+  if (meta.set === ORDER_PICK) return "which order";
+  if (meta.set === ORDER_CHECK) return meta.level === "whole" ? "whole order wrong?" : meta.level === "missing" ? "anything missing?" : `item ${meta.item} wrong?`;
   const e = meta.entity ? (meta.set === ITEM_TOPPING ? menu.get("topping", meta.entity) : menu.get("style", meta.entity)) : undefined;
   return `item ${meta.item}${e ? ` · ${e.label}` : ""}`;
 }
@@ -162,7 +169,7 @@ function printCall(call: CallRecord): void {
       if (q.type === "choice") {
         const entries = Object.entries(q.criteria);
         const limit = args.raw ? entries.length : 4;
-        for (const [k, v] of entries.slice(0, limit)) console.log(indent(wrap(`${k}: ${String(v)}`), 9));
+        for (const [k, v] of entries.slice(0, limit)) console.log(indent(wrap(`${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`), 9));
         if (entries.length > limit) console.log(`         … ${entries.length - limit} more options (--raw shows all)`);
       } else if (q.type === "noul" && q.criteria) console.log(indent(wrap(`yes: ${q.criteria.true}  no: ${q.criteria.false}`), 9));
       const a = call.response.answers[id];
