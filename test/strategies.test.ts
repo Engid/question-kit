@@ -1,24 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import { CallLog } from "../src/calls.ts";
-import { functionWordsCantBeHeads, reattachIntroducers } from "../src/code-rules/cleanup.ts";
-import { proposeCandidates } from "../src/code-rules/rule-parser.ts";
-import { goldOf } from "../src/gold.ts";
-import { MockJevClient, noul, peakedChoice } from "../src/jev/mock.ts";
-import { RecordingJevClient } from "../src/jev/recording.ts";
-import type { ChoiceQuestion } from "../src/jev/types.ts";
-import { oracleClient } from "../src/oracle.ts";
-import * as attachTo from "../src/question-sets/attach-to.ts";
-import * as direction from "../src/question-sets/direction.ts";
-import * as neighborLinks from "../src/question-sets/neighbor-links.ts";
-import * as phrases from "../src/question-sets/phrase-attach.ts";
-import * as relationship from "../src/question-sets/relationship.ts";
-import * as secondLook from "../src/question-sets/second-look.ts";
-import * as wordType from "../src/question-sets/word-type.ts";
-import { describeWord, sentenceOf } from "../src/sentence.ts";
-import { EXPERIMENTS, LINEUP } from "../src/strategies/index.ts";
-import { jevOnly } from "../src/strategies/ladder.ts";
-import { parseConllu } from "../src/ud/conllu.ts";
-import { buildTree, HeadVotes } from "../src/votes.ts";
+import { CallLog } from "../research/lab/calls.ts";
+import { functionWordsCantBeHeads, reattachIntroducers } from "../research/parsing/src/code-rules/cleanup.ts";
+import { proposeCandidates } from "../research/parsing/src/code-rules/rule-parser.ts";
+import { goldOf } from "../research/parsing/src/gold.ts";
+import { MockJevClient, noul, peakedChoice } from "../research/lab/jev/mock.ts";
+import { RecordingJevClient } from "../research/lab/jev/recording.ts";
+import type { ChoiceQuestion } from "../research/lab/jev/types.ts";
+import { oracleClient } from "../research/parsing/src/oracle.ts";
+import * as attachTo from "../research/parsing/src/question-sets/attach-to.ts";
+import * as direction from "../research/parsing/src/question-sets/direction.ts";
+import * as neighborLinks from "../research/parsing/src/question-sets/neighbor-links.ts";
+import * as phrases from "../research/parsing/src/question-sets/phrase-attach.ts";
+import * as relationship from "../research/parsing/src/question-sets/relationship.ts";
+import * as secondLook from "../research/parsing/src/question-sets/second-look.ts";
+import * as wordType from "../research/parsing/src/question-sets/word-type.ts";
+import { describeWord, sentenceOf } from "../research/parsing/src/sentence.ts";
+import { EXPERIMENTS, LINEUP } from "../research/parsing/src/strategies/index.ts";
+import { jevOnly } from "../research/parsing/src/strategies/ladder.ts";
+import { parseConllu } from "../research/parsing/src/ud/conllu.ts";
+import { buildTree, HeadVotes } from "../research/parsing/src/votes.ts";
 
 const CONLLU = parseConllu(`# sent_id = t1
 # text = The dog chased a red ball across the yard .

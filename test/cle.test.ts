@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { chuLiuEdmonds, decodeSingleRoot, findCycle, treeScore } from "../src/decode/cle.ts";
+import { chuLiuEdmonds, decodeSingleRoot, findCycle, treeScore } from "../research/parsing/src/decode/cle.ts";
 
 // Deterministic PRNG so failures reproduce.
 function rng(seed: number) {

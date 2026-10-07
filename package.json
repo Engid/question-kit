@@ -1,7 +1,7 @@
 {
-  "name": "system-one-parsers",
+  "name": "question-kit",
   "version": "0.0.1",
-  "description": "A lab for building a generic dependency parser out of a System One model (Jev) by asking many small closed questions.",
+  "description": "Turning what people say into structured data for code, with a System One model (Jev) and plain code: research and prototype packages.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -9,15 +9,15 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "fetch-ud": "bun eval/fetch-ud.ts",
-    "eval": "bun eval/run.ts",
-    "eval:score": "bun eval/score-file.ts",
-    "explain": "bun eval/explain.ts",
-    "fetch-pizza": "bun examples/pizza/fetch.ts",
-    "pizza": "bun examples/pizza/run.ts",
-    "pizza:explain": "bun examples/pizza/explain.ts",
-    "pizza:verify-library": "bun examples/pizza/verify-library.ts",
-    "order": "bun examples/pizza/take-order.ts"
+    "fetch-ud": "bun research/parsing/eval/fetch-ud.ts",
+    "eval": "bun research/parsing/eval/run.ts",
+    "eval:score": "bun research/parsing/eval/score-file.ts",
+    "explain": "bun research/parsing/eval/explain.ts",
+    "fetch-pizza": "bun research/pizza/fetch.ts",
+    "pizza": "bun research/pizza/run.ts",
+    "pizza:explain": "bun research/pizza/explain.ts",
+    "order:pizza": "bun examples/order-taker/pizza/take-order.ts",
+    "order:pizza:verify": "bun examples/order-taker/pizza/verify.ts"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.6.0"

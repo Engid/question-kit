@@ -1,0 +1,38 @@
+# Order takers built with packages/order-taker
+
+Each folder here is one shop's order taker: a menu described with `defineMenu`, and whatever
+that shop needs around it. The library itself, and every option, is documented in
+[`packages/order-taker`](../../packages/order-taker/README.md).
+
+| Example | What it shows |
+| --- | --- |
+| [`pizza/`](pizza/README.md) | The menu of Amazon's PIZZA benchmark (85 toppings, 23 styles, 22 drinks, every way its catalogs say them), measured on the benchmark's 1,705 orders and checked against the pizza experiment order by order. |
+
+More to come: a cafe, a deli.
+
+## Making your own
+
+1. **List what you sell.** The kinds of item (`drink`, `pastry`), and the fields each has.
+   A field has one value (size, milk), names the item (`names: true`: which drink), or is a list
+   (`many: true`: extras, toppings; add `amounts: true` for "extra" and "light").
+2. **List how people say each value.** `OAT: ["oat", "oat milk", "oatmilk"]`. Plurals and common
+   misspellings help: code looks these up before Jev is asked anything, and every word code knows
+   is a word Jev doesn't have to answer.
+3. **Take orders** with `takeOrder(text, menu, jev)`. Read back the items in `confirm` when
+   `accept` is false.
+4. **Measure it** on orders you've written answers for. The pizza example's `eval.ts` shows how
+   to score whole orders; the repo's `RecordingJevClient` (research/lab/jev/recording.ts) caches Jev's
+   answers, so re-running a measurement costs nothing.
+
+```ts
+const deli = defineMenu({
+  name: "sandwich and drink",
+  place: "a deli counter",
+  items: { sandwich: { words: ["sandwich", "sub", "sandwiches"] }, drink: {} },
+  fields: {
+    bread:   { items: ["sandwich"], values: { RYE: ["rye"], SOURDOUGH: ["sourdough"] } },
+    filling: { items: ["sandwich"], many: true, amounts: true, values: { TURKEY: ["turkey"], SWISS: ["swiss", "swiss cheese"] } },
+    drink:   { items: ["drink"], names: true, values: { LEMONADE: ["lemonade"], ICED_TEA: ["iced tea"] } },
+  },
+});
+```

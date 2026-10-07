@@ -10,7 +10,7 @@ data/pizza/
 .cache/
 # Eval output (bun run eval): local only, one set of files per run
 results/
-baselines/.venv/
-baselines/out/
+research/parsing/baselines/.venv/
+research/parsing/baselines/out/
 __pycache__/
 .DS_Store

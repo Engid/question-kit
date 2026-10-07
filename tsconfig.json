@@ -14,5 +14,5 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src", "eval", "examples", "test", "lib"]
+  "include": ["packages", "examples", "research", "test"]
 }

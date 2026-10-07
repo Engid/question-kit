@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { PIZZA_DIR, type PizzaRow } from "../examples/pizza/data.ts";
-import { goldOf } from "../examples/pizza/gold.ts";
-import { pizzaOracle } from "../examples/pizza/oracle.ts";
-import { loadMenu } from "../examples/pizza/menu.ts";
-import { canonical, describeItem, itemsFromExr, itemsMatched, orderToExr, parseSexp, readBack, sameOrder } from "../examples/pizza/order.ts";
-import { askItem, askOrderCheck, askWordTags, candidateEntries, ORDER_CHECK, PIZZA_QUESTION_SETS, readBackOrder, topOptions, WORD_TAG } from "../examples/pizza/questions.ts";
-import { assemble, keywordTags } from "../examples/pizza/rules.ts";
-import { gatesOf, getPizzaStrategy, PIZZA_ALL } from "../examples/pizza/strategies.ts";
-import { MockJevClient, peakedChoice } from "../src/jev/mock.ts";
-import type { QuestionMeta } from "../src/calls.ts";
+import { PIZZA_DIR, type PizzaRow } from "../research/pizza/data.ts";
+import { goldOf } from "../research/pizza/gold.ts";
+import { pizzaOracle } from "../research/pizza/oracle.ts";
+import { loadMenu } from "../research/pizza/menu.ts";
+import { canonical, describeItem, itemsFromExr, itemsMatched, orderToExr, parseSexp, readBack, sameOrder } from "../research/pizza/order.ts";
+import { askItem, askOrderCheck, askWordTags, candidateEntries, ORDER_CHECK, PIZZA_QUESTION_SETS, readBackOrder, topOptions, WORD_TAG } from "../research/pizza/questions.ts";
+import { assemble, keywordTags } from "../research/pizza/rules.ts";
+import { gatesOf, getPizzaStrategy, PIZZA_ALL } from "../research/pizza/strategies.ts";
+import { MockJevClient, peakedChoice } from "../research/lab/jev/mock.ts";
+import type { QuestionMeta } from "../research/lab/calls.ts";
 
 describe("pizza orders: scoring", () => {
   test("whole-order match ignores the order of children at every level", () => {
@@ -164,7 +164,7 @@ describe.skipIf(!haveMenu)("pizza orders: code and plumbing (needs bun run fetch
     const checked = await getPizzaStrategy("keywords+check").parse({ text: row.text, words: row.text.split(" ") }, pizzaOracle(goldOf(row)));
     expect(checked.check!.whole).toBeLessThan(0.5);
     expect(gatesOf(checked)["check, each part: all P(wrong) < 0.5"]).toBe(true);
-    const picked = await getPizzaStrategy("pick-rung-1-or-3").parse({ text: row.text, words: row.text.split(" ") }, pizzaOracle(goldOf(row)));
+    const picked = await getPizzaStrategy("pick-dial-1-or-3").parse({ text: row.text, words: row.text.split(" ") }, pizzaOracle(goldOf(row)));
     expect(picked.agreed).toBe(true);
     expect(picked.calls.some((c) => c.title.startsWith("pick"))).toBe(false);
   });

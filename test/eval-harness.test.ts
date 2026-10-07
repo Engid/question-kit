@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { calibration, scoreSentence, aggregate, type EdgeObs } from "../eval/metrics.ts";
-import { bucketOf, sample, shuffled } from "../eval/data.ts";
-import { MockJevClient, peakedChoice } from "../src/jev/mock.ts";
-import { CacheMissError, RecordingJevClient } from "../src/jev/recording.ts";
-import type { JevRequest } from "../src/jev/types.ts";
-import { parseConllu } from "../src/ud/conllu.ts";
+import { calibration, scoreSentence, aggregate, type EdgeObs } from "../research/parsing/eval/metrics.ts";
+import { bucketOf, sample, shuffled } from "../research/parsing/eval/data.ts";
+import { MockJevClient, peakedChoice } from "../research/lab/jev/mock.ts";
+import { CacheMissError, RecordingJevClient } from "../research/lab/jev/recording.ts";
+import type { JevRequest } from "../research/lab/jev/types.ts";
+import { parseConllu } from "../research/parsing/src/ud/conllu.ts";
 
 const REQ: JevRequest = {
   state: { sentence: "hi there" },

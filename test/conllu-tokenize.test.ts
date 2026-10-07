@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { composeTwoLevel, choiceConfidence, noulConfidence, pathScore, separation } from "../src/jev/confidence.ts";
-import { tokenize } from "../src/tokenize.ts";
-import { parseConllu, writeConllu } from "../src/ud/conllu.ts";
-import { universalDeprel } from "../src/ud/deprel.ts";
+import { composeTwoLevel, choiceConfidence, noulConfidence, pathScore, separation } from "../research/lab/jev/confidence.ts";
+import { tokenize } from "../research/parsing/src/tokenize.ts";
+import { parseConllu, writeConllu } from "../research/parsing/src/ud/conllu.ts";
+import { universalDeprel } from "../research/parsing/src/ud/deprel.ts";
 
 describe("CoNLL-U", () => {
   test("skips empty nodes and keeps multiword tokens aside", () => {

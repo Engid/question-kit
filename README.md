@@ -1,334 +1,152 @@
-# system-one-parsers
+# question-kit
 
-**What happens when you ask a System One model thousands of small questions instead of one big
-one?** This repo finds out on two jobs with public answer keys: drawing the grammar tree of a
-sentence, and turning a pizza order into a structured order. Along the way it measures which ways
-of asking work, and which don't.
+**How far can you get turning what people say into structured data for your code, using a System
+One model and plain code, with no second LLM?**
 
-The model is [Jev](https://docs.typesafe.ai) from TypeSafe AI. You give it some state and a batch
-of closed questions (pick one option, yes/no, or a score), and it returns a probability for every
-answer. There's no LLM and no trained parser here: every judgment about the text comes from Jev's
-answers, and plain code turns them into a result.
+> **Active research.** This repo is in a prototype phase: the packages here are early, and their
+> APIs will change as the research goes on. If you're interested in using them, or have a use case
+> you think they'd fit, please open an issue and tell us; feedback is what we're after right now.
 
-Everything is reproducible: the code, the questions, the scoring, and a cache of every answer Jev
-gave. The full numbers, methods and caveats are in **[the detailed report](docs/report.md)**.
+[Jev](https://docs.typesafe.ai), TypeSafe AI's System One model, doesn't write text. You send it
+some state and a batch of closed questions ("which of these options?", "yes or no?"), and it
+returns a probability for every option. It's a classifier. The work here is about how to turn a
+task like taking an order into the right classification questions, and how code and Jev's answers
+fit together around them.
 
-## The short version
+## The pattern
 
-Eight lessons, each backed by a measurement (the report has the intervals, the tests, and which
-data each one comes from):
-
-1. **Let code handle structure; ask Jev to classify.** Jev sorts things into categories very
-   well: word types 92% right, relationship names 85–90%, menu items ~99%. It's much weaker at
-   "which of these 30 words does this one connect to?" (50%). The best setups give Jev the
-   classifying and give code the structure.
-2. **The wording of the question is the biggest lever.** Taking the grammar conventions out of
-   one question cost 10.5 points. Rewording the pizza topping questions from "does the customer
-   want olives?" to "does the customer *name* olives? don't infer it" took whole orders from 8% to
-   69% right.
-3. **Many independent yes/no questions multiply small errors.** One question per topping, 108 per
-   pizza, each right 95–99% of the time, got 8% of orders fully right.
-4. **One flat list beats a two-step menu, even at 171 options.** Asking "what kind of thing, then
-   which one" lost to a single list of every option, both at 17 options and at 171.
-5. **Remove impossible options in code; don't ask code to guess the likely ones.** Taking options
-   code *knows* can't be right out of a question gained 10 points. Having code propose a shortlist
-   of likely answers did no better than letting Jev choose from everything, because the shortlist
-   sometimes missed the right one.
-6. **Pack independent questions into one call; ask a follow-up when an earlier answer helps.**
-   Asking the same questions alone or bundled with 20 others changed the top answer 1% of the time.
-   Asking how two words relate *after* knowing they're linked beat asking up front by 2.4 points.
-7. **Confident answers can be trusted.** When Jev was at least 90% sure, it was right 95–99% of the
-   time on category questions. On pizza orders (code first, Jev filling gaps), the 48% of orders where
-   every answer was that sure were 99.1% right.
-8. **Check what plain code gets first.** On the pizza benchmark, the menu's own word lists plus
-   about 150 lines of rules got 93.3% of orders right, well above both systems in the dataset's
-   paper. Jev added 1.8 points on top, to 95.1%.
-
-## How Jev is used here
-
-A job is a few **calls**. Each call sends the state once, plus every question that can be asked at
-that point. Jev answers each question independently: one question never sees another's answer
-([TypeSafe docs](https://docs.typesafe.ai/primitives.md)). So everything that doesn't depend on an
-earlier answer goes in the same call, and code runs between calls.
-
-```mermaid
-sequenceDiagram
-    participant App as Your code
-    participant Jev
-    App->>Jev: state (the sentence) + 20 "what kind of word?" + 20 "which word does it attach to?"
-    Jev-->>App: a probability for every option of all 40 questions
-    Note over App: code builds a valid tree from the answers
-    App->>Jev: same state + "how does each word relate to the word it attaches to?" (now naming that word)
-    Jev-->>App: probabilities again
-    Note over App: code assembles the final result
-```
-
-This is one question from a parse of "The dog chased a red ball across the yard." (trimmed: the
-full instructions also spell out the treebank's conventions):
-
-```json
-"head_w9": {
-  "type": "choice",
-  "instructions": "In `sentence`, which word is the head of `words.w9`, the word that `words.w9` attaches to as a modifier, argument or function word? …",
-  "criteria": {
-    "w1": "`words.w1` (\"The\", the first word)",
-    "w7": "`words.w7` (\"across\", after \"ball\")",
-    "…": "one option per other word",
-    "root": "None: `words.w9` is the main word (predicate) of the whole sentence."
-  }
-}
-```
-
-And Jev's answer, from a recorded run:
-
-```json
-"head_w9": { "choice": "w7", "confidence": 0.87,
-             "probabilities": { "w7": 0.89, "w3": 0.05, "w8": 0.04, "w10": 0.01, "root": 0.01, "…": "…" } }
-```
-
-`bun run explain "Your sentence."` shows every call like this: each question as sent, each answer
-as returned, what code did in between, and the result.
-
-## Experiment 1: drawing a sentence's grammar tree
-
-**The task.** In a dependency tree, every word attaches to one other word: "red" to "ball", "ball"
-to "chased". The answer key is [UD English EWT](https://github.com/UniversalDependencies/UD_English-EWT),
-sentences from blogs, emails, reviews and forums that linguists annotated by hand. The score is
-**attached right**: the share of words attached to the same word as in the answer key.
-
-**The ladder.** The same job, with Jev doing more and more of it:
+Every design that worked here has the same shape:
 
 ```mermaid
 flowchart LR
-    R0["<b>0 · rules</b><br/>code only:<br/>a word list and<br/>'nearest word' rules"]
-    R1["<b>1 · rules + Jev's word types</b><br/>Jev: what kind of word is each word?<br/>code: the same rules"]
-    R2["<b>2 · code proposes, Jev picks</b><br/>code: ~6 candidate heads per word<br/>Jev: which one?"]
-    R3["<b>3 · Jev + two code rules</b><br/>Jev: which word, from all of them?<br/>code: two grammar conventions<br/>and a valid tree"]
-    R4["<b>4 · Jev only</b><br/>Jev: which word?<br/>code: only a valid tree"]
-    R0 --> R1 --> R2 --> R3 --> R4
+    D["<b>Your domain</b><br/>a menu: kinds of item,<br/>fields, ways to say each value"] --> C1
+    D --> Q
+    T["<b>The text</b><br/>“two large pizzas with<br/>extra cheese and a diet coke”"] --> C1
+    C1["<b>Code</b><br/>looks up what it knows"] --> Q["<b>Jev</b><br/>closed questions about the rest,<br/>generated from the domain,<br/>pointing at parts of the state"]
+    Q --> C2["<b>Code</b><br/>assembles the result"]
+    C2 --> V["<b>Jev</b><br/>checks the result:<br/>is anything wrong?"]
+    V --> R["structured data,<br/>plus whether to trust it"]
 ```
 
-**Results** on 125 test sentences (2,524 words) that none of these designs was tuned on:
+The questions point at named parts of the state (`words.w3`, `summary.i1`) and offer every option
+the domain allows, each described ("Topping: green peppers; not the same as peppers"). Writing
+those by hand is tedious and easy to get wrong. The goal of **question-kit** is to generate them
+from your domain and state.
 
-| Rung | Design | Attached right | | $ per 1,000 sentences |
-| --- | --- | --- | --- | --- |
-| 0 | rules (code only) | 41.7% | `████████▍` | 0 |
-| 1 | rules + Jev's word types | 55.2% | `███████████` | 0.53 |
-| 2 | code proposes, Jev picks | 52.3% | `██████████▌` | 2.54 |
-| **3** | **Jev + two code rules** | **65.7%** | `█████████████▏` | 3.15 |
-| 4 | Jev only | 51.1% | `██████████▎` | 3.15 |
+## Packages
 
-- **Jev alone (51%) does worse than simple rules fed Jev's word types (55%).** Jev often hangs a
-  word off a little word ("war" off "for", "It" off "is"); the answer key's convention does the
-  opposite. One code rule, "little words can't be heads", built on Jev's own word types, fixes most
-  of it. With a second rule, the parse gets to 65.7%, 24 points above code alone.
-- **Code proposing candidates didn't help.** Jev picked the right one 57% of the time, and the
-  shortlist missed the right answer for 12% of words.
-- **Short and near is easy, long and far is hard.** Rung 3 attaches a word right 86% of the time
-  when the answer is its neighbor, and 30% when it's 5 or more words away.
+### `order-taker` (prototype)
 
-The same sentence through rungs 4 and 3. Red boxes are words attached differently from the answer
-key:
+Takes an order in one message, for any menu you describe:
 
-```mermaid
-flowchart TD
-  root(("main word"))
-  w1["It<br/>✗ treebank: on “setback”"]
-  w2["is"]
-  w3["a"]
-  w4["setback"]
-  w5["for<br/>✗ treebank: on “war”"]
-  w6["the"]
-  w7["war<br/>✗ treebank: on “setback”"]
-  w8["on<br/>✗ treebank: on “terror”"]
-  w9["terror<br/>✗ treebank: on “war”"]
-  w10[".<br/>✗ treebank: on “setback”"]
-  w2 -->|nsubj| w1
-  w4 -->|cop| w2
-  w4 -->|det| w3
-  root -->|root| w4
-  w4 -->|case| w5
-  w7 -->|det| w6
-  w5 -->|nmod| w7
-  w7 -->|case| w8
-  w8 -->|compound| w9
-  w2 -->|punct| w10
-  classDef wrong fill:#fdecea,stroke:#c0392b,color:#7b241c
-  class w1,w5,w7,w8,w9,w10 wrong
+```ts
+import { defineMenu, takeOrder } from "./packages/order-taker/index.ts";
+
+const cafe = defineMenu({
+  name: "coffee",
+  place: "a coffee counter",
+  items: { drink: {}, pastry: {} },
+  fields: {
+    drink:  { items: ["drink"], names: true, values: { LATTE: ["latte", "lattes"], AMERICANO: ["americano"] } },
+    size:   { items: ["drink"], values: { SMALL: ["small"], LARGE: ["large", "big"] } },
+    milk:   { items: ["drink"], values: { OAT: ["oat", "oat milk"], WHOLE: ["whole milk"] } },
+    extras: { items: ["drink"], many: true, amounts: true, values: { SHOT: ["shot", "espresso shot"], FOAM: ["foam"] } },
+    pastry: { items: ["pastry"], names: true, values: { CROISSANT: ["croissant", "croissants"] } },
+  },
+});
+
+const order = await takeOrder("a large oat latte with an extra shot and no foam and two croissants", cafe, jev);
+
+order.readBack;  // ["1 large oat latte with extra shot and no foam", "2 croissants"]
+order.accept;    // true when every check answer says the order is probably right
+order.confirm;   // otherwise, which items to read back, and whether to ask "anything else?"
 ```
 
-Rung 4, Jev only: 4 of 10 words attached right. Jev's answers put "It" on "is" and "war" on "for",
-the way school grammar does. With the two code rules (rung 3), all 10 are attached right:
+`jev` is any client with a `systemOne(request)` method; the
+[package README](packages/order-taker/README.md) shows one for TypeSafe's SDK, and every option.
 
-```mermaid
-flowchart TD
-  root(("main word"))
-  w1["It"]
-  w2["is"]
-  w3["a"]
-  w4["setback"]
-  w5["for"]
-  w6["the"]
-  w7["war"]
-  w8["on"]
-  w9["terror"]
-  w10["."]
-  w4 -->|nsubj| w1
-  w4 -->|cop| w2
-  w4 -->|det| w3
-  root -->|root| w4
-  w7 -->|case| w5
-  w7 -->|det| w6
-  w4 -->|compound| w7
-  w9 -->|case| w8
-  w7 -->|compound| w9
-  w4 -->|punct| w10
-```
+**How it was measured.** The design comes from the experiments in [`research/`](research/README.md).
+With the menu of Amazon's [PIZZA benchmark](https://github.com/amazon-science/pizza-semantic-parsing-dataset),
+it got 95.1% of 1,357 test orders exactly right (the benchmark paper's best trained model: 78.6%),
+for about $1.43 per 1,000 orders. Its check accepted 75.7% of orders without a read-back, and 7 of
+the 66 wrong orders were among them. That's one benchmark of single-message pizza orders, in
+English, with jev-1.13; other menus haven't been measured. The [pizza example](examples/order-taker/pizza/README.md)
+runs it on the benchmark.
 
-(This sentence was picked because the rules fix everything in it. On average they fix about 15
-points' worth of words per sentence.)
+### `question-kit` (planned)
 
-**Question-design experiments** (one change at a time, on 125 dev sentences, attachment only):
+The general version: describe your domain and your state, and get the questions, the references
+and the option lists generated, plus the check pass and a way to measure the result. We'll pull it
+out of the order taker once a second use case shows what's really shared. The plan and notes are in
+[`research/question-kit-plan.md`](research/question-kit-plan.md).
 
-| Change to the "which word?" question | Effect on attached right |
-| --- | --- |
-| Leave out the grammar conventions in the instructions | **−10.5 points** |
-| Code removes impossible options (little words) before asking | **+10.2** |
-| Add each word's neighbors to the shared state | **−7.1** |
-| Ask word types as a two-step menu (3 groups, then the type) | word types 89.1% vs 92.0% with one list |
-| Reverse the option order, or ask twice in both orders | no measurable difference |
+## Model support
 
-A design that split the job into smaller phrase questions ("are these two neighbors in the same
-phrase?", "which direction is the head?") scored *below* Jev alone (43.5% vs 51.1%): the weak
-early answers (direction was right 42% of the time) carried into later calls.
+For now, question-kit works with Jev only. We haven't compared decision models ourselves, but
+published comparisons suggest Jev's probabilities are among the better calibrated (one
+[study](https://arxiv.org/abs/2610.06625) found them better calibrated than GPT-6 Luna's token
+probabilities, though not consistently better than an open-weight Qwen model's). We want to measure how each model does, and
+find the best way to generate questions for whichever one you choose.
 
-For scale: a 2025 benchmark of open LLMs asked to parse EWT without training found the best one
-(Llama 3.1 70B) at 39.7% attached right ([Better Benchmarking LLMs for Zero-Shot Dependency Parsing](https://arxiv.org/html/2502.20866v1));
-trained parsers reach 86–95%. The setups differ, so these aren't head-to-head comparisons.
+## What we found
 
-## Experiment 2: taking pizza orders
+Designed from measured experiments; the [research write-up](research/README.md) has the details and
+the [report](research/report.md) every number.
 
-**The task.** Amazon's [PIZZA benchmark](https://github.com/amazon-science/pizza-semantic-parsing-dataset):
-1,357 test orders written by people, like "i need one pizza pesto more cheese and don't include
-tuna", each with the right answer as a structured order. The dataset comes with its menu: ~85
-toppings, 23 styles, 22 drinks, sizes, and the words customers use for each. An order only counts
-if *everything* in it is right. The dataset's paper reports 68.0% for its grammar-based parser and
-78.6% for its best model, trained on 2.46 million synthetic orders
-([Arkoudas et al. 2022](https://arxiv.org/abs/2212.00265)).
+- **Let code handle structure; ask Jev to classify.** Jev labels words against a 171-option menu
+  ~99% right, but picks "which of ~35 words does this one attach to" only half the time.
+- **Code first, Jev for the gaps.** The menu's word lists plus rules got 93.3% of pizza orders
+  right; asking Jev only about the words they didn't know took it to 95.1%.
+- **Wording and examples matter most.** Rewording one design's questions took it from 8% to 69%
+  of orders right; adding examples to each option took it from 73.2% to 84.5%.
+- **Many yes/no questions multiply small errors.** 108 questions per pizza, each 95–99% right,
+  gave 8% of orders fully right.
+- **Have Jev check the finished result.** Reading the order back to Jev, one question per item and
+  one for "anything missing?", is what decides when to accept an order.
 
-**Results** on the 1,357 test orders (designs were built on the 348 dev orders):
+## What's next
 
-| Design | What Jev does | Whole order right | | $ per 1,000 orders |
-| --- | --- | --- | --- | --- |
-| The paper's grammar parser | — | 68.0% | `█████████████▋` | — |
-| The paper's best trained model | — | 78.6% | `███████████████▊` | — |
-| **Code only:** menu word lists + rules | nothing | 93.3% | `██████████████████▋` | 0 |
-| **Code first, Jev fills gaps** | labels the words the lists don't know | **95.1%** | `███████████████████` | 1.40 |
-| **Jev labels every word** | one question per word, 171 options | **95.1%** | `███████████████████` | 2.93 |
-| One question per topping (best wording) | answers ~19 menu questions per order | 73.2% | `██████████████▋` | 0.20 |
-
-The winning design: code does what it's sure of, Jev handles the words code doesn't know, and code
-puts the order together. Jev's answers also say when the order can be trusted:
-
-```mermaid
-flowchart TD
-    A["i need one pizza pesto more cheese and don't include tuna"] --> B["<b>Code:</b> look every word up in the menu<br/>one → 1 · pizza · pesto · cheese · don't → no · tuna"]
-    B --> C["<b>Jev, one call:</b> what is each word code didn't know?<br/>(one question per word, 171 options)<br/>more → <i>extra</i> (0.86) · include → <i>no</i> (0.50) · i, need, and → nothing"]
-    C --> D["<b>Code:</b> rules group the words into items<br/>1 × pizza: pesto, extra cheese, no tuna"]
-    D --> E{"every answer<br/>≥ 90% sure?"}
-    E -->|"yes: 48% of orders,<br/>99.1% right"| F["accept the order"]
-    E -->|"no"| G["read it back to the customer"]
-```
-
-Both Jev designs beat code alone by a margin chance doesn't explain: code first, Jev fills gaps
-fixed 39 orders and broke 14. The things Jev added are what word lists miss: "more cheese" and
-"double cheese" (extra), "coca-colas", "jalepenos", "shaved parmasean", "xl", "i'll pass on the
-peppers". With perfect
-answers, the rules that group the words would top out at 95.2% on these orders, so the remaining
-errors are almost all in the code, not in Jev's answers.
-
-**The trap: one yes/no question per menu item.** A common Jev pattern is to ask, for each item on
-the menu, "did the customer ask for this?" With 85 toppings and 23 styles, that's 108 questions per
-pizza. Each was right 95–99% of the time, yet only **8%** of orders came out fully right. Almost
-every mistake was Jev saying yes to something *related* to what was said:
-
-```mermaid
-flowchart LR
-    A["“two medium pizzas with<br/>sausage and black olives”"] --> A1["sausage? <b>yes</b> ✓"]
-    A --> A2["black olives? <b>yes</b> ✓"]
-    A --> A3["italian sausage? <b>yes</b> (0.93) ✗"]
-    A --> A4["combination style? <b>yes</b> (0.85) ✗"]
-    B["“two medium pizzas with<br/>pepperoni and extra cheese”"] --> B1["extra cheese? <b>yes</b> ✓"]
-    B --> B2["extra mozzarella? <b>yes</b> (0.95) ✗"]
-    B --> B3["extra cheddar? <b>yes</b> (0.70) ✗"]
-    classDef wrong fill:#fdecea,stroke:#c0392b,color:#7b241c
-    class A3,A4,B2,B3 wrong
-```
-
-(Two items from one dev order, with Jev's probability for each wrong "yes".)
-
-On the 348 dev orders:
-
-| Version | Whole order right |
-| --- | --- |
-| "Does the customer want olives on this item?" | 8.3% |
-| "Does the customer *name* olives? It counts only if they say it; don't infer it", with notes like "plain 'olives' is a different entry" on green olives | 69.0% |
-| The same, but code only asks about toppings that share a word with the item (19 questions instead of 108) | 74.7% |
-
-The wording fixed most of it, but this design still trails code alone by 20 points. Its
-"confident" orders are also less trustworthy (93% right rather than 99%). The lesson: when an
-answer is built from dozens of independent questions, each must be nearly perfect, so ask fewer,
-better-worded questions.
+1. **A second use case: customer-service intake** ("where's my order?"). One message in, out come
+   what the customer wants (from a list of intents you can add to), which of their orders they mean
+   (options from live data, not a fixed menu), and identifiers like order numbers, names and dates
+   (located by Jev, parsed by code). We'll measure it on public data:
+   [Banking77](https://huggingface.co/datasets/PolyAI/banking77) for intents and
+   [ABCD](https://github.com/asappresearch/abcd) for customer-service conversations with order
+   IDs, names and phone numbers.
+2. **Extract `question-kit`** from what the order taker and the intake have in common.
+3. **Conversations.** Jev as an evaluator ("is the customer adding, changing, confirming?"),
+   alongside state machines like XState's.
+4. **Other decision models.** Review how questions written for Jev translate to other decision
+   APIs, and whether their probabilities are reliable enough for the check pass.
 
 ## Try it
 
 ```sh
 bun install
-bun test                                    # offline unit tests
-
-# Experiment 1: parsing
-bun run fetch-ud                            # the treebank (CC BY-SA 4.0), downloaded and checked
-bun run explain "The dog chased a red ball across the yard."
-bun run eval                                # the report card, from the answer cache
-bun run eval --client record --split test   # call Jev for anything not cached
-
-# Experiment 2: pizza orders
-bun run fetch-pizza                         # the PIZZA orders and menu (CC BY-NC 4.0)
-bun run pizza:explain "two large pizzas with extra cheese and a diet coke"
-bun run pizza --client record --split test
+bun test                                  # offline unit tests
+bun run fetch-pizza                       # the PIZZA orders and menu (CC BY-NC 4.0, downloaded, not included)
+bun run order:pizza "two large pizzas with extra cheese and no onions and a diet coke"
 ```
 
-Calls to Jev need `TYPESAFE_API_KEY` in `.env`; every answer is cached, so re-running is free. At
-TypeSafe's listed price of $0.042 per million input tokens, the most expensive design here costs
-about $4 per 1,000 sentences. [`docs/evals.md`](docs/evals.md) explains every option and column of
-the parser report card, and [`examples/pizza/README.md`](examples/pizza/README.md) the pizza one.
+Calls to Jev need `TYPESAFE_API_KEY` in `.env`; answers are cached, so re-running is free.
 
 ## What's where
 
 ```
-src/question-sets/     the parser's questions, one file per kind of question
-src/strategies/        the parser designs: the ladder, the phrase designs, the experiments
-src/votes.ts           combining attachment answers; the tree builder
-src/calls.ts           sends calls, splits big ones, records every question and answer
-examples/pizza/        the pizza designs, questions, rules, report card and explain
-eval/                  the parser's explain, report card and scoring
-docs/report.md         the detailed report: every number, method and caveat
-docs/evals.md          how to run and read the parser evals
-baselines/             a script that runs a trained parser (Stanza) on the same sentences
+packages/     the packages: order-taker (question-kit to come)
+examples/     things built with them: a pizza order taker, measured on the PIZZA benchmark
+research/     the experiments, the write-up, the detailed report, and the plan
 ```
 
-## Caveats
+## Contributing
 
-- One model version (jev-1.13.0), English only, and samples of 125 sentences and 1,357 orders. The
-  report gives 95% intervals and paired tests for every comparison above.
-- The parser designs and the pizza rules were developed on dev data; the headline numbers come from
-  test data that was run once at the end. The question-design experiments are on dev data.
-- The answer keys follow their own conventions (which word counts as the head; whether "hamburger"
-  means beef). Some "mistakes" are disagreements about convention.
+Issues are the best way in right now: questions, use cases, and places where the order taker gets
+things wrong. We're not looking for feature pull requests yet; if you have an idea, open an issue
+to discuss it first. Pull requests that fix a problem you hit in a real use case are welcome.
 
 ## License
 
-MIT for the code. The data is downloaded at run time, not included: UD English EWT is CC BY-SA
-4.0, and the PIZZA benchmark is CC BY-NC 4.0 (non-commercial). The idea of parsing with closed
-questions generalizes Stately's [jevspresso](https://github.com/statelyai/jevspresso) demo; no
-code is copied from it.
+MIT for the code. Datasets are downloaded at run time and keep their own licenses: UD English EWT
+(CC BY-SA 4.0) and the PIZZA benchmark (CC BY-NC 4.0, non-commercial). The idea of parsing and
+taking orders with closed questions builds on Stately's [jevspresso](https://github.com/statelyai/jevspresso)
+demo; no code is copied from it.
