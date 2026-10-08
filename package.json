@@ -1,7 +1,7 @@
 {
-  "name": "question-kit",
+  "name": "question-kit-repo",
   "version": "0.0.1",
-  "description": "Turning what people say into structured data for code, with a System One model (Jev) and plain code: research and prototype packages.",
+  "description": "question-kit: generate System One questions from your domain and state. The packages, examples and smoke checks.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -12,17 +12,12 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "fetch-ud": "bun research/parsing/eval/fetch-ud.ts",
-    "eval": "bun research/parsing/eval/run.ts",
-    "eval:score": "bun research/parsing/eval/score-file.ts",
-    "explain": "bun research/parsing/eval/explain.ts",
-    "fetch-pizza": "bun research/pizza/fetch.ts",
-    "pizza": "bun research/pizza/run.ts",
-    "pizza:explain": "bun research/pizza/explain.ts",
-    "order:pizza": "bun examples/order-kit/pizza/take-order.ts",
-    "order:pizza:verify": "bun examples/order-kit/pizza/verify.ts"
+    "smoke": "bun smoke/run.ts",
+    "fetch-pizza": "bun examples/order-kit/pizza/fetch.ts",
+    "order:pizza": "bun examples/order-kit/pizza/take-order.ts"
   },
   "dependencies": {
+    "question-kit": "workspace:*",
     "@question-kit/order-kit": "workspace:*",
     "@typesafe-ai/sdk": "^0.6.0"
   },

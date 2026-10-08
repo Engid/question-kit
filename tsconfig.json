@@ -14,5 +14,5 @@
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["packages", "examples", "research", "test"]
+  "include": ["packages", "examples", "smoke", "test"]
 }

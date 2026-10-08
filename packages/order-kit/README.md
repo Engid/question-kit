@@ -5,7 +5,7 @@ read-back line per item, and whether to accept the order as is or read it back t
 first. Code reads what the menu knows; [Jev](https://docs.typesafe.ai) reads the words it doesn't
 and checks the finished order.
 
-It packages the best designs from the repo's [pizza experiment](../../research/pizza/README.md). [`examples/order-kit`](../../examples/order-kit/README.md)
+It packages the best designs from our pizza experiment ([the numbers](../../examples/order-kit/pizza/README.md#how-well-it-works)). [`examples/order-kit`](../../examples/order-kit/README.md)
 has worked examples, starting with a pizza shop measured on Amazon's PIZZA benchmark.
 
 It isn't published yet. In this repo it's a workspace package, so after `bun install` you import it

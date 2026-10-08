@@ -1,6 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   assemble,
   defineMenu,
@@ -13,17 +11,9 @@ import {
   tokenize,
   wordTagOptions,
   checkQuestions,
-  pickQuestion,
   plural,
   wordTagQuestions,
 } from "../packages/order-kit/index.ts";
-import { pizzaMenu, toPizzaItem } from "../examples/order-kit/pizza/menu.ts";
-import { loadPizza, PIZZA_DIR } from "../research/pizza/data.ts";
-import { goldOf } from "../research/pizza/gold.ts";
-import { BACK_ON_WORDS, loadMenu, NOT_WORDS } from "../research/pizza/menu.ts";
-import { askOrderCheck, askOrderPick, askWordTags, readBackOrder as experimentReadBack } from "../research/pizza/questions.ts";
-import { assemble as experimentAssemble, keywordTags } from "../research/pizza/rules.ts";
-import { DEFAULT_WORDS } from "../packages/order-kit/menu.ts";
 
 // A small cafe: nothing in the library knows about pizza.
 const CAFE = defineMenu({
@@ -155,52 +145,5 @@ describe("order taker: takeOrder", () => {
   test("an order with nothing in it is read back", async () => {
     const r = await takeOrder("hi there", CAFE, fakeJev({}));
     expect([r.items, r.accept]).toEqual([[], false]);
-  });
-});
-
-// The pizza example (examples/order-kit/pizza) must ask exactly the questions the pizza experiment
-// measured and build exactly its orders. Skipped without `bun run fetch-pizza`.
-const haveMenu = existsSync(join(PIZZA_DIR, "utils", "catalogs", "topping.txt"));
-
-describe.skipIf(!haveMenu)("pizza order taker: the same as the experiment (needs bun run fetch-pizza)", () => {
-  const questionsOnly = (batch: Record<string, { question: unknown }>) => JSON.stringify(Object.fromEntries(Object.entries(batch).map(([id, q]) => [id, q.question])));
-
-  test("the default cue words are the experiment's", () => {
-    expect(DEFAULT_WORDS.not).toEqual([...NOT_WORDS]);
-    expect(DEFAULT_WORDS.backOn).toEqual([...BACK_ON_WORDS]);
-  });
-
-  test("word questions are byte-for-byte the experiment's", () => {
-    for (const which of [[1], [1, 2, 3], [2, 5, 9, 14]]) expect(questionsOnly(wordTagQuestions(which, pizzaMenu()))).toBe(questionsOnly(askWordTags(which, loadMenu())));
-  });
-
-  test("on all 1,705 dev and test orders: the same tags, orders, check and pick questions", () => {
-    const menu = pizzaMenu();
-    const catalog = loadMenu();
-    let n = 0;
-    for (const row of [...loadPizza("dev"), ...loadPizza("test")]) {
-      const words = tokenize(row.text);
-      expect(words).toEqual(row.text.split(" "));
-      const tags = menuTags(words, menu);
-      expect(tags).toEqual(keywordTags(words, catalog));
-      const ours = assemble(words, tags, menu);
-      const theirs = experimentAssemble(words, tags, catalog);
-      expect(ours.items.map(toPizzaItem)).toEqual(theirs.items);
-      expect(ours.spans).toEqual(theirs.spans);
-      // Jev-like tags: the answer key's own, through both sets of rules.
-      const gold = goldOf(row).tags.map((t, i) => (i === 0 ? "" : (t ?? "none")));
-      expect(assemble(words, gold, menu).items.map(toPizzaItem)).toEqual(experimentAssemble(words, gold, catalog).items);
-      // The check and pick questions, and their state, for the order built.
-      const items = ours.items.map(toPizzaItem);
-      expect(questionsOnly(checkQuestions(ours.items, menu))).toBe(questionsOnly(askOrderCheck(items)));
-      expect(JSON.stringify(readBackOrder(ours.items, menu))).toBe(JSON.stringify(experimentReadBack(items, catalog)));
-      const swap = n % 2 === 0;
-      const a = pickQuestion(row.text, ours.items, ours.items.slice(0, 1), menu, swap);
-      const b = askOrderPick(row.text, items, items.slice(0, 1), catalog, swap);
-      expect(JSON.stringify(a.state)).toBe(JSON.stringify(b.state));
-      expect(questionsOnly(a.questions)).toBe(questionsOnly(b.questions));
-      n++;
-    }
-    expect(n).toBe(1705);
   });
 });

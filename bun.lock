@@ -7,11 +7,25 @@
       "dependencies": {
         "@question-kit/order-kit": "workspace:*",
         "@typesafe-ai/sdk": "^0.6.0",
+        "question-kit": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "^1.4.2",
         "typescript": "^5.9.0",
       },
+    },
+    "packages/core": {
+      "name": "question-kit",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@typesafe-ai/sdk": "^0.6.0",
+      },
+      "peerDependencies": {
+        "@typesafe-ai/sdk": "^0.6.0",
+      },
+      "optionalPeers": [
+        "@typesafe-ai/sdk",
+      ],
     },
     "packages/order-kit": {
       "name": "@question-kit/order-kit",
@@ -28,6 +42,8 @@
     "@typesafe-ai/sdk": ["@typesafe-ai/sdk@0.6.0", "", {}, "sha512-IddX+Q0XM+VagOUZFeP7wZjaO4SHMdvnh2zEBdrZZnXedWI3BNK1lKhMx3ayrkFWvVLbVcUHJy6AVZlY+e6Jaw=="],
 
     "bun-types": ["bun-types@1.4.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-bxV1FgK7yBIzjRe5zBozIM4Bem11ZJcCXSrjWRG3YWLt8yFDePu4cLjpebO8OvPeIE9trbyPF4fuj3Cia4Fj3w=="],
+
+    "question-kit": ["question-kit@workspace:packages/core"],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

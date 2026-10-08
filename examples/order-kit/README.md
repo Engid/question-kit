@@ -6,7 +6,7 @@ that shop needs around it. The library itself, and every option, is documented i
 
 | Example | What it shows |
 | --- | --- |
-| [`pizza/`](pizza/README.md) | The menu of Amazon's PIZZA benchmark (85 toppings, 23 styles, 22 drinks, every way its catalogs say them), measured on the benchmark's 1,705 orders and checked against the pizza experiment order by order. |
+| [`pizza/`](pizza/README.md) | The menu of Amazon's PIZZA benchmark (85 toppings, 23 styles, 22 drinks, every way its catalogs say them), and how the order taker scored on the benchmark's orders. |
 
 ## Making your own
 
@@ -18,9 +18,10 @@ that shop needs around it. The library itself, and every option, is documented i
    is a word Jev doesn't have to answer.
 3. **Take orders** with `takeOrder(text, menu, jev)`. Read back the items in `confirm` when
    `accept` is false.
-4. **Measure it** on orders you've written answers for. The pizza example's `eval.ts` shows how
-   to score whole orders; the repo's `RecordingJevClient` (research/lab/jev/recording.ts) caches Jev's
-   answers, so re-running a measurement costs nothing.
+4. **Measure it** on orders you've written answers for, scoring whole orders (every item and
+   value right). Wrap your client in `cachedJev` from `question-kit/cache` so each distinct request
+   is sent once: re-running a measurement then costs nothing. The pizza example's `take-order.ts`
+   shows how.
 
 ```ts
 const deli = defineMenu({

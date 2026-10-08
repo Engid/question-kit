@@ -2,16 +2,11 @@ node_modules/
 .env
 .env.*
 !.env.example
-# UD treebank files are downloaded by `bun run fetch-ud` (CC BY-SA 4.0; not redistributed here)
-data/ud/
-# PIZZA orders and menu, downloaded by `bun run fetch-pizza` (CC BY-NC 4.0; not redistributed here)
-data/pizza/
-# Jev response cache written by the recording client
+# Downloaded data, not redistributed here: the PIZZA menu (CC BY-NC 4.0), by `bun run fetch-pizza`
+data/
+# Jev's answers, cached by question-kit/cache
 .cache/
-# Eval output (bun run eval): local only, one set of files per run
+# Local run output
 results/
-research/parsing/baselines/.venv/
-research/parsing/baselines/out/
 __pycache__/
 .DS_Store
-research/question-kit-plan.md
