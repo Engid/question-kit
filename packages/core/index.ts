@@ -7,6 +7,8 @@ export * from "./readings.ts";
 export * from "./lint.ts";
 export * from "./task.ts";
 export * from "./ops.ts";
+export * from "./recorder.ts";
+export * from "./pace.ts";
 
 export * from "./methods/classify.ts";
 export * from "./methods/classify-tree.ts";

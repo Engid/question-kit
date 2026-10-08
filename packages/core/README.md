@@ -26,6 +26,21 @@ const jev = typesafeJev();                    // reads TYPESAFE_API_KEY
 const cached = cachedJev(jev, ".cache/jev");  // each distinct request is sent once; re-runs are free
 ```
 
+`typesafeJev` retries rate limits (429), server errors such as 503 "model unavailable", timeouts and
+dropped connections, with exponential backoff and jitter: 5 retries, waiting about 1, 2, 4, 8 and
+16 seconds, and a server's `Retry-After` when it gives one. Each retry is reported on stderr. The
+SDK does the retrying; `retry` changes its settings and `onRetry` where the reports go:
+
+```ts
+typesafeJev({ retry: { maxRetries: 2 }, onRetry: (m) => log.warn(m) }); // a live chat: give up sooner
+typesafeJev({ retry: { maxRetries: 0 } });                                // no retries
+```
+
+It also paces requests, for batch runs: a short random wait between them (20 ms plus up to 50 ms)
+and at most 50,000 input tokens a second, half of TypeSafe's current limit of 100,000 (and 80
+requests a second), so a run doesn't lean on retries. `pace: false` turns it off; `pace: { … }`
+changes it; `pacedJev(client, opts)` paces any client.
+
 `cachedJev` keeps every answer on disk, keyed by a hash of the request. With `{ mode: "replay" }`
 it never calls anything and throws `CacheMissError` on a request it hasn't seen, which suits tests
 and repeatable measurements. For tests, `fakeJev((id, question, state) => answer)` answers without
@@ -228,6 +243,22 @@ r.intent.value; r.order.value; r.due.date; r.person.probability;
 - **Request size.** A request that would be too big is split into several. Jev answers each
   question independently, so the answers don't change. `estimateTokens` and `estimateCost` say what
   a request or a log costs.
+
+## Recording gate decisions
+
+When code acts on an answer only above a confidence, it can report what it decided: the method, the
+task, the confidence, the threshold, and the decision ("act", "unsure", "skip"). That's all that's
+recorded by default; it shows where and how often answers fall under a gate.
+
+```ts
+import { consoleRecorder, gate, jsonlRecorder, memoryRecorder, noRecorder } from "question-kit";
+
+gate(r.confidence, 0.9, consoleRecorder, { method: "classify", task: "intent" }); // "act" or "unsure", and a line on stderr
+```
+
+A `Recorder` is any object with `record(event)`. `noRecorder` is the default; `jsonlRecorder(path)`
+appends JSON lines; `memoryRecorder()` keeps events in memory. `@question-kit/service-agent` reports
+every gate through one.
 
 ## Acknowledgements
 

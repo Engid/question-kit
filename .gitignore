@@ -2,7 +2,7 @@ node_modules/
 .env
 .env.*
 !.env.example
-# Downloaded data, not redistributed here: the PIZZA menu (CC BY-NC 4.0), by `bun run fetch-pizza`
+# Downloaded data stays out of git
 data/
 # Jev's answers, cached by question-kit/cache
 .cache/

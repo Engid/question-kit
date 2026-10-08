@@ -5,7 +5,8 @@
     "": {
       "name": "question-kit",
       "dependencies": {
-        "@question-kit/order-kit": "workspace:*",
+        "@question-kit/order": "workspace:*",
+        "@question-kit/service-agent": "workspace:*",
         "@typesafe-ai/sdk": "^0.6.0",
         "question-kit": "workspace:*",
       },
@@ -27,13 +28,22 @@
         "@typesafe-ai/sdk",
       ],
     },
-    "packages/order-kit": {
-      "name": "@question-kit/order-kit",
+    "packages/order": {
+      "name": "@question-kit/order",
       "version": "0.0.0",
+    },
+    "packages/service-agent": {
+      "name": "@question-kit/service-agent",
+      "version": "0.0.0",
+      "peerDependencies": {
+        "question-kit": "*",
+      },
     },
   },
   "packages": {
-    "@question-kit/order-kit": ["@question-kit/order-kit@workspace:packages/order-kit"],
+    "@question-kit/order": ["@question-kit/order@workspace:packages/order"],
+
+    "@question-kit/service-agent": ["@question-kit/service-agent@workspace:packages/service-agent"],
 
     "@types/bun": ["@types/bun@1.4.2", "", { "dependencies": { "bun-types": "1.4.2" } }, "sha512-GimotNn7+ZV0uVArItBbriZsR1oNf0+WTzPkdcFrzShI7k2norL0uzEaJT8T33dWr7O/c9ZDuAFQrctKCi72oQ=="],
 
