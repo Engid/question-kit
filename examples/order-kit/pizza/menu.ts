@@ -1,17 +1,13 @@
 // The pizza shop's menu for packages/order-kit: the menu of Amazon's PIZZA benchmark, with every
 // size, style, topping, drink, container and volume, and every way its catalogs say customers name
-// them (85 toppings, 23 styles, 22 drinks…).
-//
-// The catalogs are CC BY-NC 4.0, so they aren't copied into this repo: `bun run fetch-pizza`
-// downloads them, and this file reads them through the experiment's loader (research/pizza/menu.ts),
-// which also gives each value its name ("REGULARSIZE" → "regular", "16.9 FLOZ" → "16.9 fl oz").
+// them (85 toppings, 23 styles, 22 drinks…). The catalogs are downloaded by `bun run fetch-pizza`
+// (see catalog.ts).
 //
 // The wording settings and read-backs below are the ones the pizza experiment measured, so this
 // menu asks Jev exactly the questions behind its numbers.
 
-import { defineMenu, type Menu, type OrderItem, type ReadBack } from "@question-kit/order-kit";
-import { BACK_ON_WORDS, loadMenu, NOT_WORDS, type Slot } from "../../../research/pizza/menu.ts";
-import type { Drink, Item, Pizza } from "../../../research/pizza/order.ts";
+import { defineMenu, type Menu, type ReadBack } from "@question-kit/order-kit";
+import { BACK_ON_WORDS, loadCatalog, NOT_WORDS, type Slot } from "./catalog.ts";
 
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 
@@ -41,7 +37,7 @@ let cached: Menu | undefined;
 
 export function pizzaMenu(): Menu {
   if (cached) return cached;
-  const catalog = loadMenu();
+  const catalog = loadCatalog();
   const values = (slot: Slot) => Object.fromEntries(catalog.entries.filter((e) => e.slot === slot).map((e) => [e.entity, { name: e.label, say: e.surfaces }]));
   cached = defineMenu({
     name: "pizza and drink",
@@ -68,18 +64,4 @@ export function pizzaMenu(): Menu {
     wording: { wordHint: 'like "black" in "black olives", or "a" in "a little"', details: ["size", "style", "topping", "drink"] },
   });
   return cached;
-}
-
-/** An order item as the PIZZA benchmark's answer format (via the experiment's Item, which turns into an EXR tree). */
-export function toPizzaItem(item: OrderItem): Item {
-  if (item.kind === "drink") {
-    const d: Drink = { kind: "drink", number: item.number };
-    for (const f of ["size", "drink", "container", "volume"] as const) if (item.values[f]) d[f] = item.values[f];
-    return d;
-  }
-  const p: Pizza = { kind: "pizza", number: item.number, styles: [], toppings: [] };
-  if (item.values.size) p.size = item.values.size;
-  p.styles = (item.lists.style ?? []).map((s) => ({ name: s.id, ...(s.not ? { not: true } : {}) }));
-  p.toppings = (item.lists.topping ?? []).map((t) => ({ name: t.id, ...(t.amount ? { quantity: t.amount as "EXTRA" | "LIGHT" } : {}), ...(t.not ? { not: true } : {}) }));
-  return p;
 }

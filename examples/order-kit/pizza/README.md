@@ -6,7 +6,7 @@ style, topping, drink, container and volume (85 toppings, 23 styles, 22 drinks),
 benchmark's catalogs say customers name them.
 
 ```sh
-bun run fetch-pizza                          # once: the benchmark's orders and menu (CC BY-NC 4.0, not in this repo)
+bun run fetch-pizza                          # once: the benchmark's menu (CC BY-NC 4.0, not in this repo)
 bun run order:pizza "two large pizzas with extra cheese and no onions and a diet coke"
 bun run order:pizza "…" --design every-word   # or pick; --replay uses cached answers only
 ```
@@ -18,9 +18,9 @@ order read back, the check's probabilities, and whether to accept the order or w
 
 | File | What it is |
 | --- | --- |
-| `menu.ts` | The menu, described with `defineMenu`: two kinds of item (pizza, drink), six fields, the read-backs ("2 large thin crust pizzas with extra cheese and no olives", "1 diet coke, in a can"), and `toPizzaItem`, which turns an order item into the benchmark's answer format. |
-| `eval.ts` | The order taker as three strategies of the pizza experiment's report card: `order-kit`, `order-kit/every-word`, `order-kit/pick`. |
-| `verify.ts` | Runs each one next to the experiment's design it packages and compares them order by order. |
+| `menu.ts` | The menu, described with `defineMenu`: two kinds of item (pizza, drink), six fields, and the read-backs ("2 large thin crust pizzas with extra cheese and no olives", "1 diet coke, in a can"). |
+| `catalog.ts` | Reads the benchmark's menu catalogs: every value and every way customers write it. |
+| `fetch.ts` | The `fetch-pizza` command: downloads the catalogs, pinned to one commit and checked by SHA-256. |
 | `take-order.ts` | The `order:pizza` command. |
 
 ## How well it works
@@ -51,26 +51,10 @@ The 0.5 cut-off was chosen before the test run; the others were looked at afterw
 splits, so they show the shape of the trade-off rather than held-out estimates. On dev, 0.3 and 0.2
 let none of the 9 wrong orders through.
 
-```sh
-bun run pizza --split test --strategies order-kit,order-kit/every-word,order-kit/pick   # the report card
-```
-
 ## Checked against the experiment
 
-The menu's wording settings and read-backs are the ones the
-[pizza experiment](../../../research/pizza/README.md) measured, so the order taker asks Jev exactly the
-experiment's questions:
-
-```sh
-bun run order:pizza:verify                   # dev, from the cache (free)
-bun run order:pizza:verify --split test
-```
-
-For every order it compares the requests sent to Jev (byte for byte), the order built, and the
-check's probabilities. Result: identical on all 348 dev and 1,357 test orders, for all three
-designs. The unit tests (test/order-kit.test.ts) also check, without calling Jev, that the menu
-tags, the grouping rules, and the check and pick questions match the experiment's on all 1,705
-orders.
-
-`bun run order:pizza:verify --client live` asks Jev the dev questions again (default design, about
-$0.50) and reports how often its answers change from run to run.
+The menu's wording settings and read-backs are the ones the pizza experiment measured, so the order
+taker asks Jev exactly the experiment's questions. On all 348 dev and 1,357 test orders, for all
+three designs, the requests sent to Jev (byte for byte), the orders built, and the check's
+probabilities were identical to the experiment's. The scoring and this check run in our research
+repo, which isn't public.

@@ -6,13 +6,23 @@
 //
 // Needs the menu (bun run fetch-pizza) and, unless every answer is cached, TYPESAFE_API_KEY in .env.
 
-import { CACHE_DIR } from "../../../research/lab/paths.ts";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { LiveJevClient } from "../../../research/lab/jev/live.ts";
-import { RecordingJevClient } from "../../../research/lab/jev/recording.ts";
-import { type Design, takeOrder } from "@question-kit/order-kit";
-import { formatTable } from "../../../research/lab/table.ts";
+import { type Design, type JevClient, takeOrder } from "@question-kit/order-kit";
+import { cachedJev } from "question-kit/cache";
+import { typesafeJev } from "question-kit/typesafe";
 import { pizzaMenu } from "./menu.ts";
+
+/** A plain-text table: a header, a rule under each column, then the rows (numbers right-aligned). */
+function formatTable(header: string[], rows: string[][]): string[] {
+  const cells = [header, ...rows];
+  const width = (s: string) => Bun.stringWidth(s);
+  const widths = header.map((_, c) => Math.max(...cells.map((r) => width(r[c] ?? ""))));
+  const isNum = (s: string) => /\d/.test(s) && /^[-\d.,%]+$/.test(s);
+  const pad = (s: string, w: number, right: boolean) => (right ? " ".repeat(Math.max(0, w - width(s))) + s : s + " ".repeat(Math.max(0, w - width(s))));
+  const line = (r: string[]) => ("  " + r.map((s, c) => pad(s, widths[c] ?? 0, c > 0 && isNum(s))).join("  ")).trimEnd();
+  return [line(header), "  " + widths.map((w) => "─".repeat(w)).join("  "), ...rows.map(line)];
+}
 
 const { values: args, positionals } = parseArgs({
   allowPositionals: true,
@@ -24,8 +34,10 @@ const { values: args, positionals } = parseArgs({
 });
 
 const text = positionals.join(" ") || "two large pizzas with extra cheese and no onions and a diet coke";
-const cacheDir = CACHE_DIR;
-const jev = args.replay ? new RecordingJevClient(undefined, cacheDir, "replay") : new RecordingJevClient(new LiveJevClient(), cacheDir, "record");
+const cacheDir = join(import.meta.dir, "..", "..", "..", ".cache", "jev");
+// order-kit has its own copy of the request and answer types until it's rebuilt on question-kit;
+// the requests and answers are the same.
+const jev = (args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir)) as unknown as JevClient;
 const readBackAt = Number(args["read-back-at"]);
 
 const r = await takeOrder(text, pizzaMenu(), jev, { design: args.design as Design, readBackAt });
