@@ -37,7 +37,7 @@ them from your domain and state.
 
 question-kit is one repo with a package per job: the core, which generates the questions, and kits
 for particular uses, side by side. The core is the main package, `question-kit`; kits are scoped
-packages, like `@question-kit/order-kit`. None is published yet.
+packages, like `@question-kit/order`. None is published yet.
 
 ### `question-kit`: the core (prototype)
 
@@ -60,12 +60,12 @@ The [package README](packages/core/README.md) has every method, with examples.
 The methods have offline tests and a few live [smoke checks](smoke/README.md) each, but no
 benchmark numbers yet.
 
-### `order-kit` (prototype)
+### `@question-kit/order` (prototype)
 
 Takes an order in one message, for any menu you describe:
 
 ```ts
-import { defineMenu, takeOrder } from "@question-kit/order-kit";
+import { defineMenu, takeOrder } from "@question-kit/order";
 
 const cafe = defineMenu({
   name: "coffee",
@@ -88,15 +88,15 @@ order.confirm;   // otherwise, which items to read back, and whether to ask "any
 ```
 
 `jev` is any client with a `systemOne(request)` method; the
-[package README](packages/order-kit/README.md) shows one for TypeSafe's SDK, and every option.
+[package README](packages/order/README.md) shows one for TypeSafe's SDK, and every option.
 
 **How it was measured.** The design comes from our experiments on pizza orders.
 With the menu of Amazon's [PIZZA benchmark](https://github.com/amazon-science/pizza-semantic-parsing-dataset),
 it got 95.1% of 1,357 test orders exactly right (the benchmark paper's best trained model: 78.6%),
 for about $1.43 per 1,000 orders. Its check accepted 75.7% of orders without a read-back, and 7 of
 the 66 wrong orders were among them. That's one benchmark of single-message pizza orders, in
-English, with jev-1.13; other menus haven't been measured. The [pizza example](examples/order-kit/pizza/README.md)
-is the order taker with the benchmark's menu.
+English, with jev-1.13; other menus haven't been measured. The [pizza example](examples/order/pizza/README.md)
+runs it on a small pizza menu of our own.
 
 ## Model support
 
@@ -134,17 +134,27 @@ they've been measured.
 bun install
 bun test                                  # offline unit tests
 bun run smoke --client record             # the core methods' live checks (59 requests, about $0.002)
-bun run fetch-pizza                       # the PIZZA menu (CC BY-NC 4.0, downloaded, not included)
 bun run order:pizza "two large pizzas with extra cheese and no onions and a diet coke"
 ```
 
 Calls to Jev need `TYPESAFE_API_KEY` in `.env`; answers are cached, so re-running is free.
 
+### `@question-kit/service-agent` (prototype)
+
+A lightweight customer-service agent: you describe the service as data (intents, the values to
+collect, tools, and each intent's steps, with the company's written procedure), and it runs a chat
+turn by turn. Code runs the steps; Jev reads the customer (what they want, the values a step needs,
+their answers) and makes the procedure's judgment calls (which optional step the written procedure
+calls for, given what the tools found and what the customer said). Every reading passes a confidence
+gate before the agent acts on it, and every change is read back to the customer first. No LLM writes
+anything: replies come from templates and the company's own wording. The state is a plain log of the
+conversation. See the [package README](packages/service-agent/README.md).
+
 ## What's where
 
 ```
-packages/     the packages: core (question-kit) and order-kit
-examples/     things built with them: a pizza order taker with the PIZZA benchmark's menu
+packages/     the packages: core (question-kit), order (@question-kit/order) and service-agent
+examples/     things built with them: a pizza order taker, a store's support chat
 smoke/        a few live checks per core method
 test/         offline unit tests
 ```
@@ -157,7 +167,6 @@ to discuss it first. Pull requests that fix a problem you hit in a real use case
 
 ## License
 
-MIT for the code. The pizza example downloads the PIZZA benchmark's menu at run time; it keeps its
-own license (CC BY-NC 4.0, non-commercial). The idea of parsing and
-taking orders with closed questions builds on Stately's [jevspresso](https://github.com/statelyai/jevspresso)
-demo; no code is copied from it.
+MIT. Nothing here includes or downloads a dataset; the numbers quoted from benchmarks were measured
+in our research repo. The idea of parsing and taking orders with closed questions builds on
+Stately's [jevspresso](https://github.com/statelyai/jevspresso) demo; no code is copied from it.

@@ -13,7 +13,7 @@ import {
   checkQuestions,
   plural,
   wordTagQuestions,
-} from "../packages/order-kit/index.ts";
+} from "../packages/order/index.ts";
 
 // A small cafe: nothing in the library knows about pizza.
 const CAFE = defineMenu({
@@ -145,5 +145,17 @@ describe("order taker: takeOrder", () => {
   test("an order with nothing in it is read back", async () => {
     const r = await takeOrder("hi there", CAFE, fakeJev({}));
     expect([r.items, r.accept]).toEqual([[], false]);
+  });
+});
+
+describe("the pizza example's menu", () => {
+  test("reads plain orders with code alone", async () => {
+    const { pizzaMenu } = await import("../examples/order/pizza/menu.ts");
+    const read = (text: string) => {
+      const words = tokenize(text);
+      return Object.values(readBackOrder(assemble(words, menuTags(words, pizzaMenu()), pizzaMenu()).items, pizzaMenu()) as Record<string, string>);
+    };
+    expect(read("two large pizzas with extra cheese and no onions and a diet coke")).toEqual(["2 large pizzas with extra cheese and no onions", "1 diet coke"]);
+    expect(read("can i get a large deep dish with sausage and black olives and a 2 liter coke")).toEqual(["1 large deep dish pizza with sausage and black olives", "1 coke, 2 liter"]);
   });
 });

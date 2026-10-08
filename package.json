@@ -13,13 +13,14 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "smoke": "bun smoke/run.ts",
-    "fetch-pizza": "bun examples/order-kit/pizza/fetch.ts",
-    "order:pizza": "bun examples/order-kit/pizza/take-order.ts"
+    "order:pizza": "bun examples/order/pizza/take-order.ts",
+    "service:chat": "bun examples/service-agent/chat.ts"
   },
   "dependencies": {
     "question-kit": "workspace:*",
-    "@question-kit/order-kit": "workspace:*",
-    "@typesafe-ai/sdk": "^0.6.0"
+    "@question-kit/order": "workspace:*",
+    "@typesafe-ai/sdk": "^0.6.0",
+    "@question-kit/service-agent": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",

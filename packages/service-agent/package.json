@@ -1,0 +1,14 @@
+{
+  "name": "@question-kit/service-agent",
+  "version": "0.0.0",
+  "description": "A lightweight customer-service agent on Jev: code runs the procedure, Jev reads the customer and makes the procedure's judgment calls.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "peerDependencies": {
+    "question-kit": "*"
+  }
+}

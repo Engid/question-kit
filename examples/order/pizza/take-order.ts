@@ -1,14 +1,14 @@
-// bun run order:pizza — take one pizza order with packages/order-kit and the pizza menu, and show what it did.
+// bun run order:pizza — take one pizza order with packages/order and the pizza menu, and show what it did.
 //
 //   bun run order:pizza "two large pizzas with extra cheese and no onions and a diet coke"
 //   bun run order:pizza "…" --design every-word        # or pick
 //   bun run order:pizza "…" --replay                    # cached answers only (never calls the API)
 //
-// Needs the menu (bun run fetch-pizza) and, unless every answer is cached, TYPESAFE_API_KEY in .env.
+// Needs TYPESAFE_API_KEY in .env, unless every answer is cached.
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { type Design, type JevClient, takeOrder } from "@question-kit/order-kit";
+import { type Design, type JevClient, takeOrder } from "@question-kit/order";
 import { cachedJev } from "question-kit/cache";
 import { typesafeJev } from "question-kit/typesafe";
 import { pizzaMenu } from "./menu.ts";
@@ -35,7 +35,7 @@ const { values: args, positionals } = parseArgs({
 
 const text = positionals.join(" ") || "two large pizzas with extra cheese and no onions and a diet coke";
 const cacheDir = join(import.meta.dir, "..", "..", "..", ".cache", "jev");
-// order-kit has its own copy of the request and answer types until it's rebuilt on question-kit;
+// @question-kit/order has its own copy of the request and answer types until it's rebuilt on question-kit;
 // the requests and answers are the same.
 const jev = (args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir)) as unknown as JevClient;
 const readBackAt = Number(args["read-back-at"]);

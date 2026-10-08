@@ -1,5 +1,5 @@
 {
-  "name": "@question-kit/order-kit",
+  "name": "@question-kit/order",
   "version": "0.0.0",
   "description": "Take an order from one message, for any menu you describe, with Jev and plain code.",
   "private": true,
