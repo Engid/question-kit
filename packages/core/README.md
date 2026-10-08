@@ -99,6 +99,11 @@ await run(jev, extractValue(text, { kind: /\bTRK-\d{8}\b/g, role: "the tracking 
 const due = await run(jev, extractDate("it was due last Friday", { role: "the date the package was due", today: "2026-10-07" }));
 due.date;    // "2026-10-02"
 due.review;  // true when a person should check (low confidence, or parts that don't make a date)
+
+// No year in the text: `expect` picks it (past, future, or by default the nearest).
+const bought = await run(jev, extractDate("I bought it on December 20", { role: "the date it was bought", today: "2026-10-07", expect: "past" }));
+bought.date;        // "2025-12-20"
+bought.yearGuessed; // true
 ```
 
 ### callFunction
@@ -131,11 +136,18 @@ call.weakest;  // which answer the confidence came from
 ```ts
 const v = await run(jev, verifyRecord(emailText, {
   order_number: { description: "the order's number" },
-  delivery_date: { description: "when it should arrive", format: "a date as YYYY-MM-DD" },
-}, extracted));
+  delivery_date: { description: "when it should arrive", date: "future" },
+}, extracted, { today: "2026-10-07" }));
 v.ok;       // false when any one check is confident something is wrong
-v.flagged;  // [{ field: "delivery_date", check: "unsupported", probability: 0.93 }]
+v.flagged;  // [{ field: "order_number", check: "unsupported", probability: 0.93 }]
+v.dates;    // { delivery_date: { found: "2026-10-09", matches: true, yearGuessed: true, confidence: 0.97 } }
+v.review;   // fields a person should look at anyway, and why
 ```
+
+Date fields (`date: true`, or where the date is expected to fall) aren't asked about with yes/no
+questions, which read "October 9" against 2026-10-09 too literally when the text has no year. The
+source's date is read with `extractDate` in the same request and compared in code: the month and day
+when the text gives no year, the whole date otherwise.
 
 ### checkClaim, search, rerank, matchRecords
 

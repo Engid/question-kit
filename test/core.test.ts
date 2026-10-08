@@ -260,6 +260,27 @@ describe("extractDate", () => {
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Friday" }), today, "next", 0.6).date).toBe("2026-10-09");
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Friday" }), today, "last", 0.6).date).toBe("2026-10-02");
   });
+  test("without a year: nearest by default, or past or future when asked", () => {
+    const at = (month: string, day: string, expect?: "past" | "future" | "nearest") => assembleDate(parts({ mode: "absolute", month, day }), today, "next", 0.6, expect);
+    // September 1 was 36 days ago; next year's is 329 days away.
+    expect(at("September", "1").date).toBe("2026-09-01");
+    expect(at("September", "1", "future").date).toBe("2027-09-01");
+    // March 3: 218 days ago, or 147 days away.
+    expect(at("March", "3").date).toBe("2027-03-03");
+    expect(at("March", "3", "past").date).toBe("2026-03-03");
+    expect(at("December", "20", "past").date).toBe("2025-12-20");
+    expect(at("October", "7", "past").date).toBe("2026-10-07");
+    expect(at("October", "7", "future").date).toBe("2026-10-07");
+    expect(at("March", "3").yearGuessed).toBe(true);
+    expect(assembleDate(parts({ mode: "absolute", month: "March", day: "3", year: "2027" }), today, "next", 0.6).yearGuessed).toBe(false);
+    // No February 29 in 2025, 2026 or 2027.
+    expect(at("February", "29").date).toBeNull();
+  });
+  test("expecting the past makes a bare weekday the last one", async () => {
+    const jev = fakeJev((id) => ({ mode: "relative", anchor: "weekday", weekday: "Friday" })[id] ?? "none");
+    const r = await run(jev, extractDate("it was supposed to come Friday", { role: "the date it was due", today: "2026-10-07", expect: "past" }));
+    expect(r.date).toBe("2026-10-02");
+  });
   test("confidence is the least sure part used, and low ones are flagged", () => {
     const p = parts({ mode: "relative", anchor: "tomorrow" });
     p.anchor = reading("tomorrow", 0.4);
@@ -329,6 +350,45 @@ describe("verifyRecord", () => {
     expect(r.ok).toBe(false);
     expect(r.worst).toEqual({ field: "total", check: "unsupported", probability: 0.95 });
     expect(Object.keys(jev.requests[0]!.questions)).toContain("due_date.missing");
+  });
+
+  describe("date fields are read with extractDate and compared in code", () => {
+    const text = "Your blender shipped on October 4 and should arrive on October 9.";
+    const schema = { item: { description: "what was ordered" }, arrives: { description: "when the order should arrive", date: "future" as const } };
+    // The source says "October 9", with no year.
+    const jev = () => fakeJev((id) => ({ "arrives.date.mode": "absolute", "arrives.date.month": "October", "arrives.date.day": "9" })[id] ?? (id.startsWith("arrives.") ? "none" : 0.05));
+    test("a matching date passes, with no yes/no questions about it", async () => {
+      const j = jev();
+      const r = await run(j, verifyRecord(text, schema, { item: "blender", arrives: "2026-10-09" }, { today: "2026-10-07" }));
+      expect(r.ok).toBe(true);
+      expect(r.dates.arrives).toMatchObject({ found: "2026-10-09", matches: true, yearGuessed: true });
+      expect(r.fields.arrives).toBeLessThan(0.2);
+      const ids = Object.keys(j.requests[0]!.questions);
+      expect(ids.filter((id) => id.startsWith("arrives.")).sort()).toEqual(["arrives.date.anchor", "arrives.date.day", "arrives.date.mode", "arrives.date.month", "arrives.date.week", "arrives.date.weekday", "arrives.date.year"]);
+      expect(j.requests.length).toBe(1);
+    });
+    test("a different date is flagged", async () => {
+      const r = await run(jev(), verifyRecord(text, schema, { item: "blender", arrives: "2026-10-20" }, { today: "2026-10-07" }));
+      expect(r.ok).toBe(false);
+      expect(r.worst).toMatchObject({ field: "arrives", check: "date" });
+    });
+    test("without a year in the source, the month and day are checked, and a different year goes to review", async () => {
+      const r = await run(jev(), verifyRecord(text, schema, { item: "blender", arrives: "2025-10-09" }, { today: "2026-10-07" }));
+      expect(r.ok).toBe(true);
+      expect(r.review).toEqual([{ field: "arrives", note: "the source gives no year; the record says 2025, the expected year is 2026" }]);
+    });
+    test("a date that isn't YYYY-MM-DD breaks the format", async () => {
+      const r = await run(jev(), verifyRecord(text, schema, { item: "blender", arrives: "Oct 9" }, { today: "2026-10-07" }));
+      expect(r.worst).toEqual({ field: "arrives", check: "format", probability: 1 });
+    });
+    test("an empty date field is wrong when the source gives a date", async () => {
+      const r = await run(jev(), verifyRecord(text, schema, { item: "blender", arrives: null }, { today: "2026-10-07" }));
+      expect(r.worst).toMatchObject({ field: "arrives", check: "missing" });
+      expect(r.ok).toBe(false);
+    });
+    test("date fields need today", () => {
+      expect(() => verifyRecord(text, schema, { item: "blender", arrives: "2026-10-09" })).toThrow("today");
+    });
   });
 });
 

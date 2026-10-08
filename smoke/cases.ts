@@ -198,8 +198,9 @@ export const CASES: Case[] = [
         jev,
         verifyRecord(
           "Thanks for your patience! A refund of $40 for order 5520031 went back to your card on Oct 3.",
-          { order_number: { description: "the order's number" }, refund_amount: { description: "how much was refunded, in dollars", format: "a number with two decimals" }, refund_date: { description: "when the refund was sent", format: "a date as YYYY-MM-DD" } },
+          { order_number: { description: "the order's number" }, refund_amount: { description: "how much was refunded, in dollars", format: "a number with two decimals" }, refund_date: { description: "when the refund was sent", date: "past" } },
           record,
+          { today: TODAY },
         ),
         { log },
       ),
@@ -214,11 +215,15 @@ export const CASES: Case[] = [
       ["it was due last Friday and never came", "the date the package was due", "2026-10-02"],
       ["can you hold it until the 15th of November?", "the date to hold the package until", "2026-11-15"],
       ["where is my package?", "the date the package was due", null],
+      // No year, in the past: last December, not this one.
+      ["I bought it on December 20 and it already broke", "the date it was bought", "2025-12-20", "past"],
+      // A bare weekday, in the past: last Friday, not the coming one.
+      ["it was supposed to come Friday but it never showed up", "the date it was supposed to come", "2026-10-02", "past"],
     ] as const
-  ).map(([text, role, want]): Case => ({
+  ).map(([text, role, want, expect]: readonly [string, string, string | null, ("past" | "future")?]): Case => ({
     method: "extractDate",
     name: text,
-    run: (jev, log) => run(jev, extractDate(text, { role, today: TODAY }), { log }),
+    run: (jev, log) => run(jev, extractDate(text, { role, today: TODAY, ...(expect ? { expect } : {}) }), { log }),
     check: (r) => is(r.date, want),
   })),
 
@@ -247,6 +252,7 @@ export const CASES: Case[] = [
     [
       ["a correct record", { order_number: "4410982", item: "blender", delivery_date: "2026-10-09" }, true],
       ["an invented delivery date", { order_number: "4410982", item: "blender", delivery_date: "2026-10-20" }, false],
+      ["a delivery date one day off", { order_number: "4410982", item: "blender", delivery_date: "2026-10-08" }, false],
       ["a missing item", { order_number: "4410982", item: null, delivery_date: "2026-10-09" }, false],
     ] as const
   ).map(([name, record, ok]): Case => ({
@@ -257,13 +263,22 @@ export const CASES: Case[] = [
         jev,
         verifyRecord(
           "Your order 4410982 (one countertop blender) shipped on October 4 and should arrive on October 9.",
-          { order_number: { description: "the order's number" }, item: { description: "what was ordered" }, delivery_date: { description: "when the order should arrive", format: "a date as YYYY-MM-DD" } },
+          { order_number: { description: "the order's number" }, item: { description: "what was ordered" }, delivery_date: { description: "when the order should arrive", date: "future" } },
           record,
+          { today: TODAY },
         ),
         { log },
       ),
     check: (r) => is(r.ok, ok),
   })),
+
+  {
+    method: "verifyRecord",
+    name: "a date the source gives relative to today",
+    run: (jev, log) =>
+      run(jev, verifyRecord("Good news: your replacement kettle will arrive this Friday.", { item: { description: "what is being sent" }, arrival: { description: "when it will arrive", date: "future" } }, { item: "kettle", arrival: "2026-10-09" }, { today: TODAY }), { log }),
+    check: (r) => is(r.ok, true),
+  },
 
   // checkClaim
   ...(

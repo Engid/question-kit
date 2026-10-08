@@ -52,6 +52,28 @@ requests were the only calls). The margins, from the recorded answers:
   checked in code: read the text's date with `extractDate` and compare it, instead of asking whether
   the text supports a written-out date.
 
+## Dates (2026-10-07)
+
+- **verifyRecord:** date fields are no longer asked about with yes/no questions. The source's date
+  is read with `extractDate` in the same request and compared in code: the month and day when the
+  text gives no year, the whole date otherwise. New cases: a delivery date one day off, and a date
+  the text gives relative to today ("this Friday").
+- **extractDate:** with no year in the text, the year used to be this year unless that was more than
+  a month ago, which put "September 1" on 2026-10-07 in 2027. Now `expect` decides (past, future,
+  or by default nearest), and the result says the year was guessed. New cases: a past date with no
+  year, and a bare weekday in the past.
+
+Third run (Nick, 2026-10-07): all 51 cases right; 63 requests, about 50k input tokens. Only 7 were
+new, because the three delivery-date records make the same request (a date field's value isn't in
+the request; it's compared in code).
+
+- **Dates in records:** correct dates now come out at probability 0 of being wrong (0.54–0.62
+  before), and the invented date and the date one day off at 1.0.
+- **"this Friday"** passed but went to review: Jev was split between "this week" (0.52) and no
+  week stated (0.42). Both give the same Friday, so the confidence understates how sure the date
+  is. A later fix: score the date by adding up the answers that lead to it, not by its least sure
+  part.
+
 The cases are in [`cases.ts`](cases.ts). The texts are made up (customer-service and cafe
 messages, a short store policy, small records), and dates resolve against a fixed today,
 2026-10-07.
