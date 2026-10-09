@@ -192,11 +192,6 @@ lessons they taught are all over the code:
 - **Read values with the conversation in view.** The agent's own question is what makes a bare
   number an order ID.
 
-## What's next
-
-Evals for the core methods; the service agent on live chats; delivery for the pizza shop; the
-docs site; and more kits as they earn their place. Ideas and requests: open an issue.
-
 ## What's where
 
 ```
