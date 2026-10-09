@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   assemble,
   defineMenu,
-  type JevClient,
-  type JevRequest,
+  type SystemOneClient,
+  type SystemOneRequest,
   menuTags,
   readBackOrder,
   sameItems,
@@ -13,7 +13,7 @@ import {
   checkQuestions,
   plural,
   wordTagQuestions,
-} from "../packages/order/index.ts";
+} from "../packages/question-kit/order/index.ts";
 
 // A small cafe: nothing in the library knows about pizza.
 const CAFE = defineMenu({
@@ -30,11 +30,11 @@ const CAFE = defineMenu({
 });
 
 /** A fake Jev: word tags from a table (else "none", 0.95 sure); check answers from a function. */
-function fakeJev(tags: Record<string, [string, number]>, pWrong: (id: string) => number = () => 0.05): JevClient & { requests: JevRequest[] } {
-  const requests: JevRequest[] = [];
+function fakeJev(tags: Record<string, [string, number]>, pWrong: (id: string) => number = () => 0.05): SystemOneClient & { requests: SystemOneRequest[] } {
+  const requests: SystemOneRequest[] = [];
   return {
     requests,
-    async systemOne(request: JevRequest) {
+    async systemOne(request: SystemOneRequest) {
       requests.push(request);
       const words = (request.state as { words?: Record<string, string> }).words ?? {};
       const answers: Record<string, unknown> = {};
@@ -49,7 +49,7 @@ function fakeJev(tags: Record<string, [string, number]>, pWrong: (id: string) =>
         const rest = (1 - p) / Math.max(1, options.length - 1);
         answers[id] = { type: "choice", choice: tag, confidence: p, probabilities: Object.fromEntries(options.map((o) => [o, o === tag ? p : rest])) };
       }
-      return { model: "fake", answers } as Awaited<ReturnType<JevClient["systemOne"]>>;
+      return { model: "fake", answers } as Awaited<ReturnType<SystemOneClient["systemOne"]>>;
     },
   };
 }
@@ -110,23 +110,23 @@ describe("order taker: any menu (a small cafe)", () => {
 
 describe("order taker: takeOrder", () => {
   test("Jev is asked only about the words the menu doesn't know, then checks the order", async () => {
-    const jev = fakeJev({ more: ["extra", 0.86], cappucino: ["none", 0.4] });
-    const r = await takeOrder("Can I get one large latte with more vanilla, please", CAFE, jev);
-    expect(jev.requests.length).toBe(2);
-    const state = jev.requests[0]!.state as { words: Record<string, string> };
-    expect(Object.keys(jev.requests[0]!.questions).map((id) => state.words[`w${id.slice(5)}`])).toEqual(["can", "i", "get", "with", "more", "please"]);
+    const client = fakeJev({ more: ["extra", 0.86], cappucino: ["none", 0.4] });
+    const r = await takeOrder("Can I get one large latte with more vanilla, please", CAFE, client);
+    expect(client.requests.length).toBe(2);
+    const state = client.requests[0]!.state as { words: Record<string, string> };
+    expect(Object.keys(client.requests[0]!.questions).map((id) => state.words[`w${id.slice(5)}`])).toEqual(["can", "i", "get", "with", "more", "please"]);
     expect(r.readBack).toEqual(["1 large latte with extra vanilla"]);
     expect(r.accept).toBe(true);
     expect(r.confidence).toBeCloseTo(0.86);
-    expect(Object.keys(jev.requests[1]!.questions)).toEqual(["check_order", "check_i1", "check_missing"]);
+    expect(Object.keys(client.requests[1]!.questions)).toEqual(["check_order", "check_i1", "check_missing"]);
   });
 
   test("the check decides what to read back", async () => {
-    const jev = fakeJev({}, (id) => (id === "check_i2" ? 0.4 : id === "check_missing" ? 0.35 : 0.05));
-    const r = await takeOrder("a large latte and a muffin", CAFE, jev);
+    const client = fakeJev({}, (id) => (id === "check_i2" ? 0.4 : id === "check_missing" ? 0.35 : 0.05));
+    const r = await takeOrder("a large latte and a muffin", CAFE, client);
     expect(r.accept).toBe(false);
     expect(r.confirm).toEqual({ items: [2], missing: true });
-    expect((await takeOrder("a large latte and a muffin", CAFE, jev, { readBackAt: 0.5 })).accept).toBe(true);
+    expect((await takeOrder("a large latte and a muffin", CAFE, client, { readBackAt: 0.5 })).accept).toBe(true);
   });
 
   test("without the check, Jev's word confidence decides", async () => {
@@ -136,10 +136,10 @@ describe("order taker: takeOrder", () => {
   });
 
   test("pick asks nothing more when both designs agree", async () => {
-    const jev = fakeJev({ a: ["number_1", 0.99], large: ["size_LARGE", 0.99], latte: ["drink_LATTE", 0.99] });
-    const r = await takeOrder("a large latte", CAFE, jev, { design: "pick" });
+    const client = fakeJev({ a: ["number_1", 0.99], large: ["size_LARGE", 0.99], latte: ["drink_LATTE", 0.99] });
+    const r = await takeOrder("a large latte", CAFE, client, { design: "pick" });
     expect(r.pick).toEqual({ agreed: true });
-    expect(jev.requests.some((q) => "pick" in q.questions)).toBe(false);
+    expect(client.requests.some((q) => "pick" in q.questions)).toBe(false);
   });
 
   test("an order with nothing in it is read back", async () => {
@@ -159,3 +159,23 @@ describe("the pizza example's menu", () => {
     expect(read("can i get a large deep dish with sausage and black olives and a 2 liter coke")).toEqual(["1 large deep dish pizza with sausage and black olives", "1 coke, 2 liter"]);
   });
 });
+
+describe("partial reads (changes to an order)", () => {
+  const client = fakeJev({});
+  test("a size alone is kept, with the number implied by its article", async () => {
+    const r = await takeOrder("make that a large", CAFE, client, { check: false, partial: true });
+    expect(r.items).toEqual([{ kind: "drink", number: 1, numberSaid: false, values: { size: "LARGE" }, lists: {} }]);
+    // Outside a partial read, items don't say whether the number was said.
+    expect((await takeOrder("make that a large", CAFE, client, { check: false })).items[0]).not.toHaveProperty("numberSaid");
+  });
+  test("an article after a bare number continues the part, and the number counts as said", async () => {
+    const r = await takeOrder("make one of them a large", CAFE, client, { check: false, partial: true });
+    expect(r.items).toEqual([{ kind: "drink", number: 1, numberSaid: true, values: { size: "LARGE" }, lists: {} }]);
+    expect((await takeOrder("make that two", CAFE, client, { check: false, partial: true })).items).toMatchObject([{ number: 2, numberSaid: true }]);
+  });
+  test("an article after an item still starts a new one", async () => {
+    const r = await takeOrder("a latte and a croissant", CAFE, client, { check: false, partial: true });
+    expect(r.readBack).toEqual(["1 latte", "1 croissant"]);
+  });
+});
+

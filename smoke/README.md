@@ -1,6 +1,6 @@
 # Smoke checks for the core methods
 
-A few hand-written cases per method in [`packages/core`](../packages/core/README.md), run
+A few hand-written cases per method in [`packages/question-kit`](../packages/question-kit/README.md), run
 against the real model. It's a smoke test that each method's questions and code steps work end to
 end, not a measurement: bigger test sets per method come later.
 

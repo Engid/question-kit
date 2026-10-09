@@ -8,7 +8,7 @@
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { type Design, type JevClient, takeOrder } from "@question-kit/order";
+import { type Design, takeOrder } from "question-kit/order";
 import { cachedJev } from "question-kit/cache";
 import { typesafeJev } from "question-kit/typesafe";
 import { pizzaMenu } from "./menu.ts";
@@ -35,12 +35,10 @@ const { values: args, positionals } = parseArgs({
 
 const text = positionals.join(" ") || "two large pizzas with extra cheese and no onions and a diet coke";
 const cacheDir = join(import.meta.dir, "..", "..", "..", ".cache", "jev");
-// @question-kit/order has its own copy of the request and answer types until it's rebuilt on question-kit;
-// the requests and answers are the same.
-const jev = (args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir)) as unknown as JevClient;
+const client = (args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir));
 const readBackAt = Number(args["read-back-at"]);
 
-const r = await takeOrder(text, pizzaMenu(), jev, { design: args.design as Design, readBackAt });
+const r = await takeOrder(text, pizzaMenu(), client, { design: args.design as Design, readBackAt });
 
 console.log(`\nCustomer: ${text}\n`);
 console.log(

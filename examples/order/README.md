@@ -1,8 +1,8 @@
-# Order takers built with packages/order
+# Order takers built with question-kit/order
 
 Each folder here is one shop's order taker: a menu described with `defineMenu`, and whatever
 that shop needs around it. The library itself, and every option, is documented in
-[`packages/order`](../../packages/order/README.md).
+[`packages/question-kit/order`](../../packages/question-kit/order/README.md).
 
 | Example | What it shows |
 | --- | --- |
@@ -16,7 +16,7 @@ that shop needs around it. The library itself, and every option, is documented i
 2. **List how people say each value.** `OAT: ["oat", "oat milk", "oatmilk"]`. Plurals and common
    misspellings help: code looks these up before Jev is asked anything, and every word code knows
    is a word Jev doesn't have to answer.
-3. **Take orders** with `takeOrder(text, menu, jev)`. Read back the items in `confirm` when
+3. **Take orders** with `takeOrder(text, menu, client)`. Read back the items in `confirm` when
    `accept` is false.
 4. **Measure it** on orders you've written answers for, scoring whole orders (every item and
    value right). Wrap your client in `cachedJev` from `question-kit/cache` so each distinct request

@@ -1,8 +1,8 @@
-# A store's support chat, built with packages/service-agent
+# A store's support chat, built with question-kit/service-agent
 
 A made-up outdoor-gear store's customer service ([store.ts](store.ts)) and a terminal chat with
 it ([chat.ts](chat.ts)), on live Jev. The library and every option are documented in
-[`packages/service-agent`](../../packages/service-agent/README.md).
+[`packages/question-kit/service-agent`](../../packages/question-kit/service-agent/README.md).
 
 ```sh
 bun run service:chat            # type as the customer; an empty line ends the chat

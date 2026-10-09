@@ -1,7 +1,7 @@
 // The TypeSafe client's retries, against a local stand-in server (no network, no key needed).
 
 import { afterAll, describe, expect, test } from "bun:test";
-import { typesafeJev } from "../packages/core/typesafe.ts";
+import { typesafeJev } from "../packages/question-kit/core/typesafe.ts";
 
 let failures = 0;
 const server = Bun.serve({
@@ -25,8 +25,8 @@ describe("typesafeJev retries", () => {
   test("a 503 is retried with backoff, and each retry is reported", async () => {
     failures = 2;
     const told: string[] = [];
-    const jev = typesafeJev({ apiKey: "test", baseURL: server.url.href, retry: fast, onRetry: (m) => told.push(m) });
-    const r = await jev.systemOne(request);
+    const client = typesafeJev({ apiKey: "test", baseURL: server.url.href, retry: fast, onRetry: (m) => told.push(m) });
+    const r = await client.systemOne(request);
     expect(r.answers.q).toMatchObject({ noul: 0.9 });
     expect(told.length).toBe(2);
     expect(told[0]).toMatch(/^retrying in \d+ms \(retry 1\/5\) after 503$/);
@@ -34,7 +34,7 @@ describe("typesafeJev retries", () => {
 
   test("it gives up after maxRetries", async () => {
     failures = 3;
-    const jev = typesafeJev({ apiKey: "test", baseURL: server.url.href, retry: { ...fast, maxRetries: 2 }, onRetry: false });
-    await expect(jev.systemOne(request)).rejects.toThrow(/503/);
+    const client = typesafeJev({ apiKey: "test", baseURL: server.url.href, retry: { ...fast, maxRetries: 2 }, onRetry: false });
+    await expect(client.systemOne(request)).rejects.toThrow(/503/);
   });
 });

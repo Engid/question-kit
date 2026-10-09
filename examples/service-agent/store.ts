@@ -8,7 +8,8 @@
 //
 // The store, its orders and its customers are made up.
 
-import { defineService } from "@question-kit/service-agent";
+import type { Json } from "question-kit";
+import { defineService } from "question-kit/service-agent";
 
 export const service = defineService({
   intents: {
@@ -71,7 +72,9 @@ export const ORDERS: Record<string, { email: string; item: string; price: string
  * Run a tool against the made-up order system. `note` is what the system found, in words: the agent
  * puts it in the conversation Jev reads. `values` fill slots the customer isn't asked for.
  */
-export function runTool(tool: string, values: Record<string, string>): { ok: boolean; note?: string; values?: Record<string, string> } {
+export function runTool(tool: string, given: Record<string, Json>): { ok: boolean; note?: string; values?: Record<string, string> } {
+  // This store's slots are all text.
+  const values = Object.fromEntries(Object.entries(given).map(([k, v]) => [k, String(v)]));
   if (tool === "look-up-order") {
     const order = ORDERS[values.order_id ?? ""];
     if (!order || order.email !== values.email?.toLowerCase()) return { ok: false, note: "Look Up Order: no order with that ID and email address." };

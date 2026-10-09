@@ -1,7 +1,7 @@
 {
   "name": "question-kit-repo",
   "version": "0.0.1",
-  "description": "question-kit: generate System One questions from your domain and state. The packages, examples and smoke checks.",
+  "description": "question-kit: building kits for System One models, starting with Jev. The packages, examples and smoke checks.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -14,16 +14,20 @@
     "typecheck": "tsc --noEmit",
     "smoke": "bun smoke/run.ts",
     "order:pizza": "bun examples/order/pizza/take-order.ts",
-    "service:chat": "bun examples/service-agent/chat.ts"
+    "service:chat": "bun examples/service-agent/chat.ts",
+    "pizza": "bun examples/pizza-shop/chat.ts",
+    "pizza:check": "bun examples/pizza-shop/check.ts",
+    "pizza:web": "bun examples/pizza-shop/web/server.ts",
+    "build": "bun run --cwd packages/question-kit build",
+    "clean": "rm -rf packages/question-kit/dist"
   },
   "dependencies": {
     "question-kit": "workspace:*",
-    "@question-kit/order": "workspace:*",
-    "@typesafe-ai/sdk": "^0.6.0",
-    "@question-kit/service-agent": "workspace:*"
+    "@typesafe-ai/sdk": "^0.6.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
+    "@types/node": "^22",
     "typescript": "^5.9.0"
   }
 }

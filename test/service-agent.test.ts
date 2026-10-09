@@ -1,8 +1,9 @@
 // service-agent: the turn logic, with a scripted stand-in for Jev (no network).
 
 import { describe, expect, test } from "bun:test";
-import { type Answer, fakeJev, type JevRequest, memoryRecorder, type Question } from "question-kit";
-import { type Action, type AgentEvent, defineService, roleOf, type ServiceSpec, transcript, turn, type TurnInput, view } from "../packages/service-agent/index.ts";
+import { type Answer, fakeJev, type SystemOneRequest, memoryRecorder, type Question } from "question-kit";
+import { type Action, type AgentEvent, defineService, type ServiceSpec, transcript, turn, type TurnInput, view } from "../packages/question-kit/service-agent/index.ts";
+import { roleOf } from "../packages/question-kit/service-agent/read.ts";
 
 const spec: ServiceSpec = {
   intents: {
@@ -84,13 +85,13 @@ function scripted(script: Script) {
 /** Run a chat: each customer message, then any tool calls (all succeed), until the agent waits or ends. */
 async function chat(messages: string[], script: Script, opts: { failTool?: string; service?: typeof service } = {}) {
   const svc = opts.service ?? service;
-  const jev = scripted(script);
+  const client = scripted(script);
   let log: AgentEvent[] = [];
   const actions: Action[] = [];
   for (const text of messages) {
     let input: TurnInput = { type: "customer", text };
     for (;;) {
-      const r = await turn(svc, log, input, { jev });
+      const r = await turn(svc, log, input, { client });
       log = r.log;
       actions.push(r.action);
       if (r.action.type !== "call") break;
@@ -98,7 +99,7 @@ async function chat(messages: string[], script: Script, opts: { failTool?: strin
     }
     if (view(log).ended) break;
   }
-  return { log, actions, jev, kinds: actions.map((a) => (a.type === "ask" ? `ask:${a.slots.join("+")}` : a.type === "call" ? `call:${a.tool}` : a.type)) };
+  return { log, actions, client, kinds: actions.map((a) => (a.type === "ask" ? `ask:${a.slots.join("+")}` : a.type === "call" ? `call:${a.tool}` : a.type)) };
 }
 
 /** A slot answer: the candidate the text holds, or none. */
@@ -158,7 +159,7 @@ describe("turn", () => {
       slot: () => ["none", 0.99],
     });
     expect(r.kinds).toEqual(["clarify", "ask:name"]);
-    const second = r.jev.requests[1]!;
+    const second = r.client.requests[1]!;
     expect(Object.keys((second.questions.label as { criteria: Record<string, unknown> }).criteria)).toEqual(["refund", "slow", "password", "none"]);
     expect(Object.keys(second.state as Record<string, string>)).toEqual(["chat"]);
   });
@@ -166,18 +167,18 @@ describe("turn", () => {
   test("a reply naming none of the offered intents is read against all of them", async () => {
     // Offered refund / slow / password; the customer says it's something else. The narrow read says
     // "none", so the agent reads everything the customer said against every intent.
-    const jev = fakeJev((id, q, state) => {
+    const client = fakeJev((id, q, state) => {
       const st = state as Record<string, string>;
       const keys = q.type === "choice" ? Object.keys(q.criteria) : [];
       if (id === "label" && st.chat !== undefined) return sure(q, "none", 0.99);
       if (id === "label") return sure(q, (st.customer ?? "").includes("password") ? "password" : "refund", (st.customer ?? "").includes("password") ? 0.97 : 0.4);
       return sure(q, keys.includes("none") ? "none" : keys[0]!, 0.99);
     });
-    let r = await turn(service, [], { type: "customer", text: "it's about my account" }, { jev });
+    let r = await turn(service, [], { type: "customer", text: "it's about my account" }, { client });
     expect(r.action.type).toBe("clarify");
-    r = await turn(service, r.log, { type: "customer", text: "no, I forgot my password" }, { jev });
+    r = await turn(service, r.log, { type: "customer", text: "no, I forgot my password" }, { client });
     expect(r.view.intent).toBe("password");
-    expect(jev.requests.map((x) => Object.keys(x.state as Record<string, string>)[0])).toEqual(["customer", "chat", "customer", "chat"]);
+    expect(client.requests.map((x) => Object.keys(x.state as Record<string, string>)[0])).toEqual(["customer", "chat", "customer", "chat"]);
   });
 
   test("a value Jev isn't sure of is checked with the customer", async () => {
@@ -193,7 +194,7 @@ describe("turn", () => {
     expect(r.kinds).toEqual(["ask:name", "call:pull-up", "ask:order_id", "check-value"]);
     const check = r.actions.at(-1);
     expect(check && "text" in check ? check.text : "").toBe("Just to check, is your order ID 1234567890?");
-    const yes = await turn(service, r.log, { type: "customer", text: "yes" }, { jev: r.jev });
+    const yes = await turn(service, r.log, { type: "customer", text: "yes" }, { client: r.client });
     expect(yes.action).toMatchObject({ type: "call", tool: "validate", values: { order_id: "1234567890" } });
   });
 
@@ -213,7 +214,7 @@ describe("turn", () => {
 
   test("optional steps: Jev picks from the procedure and what the tools found, then picks again", async () => {
     const seen: Record<string, string>[] = [];
-    const jev = scripted({
+    const client = scripted({
       intent: () => ["fee", 0.97],
       slot: (slot) => (slot === "name" ? ["Crystal Minh", 0.97] : ["none", 0.99]),
       policy: (options, chat, state) => {
@@ -222,15 +223,15 @@ describe("turn", () => {
         return options.includes("notify") && chat.includes("not our mistake") ? ["notify", 0.95] : ["none", 0.97];
       },
     });
-    let r = await turn(service, [], { type: "customer", text: "Crystal Minh here, why was I charged a fee?" }, { jev });
+    let r = await turn(service, [], { type: "customer", text: "Crystal Minh here, why was I charged a fee?" }, { client });
     expect(r.action).toMatchObject({ type: "call", tool: "pull-up" });
-    r = await turn(service, r.log, { type: "result", tool: "pull-up", step: 0, ok: true }, { jev });
+    r = await turn(service, r.log, { type: "result", tool: "pull-up", step: 0, ok: true }, { client });
     expect(r.action).toMatchObject({ type: "call", tool: "check-fee" });
-    r = await turn(service, r.log, { type: "result", tool: "check-fee", step: 1, ok: true, note: "Check Fee: not our mistake." }, { jev });
+    r = await turn(service, r.log, { type: "result", tool: "check-fee", step: 1, ok: true, note: "Check Fee: not our mistake." }, { client });
     expect(r.action).toMatchObject({ type: "call", tool: "notify", values: { team: "web" } });
     expect(transcript(r.log)).toContain("system: Check Fee: not our mistake.");
     expect(seen[0]).toMatchObject({ request: "Unexpected fee", procedure: spec.intents.fee!.procedure, steps_done: "1. pull-up (full name: Crystal Minh)\n2. Check Fee" });
-    r = await turn(service, r.log, { type: "result", tool: "notify", step: 3, ok: true }, { jev });
+    r = await turn(service, r.log, { type: "result", tool: "notify", step: 3, ok: true }, { client });
     // Second round: only the refund is left, and Jev says none.
     expect(r.action.type).toBe("wrap-up");
     expect(r.view.policy.size).toBe(2);
@@ -239,16 +240,16 @@ describe("turn", () => {
 
   test("optional steps Jev isn't sure of: a change is offered (read back), anything else is skipped", async () => {
     const run = async (lean: string, svc = service) => {
-      const jev = scripted({
+      const client = scripted({
         intent: () => ["fee", 0.97],
         slot: (slot) => (slot === "name" ? ["Crystal Minh", 0.97] : slot === "amount" ? ["$40", 0.97] : slot === "method" ? ["card", 0.97] : ["none", 0.99]),
         // Leans toward one option, under the 0.9 gate (0.8 vs 0.1 and 0.1: confidence 0.7).
         policy: (options) => (options.includes(lean) ? [lean, 0.8] : ["none", 0.99]),
         confirm: () => ["no", 0.97],
       });
-      let r = await turn(svc, [], { type: "customer", text: "Crystal Minh, $40 back to my card, why was I charged a fee?" }, { jev });
-      r = await turn(svc, r.log, { type: "result", tool: "pull-up", step: 0, ok: true }, { jev });
-      r = await turn(svc, r.log, { type: "result", tool: "check-fee", step: 1, ok: true }, { jev });
+      let r = await turn(svc, [], { type: "customer", text: "Crystal Minh, $40 back to my card, why was I charged a fee?" }, { client });
+      r = await turn(svc, r.log, { type: "result", tool: "pull-up", step: 0, ok: true }, { client });
+      r = await turn(svc, r.log, { type: "result", tool: "check-fee", step: 1, ok: true }, { client });
       return r;
     };
     // The refund is a change: offered, so the customer decides.
@@ -256,7 +257,7 @@ describe("turn", () => {
     expect(r.action).toMatchObject({ type: "confirm", tool: "refund" });
     expect([...r.view.policy.values()][0]).toMatchObject({ outcome: "unsure" });
     // Turned down: listed in the steps done, and Jev picks again from what's left.
-    const after = await turn(service, r.log, { type: "customer", text: "no thanks" }, { jev: scripted({ policy: (_o, _c, st) => (st.steps_done?.includes("Offered refund: the customer turned it down") ? ["none", 0.99] : ["notify", 0.99]) }) });
+    const after = await turn(service, r.log, { type: "customer", text: "no thanks" }, { client: scripted({ policy: (_o, _c, st) => (st.steps_done?.includes("Offered refund: the customer turned it down") ? ["none", 0.99] : ["notify", 0.99]) }) });
     expect(after.action.type).toBe("wrap-up");
     // Telling a team isn't a change: not done on a guess.
     r = await run("notify");
@@ -310,7 +311,7 @@ describe("turn", () => {
     const said = "Fees like this are set by our billing system.";
     const svc = defineService({ ...spec, procedures: { ...spec.procedures, fee: ["pull-up", { say: said }, "check-fee", { optional: ["refund"] }] } });
     const states: Record<string, string>[] = [];
-    const jev = scripted({
+    const client = scripted({
       intent: () => ["fee", 0.97],
       slot: (slot) => (slot === "name" ? ["Crystal Minh", 0.97] : ["none", 0.99]),
       policy: (_o, _c, st) => {
@@ -318,13 +319,13 @@ describe("turn", () => {
         return ["none", 0.99];
       },
     });
-    let r = await turn(svc, [], { type: "customer", text: "Crystal Minh, why was I charged a fee?" }, { jev });
+    let r = await turn(svc, [], { type: "customer", text: "Crystal Minh, why was I charged a fee?" }, { client });
     expect(r.action).toMatchObject({ type: "call", tool: "pull-up" });
-    r = await turn(svc, r.log, { type: "result", tool: "pull-up", step: 0, ok: true }, { jev });
+    r = await turn(svc, r.log, { type: "result", tool: "pull-up", step: 0, ok: true }, { client });
     // Said, then on to the next step in the same turn.
     expect(r.messages).toEqual([said]);
     expect(r.action).toMatchObject({ type: "call", tool: "check-fee" });
-    r = await turn(svc, r.log, { type: "result", tool: "check-fee", step: 2, ok: true }, { jev });
+    r = await turn(svc, r.log, { type: "result", tool: "check-fee", step: 2, ok: true }, { client });
     expect(r.action.type).toBe("wrap-up");
     expect(states[0]?.chat).toContain(`agent: ${said}`);
     expect(states[0]?.steps_done).toContain(`Said: "${said}"`);
@@ -394,12 +395,12 @@ describe("turn", () => {
   });
 
   test("a tool's result can fill values the customer wasn't asked for", async () => {
-    const jev = scripted({ intent: () => ["refund", 0.98], slot: (slot, chat) => (slot === "name" ? ["Crystal Minh", 0.97] : found({ order_id: /\d{10}/ })(slot, chat, [chat.match(/\d{10}/)?.[0] ?? "none", "none"])), yesNo: () => 0.95 });
-    let r = await turn(service, [], { type: "customer", text: "Crystal Minh, refund for 1234567890" }, { jev });
+    const client = scripted({ intent: () => ["refund", 0.98], slot: (slot, chat) => (slot === "name" ? ["Crystal Minh", 0.97] : found({ order_id: /\d{10}/ })(slot, chat, [chat.match(/\d{10}/)?.[0] ?? "none", "none"])), yesNo: () => 0.95 });
+    let r = await turn(service, [], { type: "customer", text: "Crystal Minh, refund for 1234567890" }, { client });
     expect(r.action).toMatchObject({ type: "call", tool: "pull-up" });
-    r = await turn(service, r.log, { type: "result", tool: "pull-up", step: 0, ok: true, values: { amount: "64" } }, { jev });
+    r = await turn(service, r.log, { type: "result", tool: "pull-up", step: 0, ok: true, values: { amount: "64" } }, { client });
     expect(r.action).toMatchObject({ type: "call", tool: "validate" });
-    r = await turn(service, r.log, { type: "result", tool: "validate", step: 1, ok: true }, { jev });
+    r = await turn(service, r.log, { type: "result", tool: "validate", step: 1, ok: true }, { client });
     // The amount came from the system: only the refund method is asked for.
     expect(r.action).toMatchObject({ type: "ask", slot: "method" });
     expect(r.view.slots.amount).toMatchObject({ value: "64", confidence: 1 });
@@ -407,13 +408,13 @@ describe("turn", () => {
 
   test("each thing is read once per customer message, and gate decisions are recorded", async () => {
     const recorder = memoryRecorder();
-    const jev = scripted({ intent: () => ["refund", 0.98], slot: () => ["none", 0.99] });
-    const r1 = await turn(service, [], { type: "customer", text: "I'd like a refund" }, { jev, recorder });
+    const client = scripted({ intent: () => ["refund", 0.98], slot: () => ["none", 0.99] });
+    const r1 = await turn(service, [], { type: "customer", text: "I'd like a refund" }, { client, recorder });
     expect(r1.action).toMatchObject({ type: "ask", slot: "name" });
     // One request for the intent, one for the first step's values (name and account ID together).
-    expect(jev.requests.length).toBe(2);
+    expect(client.requests.length).toBe(2);
     // (No account ID candidates in the text, so code settles that one without asking.)
-    expect(questionIds(jev.requests[1]!)).toEqual(["slot_name::value"]);
+    expect(questionIds(client.requests[1]!)).toEqual(["slot_name::value"]);
     expect(recorder.events.map((e) => [e.method, e.task, e.decision])).toEqual([
       ["service-agent.intent", "refund", "act"],
       ["service-agent.slot", "name", "skip"],
@@ -422,14 +423,14 @@ describe("turn", () => {
   });
 });
 
-function questionIds(r: JevRequest): string[] {
+function questionIds(r: SystemOneRequest): string[] {
   return Object.keys(r.questions);
 }
 
 describe("the store example", () => {
   test("a damaged item: looked up, refunded in full after a read-back, then goodbye", async () => {
     const { service: store, runTool } = await import("../examples/service-agent/store.ts");
-    const jev = scripted({
+    const client = scripted({
       intent: (c) => (c.includes("torn") ? ["refund", 0.97] : ["none", 0.99]),
       slot: (slot, chat, options) => found({ order_id: /\d{10}/, email: /\S+@\S+\.com/ })(slot, chat, options),
       // The policy says a damaged item gets a full refund; the lookup's note is in the chat.
@@ -441,12 +442,12 @@ describe("the store example", () => {
     const said: string[] = [];
     const made: string[] = [];
     for (const text of ["My boots arrived with a torn sole. Order 1234567890, ana@example.com", "yes please", "no, that's all"]) {
-      let r = await turn(store, log, { type: "customer", text }, { jev });
+      let r = await turn(store, log, { type: "customer", text }, { client });
       for (;;) {
         said.push(...r.messages);
         if (r.action.type !== "call") break;
         made.push(r.action.tool);
-        r = await turn(store, r.log, { type: "result", tool: r.action.tool, step: r.action.step, ...runTool(r.action.tool, r.action.values) }, { jev });
+        r = await turn(store, r.log, { type: "result", tool: r.action.tool, step: r.action.step, ...runTool(r.action.tool, r.action.values) }, { client });
       }
       log = r.log;
     }

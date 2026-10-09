@@ -14,8 +14,8 @@ import {
   extractValue,
   featurize,
   filterPassages,
-  type JevCall,
-  type JevClient,
+  type SystemOneCall,
+  type SystemOneClient,
   matchRecords,
   pickOne,
   recoverStructure,
@@ -32,7 +32,7 @@ export interface Case {
   method: string;
   name: string;
   /** Run the method; push every request to `log`. */
-  run(jev: JevClient, log: JevCall[]): Promise<unknown>;
+  run(client: SystemOneClient, log: SystemOneCall[]): Promise<unknown>;
   /** True when the result is right, or a short reason it isn't. */
   check(result: any): true | string;
 }
@@ -96,7 +96,7 @@ export const CASES: Case[] = [
   ).map(([text, want]): Case => ({
     method: "classify",
     name: text,
-    run: (jev, log) => run(jev, classify(text, INTENTS), { log }),
+    run: (client, log) => run(client, classify(text, INTENTS), { log }),
     check: (r) => is(r.value, want),
   })),
 
@@ -110,7 +110,7 @@ export const CASES: Case[] = [
   ).map(([text, want]): Case => ({
     method: "pickOne",
     name: text,
-    run: (jev, log) => pickOne(jev, text, ORDERS, { noun: "order", gates: ["The customer is talking about one of their own orders."], log }),
+    run: (client, log) => pickOne(client, text, ORDERS, { noun: "order", gates: ["The customer is talking about one of their own orders."], log }),
     check: (r) => is(r.value, want),
   })),
 
@@ -118,9 +118,9 @@ export const CASES: Case[] = [
   {
     method: "classifyTree",
     name: "where is my refund for the boots I sent back",
-    run: (jev, log) =>
+    run: (client, log) =>
       classifyTree(
-        jev,
+        client,
         "I sent the boots back two weeks ago and still no refund",
         {
           children: {
@@ -138,37 +138,37 @@ export const CASES: Case[] = [
   {
     method: "extractValue",
     name: "order number among other numbers",
-    run: (jev, log) => run(jev, extractValue("Hi, I called on 10/02 about order 4410982 and my zip is 94110", { kind: "number", role: "the order number" }), { log }),
+    run: (client, log) => run(client, extractValue("Hi, I called on 10/02 about order 4410982 and my zip is 94110", { kind: "number", role: "the order number" }), { log }),
     check: (r) => is(r.value, "4410982"),
   },
   {
     method: "extractValue",
     name: "the email to send the receipt to",
-    run: (jev, log) => run(jev, extractValue("I'm writing from work (dana.k@acme-corp.com) but please send the receipt to Dana.Kim@Gmail.com", { kind: "email", role: "the email address the receipt should go to" }), { log }),
+    run: (client, log) => run(client, extractValue("I'm writing from work (dana.k@acme-corp.com) but please send the receipt to Dana.Kim@Gmail.com", { kind: "email", role: "the email address the receipt should go to" }), { log }),
     check: (r) => is(r.value, "dana.kim@gmail.com"),
   },
   {
     method: "extractValue",
     name: "the mobile number, not the office",
-    run: (jev, log) => run(jev, extractValue("Office: (415) 555-0100. Best to text my cell, 415-555-0177.", { kind: "phone", role: "the customer's mobile number" }), { log }),
+    run: (client, log) => run(client, extractValue("Office: (415) 555-0100. Best to text my cell, 415-555-0177.", { kind: "phone", role: "the customer's mobile number" }), { log }),
     check: (r) => is(r.value, "+14155550177"),
   },
   {
     method: "extractValue",
     name: "the total, not the credit",
-    run: (jev, log) => run(jev, extractValue("Your order came to $86.40. We applied a $10.00 courtesy credit, so you paid $76.40.", { kind: "amount", role: "the amount the customer actually paid" }), { log }),
+    run: (client, log) => run(client, extractValue("Your order came to $86.40. We applied a $10.00 courtesy credit, so you paid $76.40.", { kind: "amount", role: "the amount the customer actually paid" }), { log }),
     check: (r) => is(r.value, "76.40"),
   },
   {
     method: "extractValue",
     name: "no order number given",
-    run: (jev, log) => run(jev, extractValue("My zip is 94110 and I need help with a late delivery", { kind: "number", role: "the order number" }), { log }),
+    run: (client, log) => run(client, extractValue("My zip is 94110 and I need help with a late delivery", { kind: "number", role: "the order number" }), { log }),
     check: (r) => is(r.value, null),
   },
   {
     method: "extractValue",
     name: "a name from the account's people",
-    run: (jev, log) => run(jev, extractValue("hi it's crystal, my husband placed the order", { kind: { names: ["Crystal Minh", "David Minh"] }, role: "the person writing" }), { log }),
+    run: (client, log) => run(client, extractValue("hi it's crystal, my husband placed the order", { kind: { names: ["Crystal Minh", "David Minh"] }, role: "the person writing" }), { log }),
     check: (r) => is(r.value, "Crystal Minh"),
   },
 
@@ -176,13 +176,13 @@ export const CASES: Case[] = [
   {
     method: "extractValue",
     name: "a nickname for a name on the account",
-    run: (jev, log) => run(jev, extractValue("dave here, my wife placed the order but I'm picking it up", { kind: { names: ["Crystal Minh", "David Minh"] }, role: "the person writing" }), { log }),
+    run: (client, log) => run(client, extractValue("dave here, my wife placed the order but I'm picking it up", { kind: { names: ["Crystal Minh", "David Minh"] }, role: "the person writing" }), { log }),
     check: (r) => is(r.value, "David Minh"),
   },
   {
     method: "extractValue",
     name: "someone not on the account",
-    run: (jev, log) => run(jev, extractValue("hi, this is Sam from the building's front desk", { kind: { names: ["Crystal Minh", "David Minh"] }, role: "the person writing" }), { log }),
+    run: (client, log) => run(client, extractValue("hi, this is Sam from the building's front desk", { kind: { names: ["Crystal Minh", "David Minh"] }, role: "the person writing" }), { log }),
     check: (r) => is(r.value, null),
   },
   ...(
@@ -193,9 +193,9 @@ export const CASES: Case[] = [
   ).map(([name, record, ok]): Case => ({
     method: "verifyRecord",
     name,
-    run: (jev, log) =>
+    run: (client, log) =>
       run(
-        jev,
+        client,
         verifyRecord(
           "Thanks for your patience! A refund of $40 for order 5520031 went back to your card on Oct 3.",
           { order_number: { description: "the order's number" }, refund_amount: { description: "how much was refunded, in dollars", format: "a number with two decimals" }, refund_date: { description: "when the refund was sent", date: "past" } },
@@ -223,7 +223,7 @@ export const CASES: Case[] = [
   ).map(([text, role, want, expect]: readonly [string, string, string | null, ("past" | "future")?]): Case => ({
     method: "extractDate",
     name: text,
-    run: (jev, log) => run(jev, extractDate(text, { role, today: TODAY, ...(expect ? { expect } : {}) }), { log }),
+    run: (client, log) => run(client, extractDate(text, { role, today: TODAY, ...(expect ? { expect } : {}) }), { log }),
     check: (r) => is(r.date, want),
   })),
 
@@ -231,19 +231,19 @@ export const CASES: Case[] = [
   {
     method: "callFunction",
     name: "large oat latte with an extra shot, to go",
-    run: (jev, log) => run(jev, callFunction("can I get a large oat milk latte with an extra shot, to go", DRINKS, { who: "the customer" }), { log }),
+    run: (client, log) => run(client, callFunction("can I get a large oat milk latte with an extra shot, to go", DRINKS, { who: "the customer" }), { log }),
     check: (r) => is({ name: r.name, args: r.args }, { name: "order_drink", args: { drink: "latte", size: "large", extras: ["extra_shot", "oat_milk"], to_go: true } }),
   },
   {
     method: "callFunction",
     name: "an americano, size not stated",
-    run: (jev, log) => run(jev, callFunction("just an americano please, I'll drink it here", DRINKS, { who: "the customer" }), { log }),
+    run: (client, log) => run(client, callFunction("just an americano please, I'll drink it here", DRINKS, { who: "the customer" }), { log }),
     check: (r) => is({ name: r.name, args: r.args }, { name: "order_drink", args: { drink: "americano", size: "medium", extras: [], to_go: false } }),
   },
   {
     method: "callFunction",
     name: "tracking with an order number",
-    run: (jev, log) => run(jev, callFunction("is order 4410982 out for delivery yet?", DRINKS, { who: "the customer" }), { log }),
+    run: (client, log) => run(client, callFunction("is order 4410982 out for delivery yet?", DRINKS, { who: "the customer" }), { log }),
     check: (r) => is({ name: r.name, args: r.args }, { name: "track_order", args: { order_number: "4410982" } }),
   },
 
@@ -258,9 +258,9 @@ export const CASES: Case[] = [
   ).map(([name, record, ok]): Case => ({
     method: "verifyRecord",
     name,
-    run: (jev, log) =>
+    run: (client, log) =>
       run(
-        jev,
+        client,
         verifyRecord(
           "Your order 4410982 (one countertop blender) shipped on October 4 and should arrive on October 9.",
           { order_number: { description: "the order's number" }, item: { description: "what was ordered" }, delivery_date: { description: "when the order should arrive", date: "future" } },
@@ -275,8 +275,8 @@ export const CASES: Case[] = [
   {
     method: "verifyRecord",
     name: "a date the source gives relative to today",
-    run: (jev, log) =>
-      run(jev, verifyRecord("Good news: your replacement kettle will arrive this Friday.", { item: { description: "what is being sent" }, arrival: { description: "when it will arrive", date: "future" } }, { item: "kettle", arrival: "2026-10-09" }, { today: TODAY }), { log }),
+    run: (client, log) =>
+      run(client, verifyRecord("Good news: your replacement kettle will arrive this Friday.", { item: { description: "what is being sent" }, arrival: { description: "when it will arrive", date: "future" } }, { item: "kettle", arrival: "2026-10-09" }, { today: TODAY }), { log }),
     check: (r) => is(r.ok, true),
   },
 
@@ -291,7 +291,7 @@ export const CASES: Case[] = [
   ).map(([claim, quote, want]): Case => ({
     method: "checkClaim",
     name: claim,
-    run: (jev, log) => run(jev, checkClaim(claim, POLICY.join("\n"), quote ? { quote } : {}), { log }),
+    run: (client, log) => run(client, checkClaim(claim, POLICY.join("\n"), quote ? { quote } : {}), { log }),
     check: (r) => is(r.verdict, want),
   })),
 
@@ -305,7 +305,7 @@ export const CASES: Case[] = [
   ).map(([query, line, verdict]): Case => ({
     method: "search",
     name: query,
-    run: (jev, log) => search(jev, POLICY, query, { log }),
+    run: (client, log) => search(client, POLICY, query, { log }),
     check: (r) => (r.verdict !== verdict ? `verdict ${r.verdict}, want ${verdict}` : line && r.lines[0]?.text !== line ? `top line "${r.lines[0]?.text}"` : true),
   })),
 
@@ -313,8 +313,8 @@ export const CASES: Case[] = [
   {
     method: "rerank",
     name: "the right product first",
-    run: (jev, log) =>
-      rerank(jev, "a waterproof jacket for hiking in the rain", ["A cotton hoodie for lounging at home", "A lightweight rain shell with sealed seams, made for the trail", "Waterproof hiking boots with a rubber sole", "A down parka for city winters"], { log }),
+    run: (client, log) =>
+      rerank(client, "a waterproof jacket for hiking in the rain", ["A cotton hoodie for lounging at home", "A lightweight rain shell with sealed seams, made for the trail", "Waterproof hiking boots with a rubber sole", "A down parka for city winters"], { log }),
     check: (r) => is(r[0]?.index, 1),
   },
 
@@ -327,7 +327,7 @@ export const CASES: Case[] = [
   ).map(([name, a, b, want]): Case => ({
     method: "matchRecords",
     name,
-    run: (jev, log) => run(jev, matchRecords(a, b, { noun: "customers", fields: { name: "person's name", email: "email address" } }), { log }),
+    run: (client, log) => run(client, matchRecords(a, b, { noun: "customers", fields: { name: "person's name", email: "email address" } }), { log }),
     check: (r) => is(r.verdict, want),
   })),
 
@@ -341,9 +341,9 @@ export const CASES: Case[] = [
   ).map(([text, want]): Case => ({
     method: "screen",
     name: text,
-    run: (jev, log) =>
+    run: (client, log) =>
       run(
-        jev,
+        client,
         screen(
           text,
           {
@@ -361,9 +361,9 @@ export const CASES: Case[] = [
   {
     method: "filterPassages",
     name: "evidence, off-topic, contradiction, and an injected instruction",
-    run: (jev, log) =>
+    run: (client, log) =>
       filterPassages(
-        jev,
+        client,
         "Refunds take 30 days to show up, right?",
         [
           "Refunds go back to the original payment method within 5 to 7 business days.",
@@ -383,8 +383,8 @@ export const CASES: Case[] = [
   {
     method: "recoverStructure",
     name: "a heading, a wrapped sentence, and steps",
-    run: (jev, log) =>
-      recoverStructure(jev, "How to start a return\nLog in to your account and open\nthe order you want to send back.\n\nChoose the items to return\nPrint the label\nDrop the box at any post office", { log }),
+    run: (client, log) =>
+      recoverStructure(client, "How to start a return\nLog in to your account and open\nthe order you want to send back.\n\nChoose the items to return\nPrint the label\nDrop the box at any post office", { log }),
     check: (r) => (r.markdown.startsWith("#") && r.markdown.includes("open the order") && r.markdown.includes("1. ") ? true : `markdown:\n${r.markdown}`),
   },
 
@@ -392,9 +392,9 @@ export const CASES: Case[] = [
   {
     method: "rubric",
     name: "three questions about one message",
-    run: (jev, log) =>
+    run: (client, log) =>
       run(
-        jev,
+        client,
         rubric("I was charged twice for order 4410982 and I want my money back today", {
           refund: { statement: "The customer asks for money back." },
           topic: { choose: "What is the message mainly about?", options: { billing: "Charges and payments", shipping: "Deliveries", product: "How a product works" } },
@@ -407,7 +407,7 @@ export const CASES: Case[] = [
   {
     method: "featurize",
     name: "numbers for two reviews",
-    run: (jev, log) => featurize(jev, ["Arrived fast and works great, five stars", "Broke after two days, very disappointed"], { positive: { statement: "The review is positive overall." } }, { log }),
+    run: (client, log) => featurize(client, ["Arrived fast and works great, five stars", "Broke after two days, very disappointed"], { positive: { statement: "The review is positive overall." } }, { log }),
     check: (r) => ((r[0]?.positive ?? 0) > 0.5 && (r[1]?.positive ?? 1) < 0.5 ? true : `positive ${r[0]?.positive}, ${r[1]?.positive}`),
   },
 
@@ -415,7 +415,7 @@ export const CASES: Case[] = [
   {
     method: "stability",
     name: "the same question three times",
-    run: (jev, log) => stability(jev, { refund: check("I'd like a refund for the lamp please", "The customer asks for a refund.") }, 3, { log }),
+    run: (client, log) => stability(client, { refund: check("I'd like a refund for the lamp please", "The customer asks for a refund.") }, 3, { log }),
     check: (r) => (r["refund::check"].spread < 0.05 ? true : `spread ${r["refund::check"].spread}`),
   },
 ];

@@ -1,6 +1,6 @@
 # A pizza order taker
 
-[`packages/order`](../../../packages/order/README.md) with a small pizza shop's menu of our own:
+[`packages/question-kit/order`](../../../packages/question-kit/order/README.md) with a small pizza shop's menu of our own:
 pizzas in three sizes and four styles, fourteen toppings, and six drinks, with the ways customers
 say each one.
 
