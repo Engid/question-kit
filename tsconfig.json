@@ -3,8 +3,14 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["bun"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "bun"
+    ],
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -12,7 +18,29 @@
     "noEmit": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "question-kit": [
+        "./packages/question-kit/core/index.ts"
+      ],
+      "question-kit/order": [
+        "./packages/question-kit/order/index.ts"
+      ],
+      "question-kit/service-agent": [
+        "./packages/question-kit/service-agent/index.ts"
+      ],
+      "question-kit/*": [
+        "./packages/question-kit/core/*.ts"
+      ]
+    }
   },
-  "include": ["packages", "examples", "smoke", "test"]
+  "include": [
+    "packages",
+    "examples",
+    "smoke",
+    "test"
+  ],
+  "exclude": [
+    "packages/question-kit/dist"
+  ]
 }

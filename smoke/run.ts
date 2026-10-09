@@ -7,7 +7,7 @@
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { type Answer, estimateCost, estimateTokens, fakeJev, type JevCall, type JevClient, type Question } from "question-kit";
+import { type Answer, estimateCost, estimateTokens, fakeJev, type SystemOneCall, type SystemOneClient, type Question } from "question-kit";
 import { CacheMissError, type CachedJev, cachedJev } from "question-kit/cache";
 import { typesafeJev } from "question-kit/typesafe";
 import { CASES } from "./cases.ts";
@@ -34,20 +34,20 @@ const mode = args.client!;
 if (!["replay", "record", "live", "dry"].includes(mode)) throw new Error(`unknown --client ${mode}`);
 const live = mode === "record" || mode === "live" ? typesafeJev() : undefined;
 const cached: CachedJev | undefined = mode === "replay" || mode === "record" ? cachedJev(live, CACHE_DIR, { mode: mode as "replay" | "record" }) : undefined;
-const jev: JevClient = mode === "dry" ? fakeJev((_, q) => uniform(q)) : (cached ?? live!);
+const client: SystemOneClient = mode === "dry" ? fakeJev((_, q) => uniform(q)) : (cached ?? live!);
 const only = args.only ? new Set(args.only.split(",")) : undefined;
 const cases = CASES.filter((c) => !only || only.has(c.method));
 
 console.log(`core methods: ${cases.length} cases · answers from ${mode === "dry" ? "nowhere (dry run: sizes and cost only)" : mode}\n`);
 const byMethod = new Map<string, { pass: number; fail: number; missing: number; calls: number; tokens: number }>();
-const allLog: JevCall[] = [];
+const allLog: SystemOneCall[] = [];
 for (const c of cases) {
-  const log: JevCall[] = [];
+  const log: SystemOneCall[] = [];
   const m = byMethod.get(c.method) ?? { pass: 0, fail: 0, missing: 0, calls: 0, tokens: 0 };
   byMethod.set(c.method, m);
   let line: string;
   try {
-    const result = await c.run(jev, log);
+    const result = await c.run(client, log);
     const verdict = mode === "dry" ? true : c.check(result);
     if (verdict === true) {
       m.pass++;

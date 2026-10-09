@@ -10,17 +10,17 @@
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { type AgentEvent, turn, type TurnResult } from "@question-kit/service-agent";
-import { consoleRecorder, estimateTokens, type JevCall, noRecorder, PRICE_PER_MILLION_INPUT } from "question-kit";
+import { type AgentEvent, turn, type TurnResult } from "question-kit/service-agent";
+import { consoleRecorder, estimateTokens, type SystemOneCall, noRecorder, PRICE_PER_MILLION_INPUT } from "question-kit";
 import { CacheMissError, cachedJev } from "question-kit/cache";
 import { typesafeJev } from "question-kit/typesafe";
 import { runTool, service } from "./store.ts";
 
 const { values: args } = parseArgs({ options: { gates: { type: "boolean", default: false }, replay: { type: "boolean", default: false } } });
 const cacheDir = join(import.meta.dir, "..", "..", ".cache", "jev");
-const jev = args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir);
-const calls: JevCall[] = [];
-const opts = { jev, calls, recorder: args.gates ? consoleRecorder : noRecorder, today: new Date().toISOString().slice(0, 10) };
+const client = args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir);
+const calls: SystemOneCall[] = [];
+const opts = { client, calls, recorder: args.gates ? consoleRecorder : noRecorder, today: new Date().toISOString().slice(0, 10) };
 
 let log: AgentEvent[] = [];
 console.log("A made-up outdoor store's support chat. Type as the customer; an empty line ends it.\n");

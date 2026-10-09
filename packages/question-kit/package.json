@@ -1,0 +1,82 @@
+{
+  "name": "question-kit",
+  "version": "0.1.0",
+  "description": "Building kits for System One models, starting with Jev: a service agent you configure, an order taker, and the building blocks they're made of.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Nick Gideo",
+  "homepage": "https://github.com/Engid/question-kit#readme",
+  "bugs": {
+    "url": "https://github.com/Engid/question-kit/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Engid/question-kit.git",
+    "directory": "packages/question-kit"
+  },
+  "keywords": [
+    "jev",
+    "typesafe",
+    "system one",
+    "decision model",
+    "classification",
+    "extraction",
+    "customer service",
+    "agent",
+    "order taking"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "bun": "./core/index.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./order": {
+      "types": "./dist/order/index.d.ts",
+      "bun": "./order/index.ts",
+      "default": "./dist/order/index.js"
+    },
+    "./service-agent": {
+      "types": "./dist/service-agent/index.d.ts",
+      "bun": "./service-agent/index.ts",
+      "default": "./dist/service-agent/index.js"
+    },
+    "./cache": {
+      "types": "./dist/core/cache.d.ts",
+      "bun": "./core/cache.ts",
+      "default": "./dist/core/cache.js"
+    },
+    "./node": {
+      "types": "./dist/core/node.d.ts",
+      "bun": "./core/node.ts",
+      "default": "./dist/core/node.js"
+    },
+    "./typesafe": {
+      "types": "./dist/core/typesafe.d.ts",
+      "bun": "./core/typesafe.ts",
+      "default": "./dist/core/typesafe.js"
+    }
+  },
+  "main": "./dist/core/index.js",
+  "types": "./dist/core/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "peerDependencies": {
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "peerDependenciesMeta": {
+    "@typesafe-ai/sdk": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@typesafe-ai/sdk": "^0.6.0"
+  }
+}

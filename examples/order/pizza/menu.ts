@@ -1,12 +1,11 @@
-// A pizza shop's menu for @question-kit/order: pizzas in three sizes and four styles, fourteen
+// A pizza shop's menu for question-kit/order: pizzas in three sizes and four styles, fourteen
 // toppings, and six drinks, with the ways customers say each one. It's our own small menu, written
 // for this example.
 //
-// The numbers in this folder's README were measured on Amazon's PIZZA benchmark with the
-// benchmark's own, much bigger menu (85 toppings, 23 styles, 22 drinks); that version lives in our
-// research repo. The wording settings and read-backs below are the same as the measured ones.
+// The wording settings and read-backs below are the ones that scored best in our evals, which ran
+// with a much bigger pizza menu.
 
-import { defineMenu, type Menu, type ReadBack } from "@question-kit/order";
+import { defineMenu, type Menu, type MenuInput, type ReadBack } from "question-kit/order";
 
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 
@@ -35,8 +34,11 @@ export const drinkReadBack: ReadBack = (item, name) => {
 let cached: Menu | undefined;
 
 export function pizzaMenu(): Menu {
-  if (cached) return cached;
-  cached = defineMenu({
+  return (cached ??= defineMenu(PIZZA_MENU));
+}
+
+/** The menu as given to `defineMenu`, for building variations on it. */
+export const PIZZA_MENU: MenuInput = {
     name: "pizza and drink",
     place: "a pizza counter",
     items: {
@@ -89,6 +91,4 @@ export function pizzaMenu(): Menu {
       volume: { items: ["drink"], label: "Drink volume", values: { TWO_LITER: { name: "2 liter", say: ["2 liter", "two liter", "2 liters"] }, TWENTY_OZ: { name: "20 oz", say: ["20 oz", "20 ounce", "twenty ounce"] } } },
     },
     wording: { wordHint: 'like "black" in "black olives", or "a" in "a little"', details: ["size", "style", "topping", "drink"] },
-  });
-  return cached;
-}
+};

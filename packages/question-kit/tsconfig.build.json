@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "types": [
+      "node"
+    ],
+    "paths": {}
+  },
+  "include": [
+    "core/*.ts",
+    "core/methods/*.ts",
+    "order/*.ts",
+    "service-agent/*.ts"
+  ],
+  "exclude": [
+    "dist"
+  ]
+}
