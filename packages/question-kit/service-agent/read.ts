@@ -3,8 +3,8 @@
 //
 // Each reading is gated in code: "act" when confident enough, "skip" when Jev is confident it isn't
 // there, "unsure" otherwise. Values are read from the whole conversation, both sides, because the
-// question the agent just asked is what makes a reply like "5843990922" an order ID (experiment 2:
-// 98.6% of values right with the agent's lines, 93.2% without).
+// question the agent just asked is what makes a reply like "5843990922" an order ID (in our evals,
+// clearly better than reading the customer's lines alone).
 
 import {
   type ChoiceReading,

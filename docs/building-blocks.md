@@ -54,7 +54,7 @@ that need more than one request (a pick among many, a search) take the client an
 Every value `extractValue` returns is text that's really in the input: code finds the candidates
 (a pattern, a list of names) and Jev picks which plays the role, so there's nothing to hallucinate.
 `extractDate` works the same way on the parts of a date. The methods have offline tests and a few
-live smoke checks each; they haven't been benchmarked yet.
+live smoke checks each; they haven't been through evals of their own yet.
 
 ## Underneath
 
@@ -109,11 +109,9 @@ order.confirm;  // otherwise, which items to read back, and whether to ask "anyt
 Code looks every word up in the menu; Jev tags the words the menu doesn't know, in one request;
 code groups the tagged words into items; and Jev checks the finished order read back against what
 the customer said, one question per item and one for "anything missing?", which is what decides
-whether to accept the order or read it back. With the menu of Amazon's
-[PIZZA benchmark](https://github.com/amazon-science/pizza-semantic-parsing-dataset), it got 95.1%
-of 1,357 test orders exactly right (the benchmark paper's best trained model: 78.6%), for about
-$1.43 per 1,000 orders. That's one benchmark of single-message pizza orders in English with
-jev-1.13; other menus haven't been measured.
+whether to accept the order or read it back. The design is the one that scored best in our evals
+on thousands of single-message orders with written answers (pizza orders, in English); other menus
+haven't been through evals yet.
 
 The service agent uses it for menu slots, with the `partial` option that keeps the parts of a
 message that change an order without naming an item ("a medium", "no onions").

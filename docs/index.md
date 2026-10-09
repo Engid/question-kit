@@ -22,8 +22,7 @@ code around the answers. question-kit does that part.
   model writes anything, and every reading passes a confidence gate before the agent acts on it.
   [The pizza shop](pizza-shop.md) is the walkthrough.
 - **An order taker** ([`question-kit/order`](building-blocks.md#the-order-taker)): one message in,
-  a structured order out, for any menu you describe, plus whether to trust it. Measured on a public
-  pizza-order benchmark.
+  a structured order out, for any menu you describe, plus whether to trust it.
 - **The building blocks** ([`question-kit`](building-blocks.md)): seventeen ready-made methods that
   write their own questions (classify, pick one of many, extract a value or a date, fill in a
   function call, check a record, search, screen, and more), each returning a typed result with a

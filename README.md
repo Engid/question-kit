@@ -9,7 +9,8 @@ TypeSafe's; see [model support](#model-support).
 > talk it over.
 
 Jev doesn't write text. You send it some state and a batch of closed questions ("which of these
-options?", "yes or no?"), and it returns a probability for every option: a fast, cheap classifier. That makes it a good fit for the decisions inside an application, as long as the
+options?", "yes or no?"), and it returns a probability for every option: a fast, cheap
+classifier. That makes it a good fit for the decisions inside an application, as long as the
 questions are well written and the code around the answers is right. question-kit is that part:
 a service agent you configure, and the building blocks it's made of.
 
@@ -57,10 +58,10 @@ while (r.action.type === "call") {
 said; // ["Got it: 2 large pizzas with pepperoni.", "And 1 diet coke.", "Anything else?"]
 ```
 
-That's the whole [pizza shop](examples/pizza-shop/README.md): a counter where you order over a
-few messages, change your mind ("actually put mushrooms on the pizzas, and take off the coke"),
-and get an order number, with Jev's reads shown beside the chat. Run it in the terminal or as a
-web page:
+That's the heart of the [pizza shop](examples/pizza-shop/README.md): a counter where you order
+over a few messages, change your mind ("actually put mushrooms on the pizzas, and take off the
+coke"), ask about the menu, and get an order number, with Jev's reads shown beside the chat. The
+rest is a made-up register that owns the order. Run it in the terminal or as a web page:
 
 ```sh
 bun install
@@ -70,25 +71,45 @@ bun run pizza:web            # the same counter at http://localhost:8787
 bun run pizza --fake         # no key: a rule-of-thumb stand-in answers, to see the screen
 ```
 
-```
- You    two large pepperoni pizzas and a diet coke
+A session (Jev's own numbers, replayed from the cache):
 
- ┊ Jev  intent → order  0.97 ✓
- ┊ Jev  "two large pepperoni pizzas" → add (2 large pizzas with pepperoni)  0.94 ✓
- ┊ Jev  "and a diet coke" → add (1 diet coke)  0.94 ✓
- ┊ Jev  done ordering? → no  0.94 ✓
+```
+ You    two large pepperoni pizzas
+
+ ┊ Jev  intent → order  1.00 ✓
+ ┊ Jev  "two large pepperoni pizzas" → add (2 large pizzas with pepperoni)  1.00 ✓
+ ┊ Jev  done ordering? → no  0.66 ✓
  ⚙ Register  add-items: added 2 large pizzas with pepperoni
- ⚙ Register  add-items: added 1 diet coke
- ┊ Jev  check → nothing looks wrong  P(wrong) 0.02
+ ┊ Jev  check → nothing looks wrong  P(wrong) 0.06
 
- Agent  Got it: 2 large pizzas with pepperoni. And 1 diet coke. Anything else?
+ Agent  Got it: 2 large pizzas with pepperoni. Anything else?
+
+ ┌ Order ───────────────────────────────────┐
+ │ 1  2 large pizzas with pepperoni  $32.98 │
+ │    Total                          $32.98 │
+ └──────────────────────────────────────────┘
+
+ You    make one of them a medium
+
+ ┊ Jev  "make one of them a medium" → change line 1 (1 medium pizza)  1.00 ✓
+ ┊ Jev  done ordering? → no  0.74 ✓
+ ⚙ Register  change-item: changed line 1 to 1 medium pizza with pepperoni
+ ┊ Jev  check → nothing looks wrong  P(wrong) 0.07
+
+ Agent  Changed that to 1 medium pizza with pepperoni. So that's 1 medium pizza with pepperoni and 1 large pizza with pepperoni. Anything else?
+
+ ┌ Order ───────────────────────────────────┐
+ │ 1  1 medium pizza with pepperoni  $14.49 │
+ │ 2  1 large pizza with pepperoni   $16.49 │
+ │    Total                          $30.98 │
+ └──────────────────────────────────────────┘
 ```
 
-The agent was built and measured on ABCD, a public set of customer-service chats: on 200 held-out
-chats, against a scripted customer built from each recorded chat, it finished 77.5% with the right
-changes and made no wrong change; the same agent with simple rules in place of Jev finished 47.0%.
-That's one dataset and a scripted customer. The [guide](docs/service-agent.md) has the rest:
-slots, tools, procedures, what a turn does, and [how the agent decides](docs/how-the-agent-decides.md).
+The agent has been through our internal evals: hundreds of recorded customer-service conversations
+played back against a scripted customer, scored on whether it finished with the right changes and
+made no wrong one. It's an alpha, and it hasn't run on live chats yet, but we think it's ready to
+play with. The [guide](docs/service-agent.md) has the rest: slots, tools, procedures, what a turn
+does, and [how the agent decides](docs/how-the-agent-decides.md).
 
 ## The building blocks
 
@@ -118,11 +139,10 @@ anything is sent, a cache, and a client for TypeSafe's API with retries and paci
 
 **`question-kit/order`**: an order from one message, for any menu you describe. Code looks every
 word up in the menu, Jev tags the rest, code assembles the items, and Jev checks the result read
-back against what the customer said. With the menu of Amazon's
-[PIZZA benchmark](https://github.com/amazon-science/pizza-semantic-parsing-dataset), it got 95.1%
-of 1,357 test orders exactly right (the benchmark paper's best trained model: 78.6%), for about
-$1.43 per 1,000 orders; one benchmark, in English, with jev-1.13. The
-[package README](packages/question-kit/order/README.md) has the menu format and every option.
+back against what the customer said. It's been through our internal evals on thousands of
+single-message orders with written answers, and the design that ships is the one that scored best
+there. The [package README](packages/question-kit/order/README.md) has the menu format and every
+option.
 
 ## Install
 
@@ -133,8 +153,9 @@ npm install question-kit @typesafe-ai/sdk
 One package, three entries: `question-kit` (the building blocks), `question-kit/service-agent`
 and `question-kit/order`, plus `question-kit/typesafe`, `question-kit/cache` and
 `question-kit/node`. Node 20 or later, or Bun; plain ES modules with type declarations; all of it
-bundles for the browser except the `node` and `cache` entries. `@typesafe-ai/sdk` is an optional peer, used by `question-kit/typesafe`. Calls to Jev
-need `TYPESAFE_API_KEY`; `question-kit/cache` keeps answers on disk so re-runs are free.
+bundles for the browser except the `node` and `cache` entries. `@typesafe-ai/sdk` is an optional
+peer, used by `question-kit/typesafe`. Calls to Jev need `TYPESAFE_API_KEY`; `question-kit/cache`
+keeps answers on disk so re-runs are free.
 
 ## Docs
 
@@ -151,29 +172,30 @@ published comparisons suggest Jev's probabilities are among the better calibrate
 probabilities, though not consistently better than an open-weight Qwen model's). Other System One
 models may come later, each measured the same way.
 
-## What we found
+## How it was built
 
-The designs come from measured experiments on two public answer keys: dependency parsing (UD
-English EWT) and pizza orders (PIZZA), and on ABCD's customer-service chats. The experiments live
-in a research repo that isn't public; earlier versions are in this repo's history.
+Every design here was chosen by measurement: we write the answers down first, run each design
+against them with answers cached, and keep what scores best. The evals aren't public, but the
+lessons they taught are all over the code:
 
-- **Let code handle structure; ask Jev to classify.** Jev labels words against a 171-option menu
-  ~99% right, but picks "which of ~35 words does this one attach to" only half the time.
-- **Code first, Jev for the gaps.** The menu's word lists plus rules got 93.3% of pizza orders
-  right; asking Jev only about the words they didn't know took it to 95.1%.
-- **Wording and examples matter most.** Rewording one design's questions took it from 8% to 69%
-  of orders right; adding examples to each option took it from 73.2% to 84.5%.
-- **Many yes/no questions multiply small errors.** 108 questions per pizza, each 95–99% right,
-  gave 8% of orders fully right.
+- **Let code handle structure; ask Jev to classify.** Jev is very good at "which of these is this
+  word?" and much weaker at "which of these words does this one attach to"; so code groups, Jev
+  labels.
+- **Code first, Jev for the gaps.** A menu's own word lists settle most of an order; Jev is asked
+  only about the words they don't know.
+- **Wording and examples matter most.** Rewording a question, and giving each option a few
+  examples, moved results more than any change of design.
+- **Many yes/no questions multiply small errors.** One Choice with every option beats a hundred
+  Nouls that are each nearly right.
 - **Have Jev check the finished result.** Reading the order back to Jev, one question per item and
   one for "anything missing?", is what decides when to accept an order.
 - **Read values with the conversation in view.** The agent's own question is what makes a bare
-  number an order ID: 98.6% of values right with the agent's lines, 93.2% without.
+  number an order ID.
 
 ## What's next
 
-Measuring the core methods on real data; the service agent on live chats; delivery for the pizza
-shop; the docs site; and more kits as they're measured. Ideas and requests: open an issue.
+Evals for the core methods; the service agent on live chats; delivery for the pizza shop; the
+docs site; and more kits as they earn their place. Ideas and requests: open an issue.
 
 ## What's where
 
@@ -199,6 +221,5 @@ requests after a conversation.
 
 ## License
 
-MIT. Nothing here includes or downloads a dataset; the numbers quoted from benchmarks were measured
-in our research repo. The idea of parsing and taking orders with closed questions builds on
+MIT. The idea of parsing and taking orders with closed questions builds on
 Stately's [jevspresso](https://github.com/statelyai/jevspresso) demo; no code is copied from it.

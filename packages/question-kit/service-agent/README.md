@@ -6,10 +6,10 @@ judgment calls (which optional step, if any, the company's written procedure cal
 the tools found). There's no LLM: what the agent says comes from templates, and every decision Jev
 informs passes a confidence gate first.
 
-It's a prototype, measured in our research repo (not public) on ABCD's customer-service chats (Chen et al.,
-2021): on 200 held-out chats, against a scripted customer built from each recorded chat, it finished
-77.5% with the right changes and made no wrong change; the same agent with simple rules in place of
-Jev finished 47.0%.
+The agent has been through our internal evals: hundreds of recorded customer-service conversations
+played back against a scripted customer, scored on whether it finished with the right changes and
+made no wrong one. It's an alpha, and it hasn't run on live chats yet, but we think it's ready to
+play with.
 
 ```sh
 npm install question-kit @typesafe-ai/sdk
@@ -174,4 +174,4 @@ unsure, 3), `corrections` (to a read-back before a handoff, 2), `offerWhenUnsure
 
 Replies written by a model; a customer changing topic mid-chat (a second request goes to a person);
 a value needed only in some cases (an address only for deliveries); learning the order of steps from
-past chats (the research repo learns the ABCD procedures that way, outside the package).
+past chats.

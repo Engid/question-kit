@@ -7,10 +7,10 @@ procedure. Jev reads the customer: what they want, the values a step needs, thei
 judgment calls the written procedure leaves open. Nothing is written by a language model; what
 the agent says comes from templates and the company's own wording.
 
-It was built and measured on ABCD, a public set of customer-service chats (Chen et al., 2021). On
-200 held-out chats, against a scripted customer built from each recorded chat, it finished 77.5%
-with the right changes and made no wrong change; the same agent with simple rules in place of Jev
-finished 47.0%. That's one dataset and a scripted customer; it hasn't been measured on live chats.
+The agent has been through our internal evals: hundreds of recorded customer-service conversations
+played back against a scripted customer, scored on whether it finished with the right changes and
+made no wrong one. It's an alpha, and it hasn't run on live chats yet, but we think it's ready to
+play with.
 
 ## A service is data
 

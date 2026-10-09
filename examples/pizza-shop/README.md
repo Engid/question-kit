@@ -15,65 +15,68 @@ bun run pizza:web            # the same counter as a web page, at http://localho
 
 ## A session
 
-This one ran with `--fake`, so the numbers are the stand-in's; with Jev, the screen is the same and
-the numbers are Jev's.
+Jev's own numbers, replayed from the cache:
 
 ```
- You    two large pepperoni pizzas and a diet coke
+ You    a large pepperoni pizza
 
- ┊ Jev  intent → order  0.97 ✓
- ┊ Jev  "two large pepperoni pizzas" → add (2 large pizzas with pepperoni)  0.94 ✓
- ┊ Jev  "and a diet coke" → add (1 diet coke)  0.94 ✓
- ┊ Jev  done ordering? → no  0.94 ✓
- ⚙ Register  add-items: added 2 large pizzas with pepperoni
- ⚙ Register  add-items: added 1 diet coke
- ┊ Jev  check → nothing looks wrong  P(wrong) 0.02
+ ┊ Jev  intent → order  1.00 ✓
+ ┊ Jev  "a large pepperoni pizza" → add (1 large pizza with pepperoni)  1.00 ✓
+ ┊ Jev  done ordering? → no  0.74 ✓
+ ⚙ Register  add-items: added 1 large pizza with pepperoni
+ ┊ Jev  check → nothing looks wrong  P(wrong) 0.06
 
- Agent  Got it: 2 large pizzas with pepperoni. And 1 diet coke. Anything else?
+ Agent  Got it: 1 large pizza with pepperoni. Anything else?
 
- ┌ Order ───────────────────────────────────┐
- │ 1  2 large pizzas with pepperoni  $32.98 │
- │ 2  1 diet coke                     $2.49 │
- │    Total                          $35.47 │
- └──────────────────────────────────────────┘
+ ┌ Order ──────────────────────────────────┐
+ │ 1  1 large pizza with pepperoni  $16.49 │
+ │    Total                         $16.49 │
+ └─────────────────────────────────────────┘
 
- You    actually put mushrooms on the pizzas, and take off the coke
+ You    what drinks do you have?
 
- ┊ Jev  "actually put mushrooms on the pizzas" → change line 1 (1 pizza with mushrooms)  0.96 ✓
- ┊ Jev  "and take off the coke" → remove line 2 (1 coke)  0.96 ✓
- ┊ Jev  done ordering? → no  0.94 ✓
- ⚙ Register  change-item: changed line 1 to 2 large pizzas with pepperoni and mushrooms
- ⚙ Register  remove-item: removed 1 diet coke
- ┊ Jev  check → nothing looks wrong  P(wrong) 0.02
+ ┊ Jev  aside → drinks  1.00 ✓
+ ┊ Jev  "what drinks do you have?" → nothing  1.00 –
+ ┊ Jev  done ordering? → no  0.90 ✓
 
- Agent  Changed that to 2 large pizzas with pepperoni and mushrooms. Took off the diet coke. So that's 2 large pizzas with pepperoni and mushrooms. Anything else?
+ Agent  We have coke ($2.49), diet coke ($2.49), sprite ($2.49), lemonade ($2.99), iced tea ($2.99) and water ($1.99), as a can, 20 oz ($2.49) or 2 liter ($3.99). Anything else?
 
- ┌ Order ─────────────────────────────────────────────────┐
- │ 1  2 large pizzas with pepperoni and mushrooms  $35.98 │
- │    Total                                        $35.98 │
- └────────────────────────────────────────────────────────┘
+ You    a lemonade
 
- You    a sprite, that's all
+ ┊ Jev  "a lemonade" → add (1 lemonade)  0.99 ✓
+ ┊ Jev  done ordering? → no  0.64 ✓
+ ⚙ Register  add-items: added 1 lemonade
+ ┊ Jev  check → nothing looks wrong  P(wrong) 0.10
 
- ┊ Jev  "a sprite" → add (1 sprite)  0.96 ✓
- ┊ Jev  done ordering? → yes  0.92 ✓
- ⚙ Register  add-items: added 1 sprite
+ Agent  Got it: 1 lemonade. Anything else?
+
+ ┌ Order ──────────────────────────────────┐
+ │ 1  1 large pizza with pepperoni  $16.49 │
+ │ 2  1 lemonade                     $2.99 │
+ │    Total                         $19.48 │
+ └─────────────────────────────────────────┘
+
+ You    that's all
+
+ ┊ Jev  "that's all" → nothing  1.00 –
  ┊ code  phone number → nothing that looks like one
+ ┊ Jev  done ordering? → yes  0.92 ✓
 
- Agent  Got it: 1 sprite. What's a good phone number to text you when it's ready?
+ Agent  What's a good phone number to text you when it's ready?
 
  You    479-555-0100
 
- ┊ Jev  phone number → +14795550100  0.94 ✓
+ ┊ Jev  phone number → +14795550100  1.00 ✓
 
  Agent  Send it to the kitchen and text (479) 555-0100 when it's ready?
 
  You    yes
 
- ┊ Jev  go ahead? → yes  0.94 ✓
- ⚙ Register  place-order: order #486 sent to the kitchen, $38.47
+ ┊ Jev  go ahead? → yes  1.00 ✓
+ ⚙ Register  place-order: order #978 sent to the kitchen, $19.48
 
- Agent  You're order #486, $38.47. We'll text (479) 555-0100 when it's ready. Thanks! Grab a seat.
+ Agent  You're order #978, $19.48. We'll text (479) 555-0100 when it's ready. Thanks! Grab a seat.
+
 ```
 
 The dim `┊` lines are what Jev read (with its confidence, and `✓` when the code acted on it, `?`

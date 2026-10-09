@@ -6,7 +6,7 @@ that shop needs around it. The library itself, and every option, is documented i
 
 | Example | What it shows |
 | --- | --- |
-| [`pizza/`](pizza/README.md) | A small pizza and drinks menu, and how the order taker scored on Amazon's PIZZA benchmark (measured with the benchmark's own menu). |
+| [`pizza/`](pizza/README.md) | A small pizza and drinks menu, with the wording and read-backs that scored best in our evals. |
 
 ## Making your own
 

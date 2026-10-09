@@ -2,9 +2,8 @@
 // toppings, and six drinks, with the ways customers say each one. It's our own small menu, written
 // for this example.
 //
-// The numbers in this folder's README were measured on Amazon's PIZZA benchmark with the
-// benchmark's own, much bigger menu (85 toppings, 23 styles, 22 drinks); that version lives in our
-// research repo. The wording settings and read-backs below are the same as the measured ones.
+// The wording settings and read-backs below are the ones that scored best in our evals, which ran
+// with a much bigger pizza menu.
 
 import { defineMenu, type Menu, type MenuInput, type ReadBack } from "question-kit/order";
 

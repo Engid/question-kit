@@ -5,8 +5,9 @@ read-back line per item, and whether to accept the order as is or read it back t
 first. Code reads what the menu knows; [Jev](https://docs.typesafe.ai) reads the words it doesn't
 and checks the finished order.
 
-It packages the best designs from our pizza experiment ([the numbers](../../../examples/order/pizza/README.md#how-well-it-works)). [`examples/order`](../../../examples/order/README.md)
-has worked examples, starting with a pizza shop.
+It packages the designs that scored best in our evals on thousands of single-message orders.
+[`examples/order`](../../../examples/order/README.md) has worked examples, starting with a pizza
+shop.
 
 ```sh
 npm install question-kit
@@ -111,17 +112,11 @@ const client = cachedJev(typesafeJev(), ".cache/jev");   // typesafeJev() reads 
 
 ## How well it works
 
-Measured with the PIZZA benchmark's menu on its 1,357 test orders (written by people; the designs
-were built on the 348 dev orders). Full details in [the pizza example](../../../examples/order/pizza/README.md).
-
-| Design | Whole order right | $ per 1,000 orders |
-| --- | --- | --- |
-| `gaps` (default) | 95.1% | 1.43 |
-| `every-word` | 95.1% | 2.95 |
-| `pick` | 96.3% | 4.35 |
-
-With the default design and `readBackAt` 0.3, 75.7% of orders were accepted as is, and 7 of the 66
-wrong orders were among them.
+The three designs were run against thousands of pizza orders with written answers, scoring the
+whole order (every item and value right). `gaps`, the default, scored as well as `every-word` at
+about half the cost; `pick` scored a little better at about three times the cost. The check with
+`readBackAt` 0.3 accepted most orders as is and let through only a small share of the wrong ones;
+0.2 is stricter, 0.5 looser.
 
 ## Limits
 
@@ -129,6 +124,6 @@ wrong orders were among them.
   layer on top.
 - English cue words and an English read-back by default.
 - Code is only as good as the menu's lists of ways to say things. A menu written from scratch needs
-  good lists, or `design: "every-word"`. Only the pizza menu has been measured; the default wording
-  (used by menus that don't set `wording`) is untested.
+  good lists, or `design: "every-word"`. Only a pizza menu has been through evals; the default
+  wording (used by menus that don't set `wording`) is untested.
 - The check catches most wrong orders but not all.

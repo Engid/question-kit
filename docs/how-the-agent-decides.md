@@ -28,8 +28,8 @@ A gate turns a reading into one of three outcomes, recorded in the log with the 
 
 The `yesNo` gate is on |2p − 1|, so 0.6 means p ≥ 0.8 or p ≤ 0.2.
 
-These are the defaults the agent ran with in our ABCD measurements; `defineService` takes a
-`gates` option to change any of them. Lower gates act more and ask less; higher gates ask more and
+These are the defaults the agent ran with in our evals; `defineService` takes a `gates` option
+to change any of them. Lower gates act more and ask less; higher gates ask more and
 hand off more. The log records every decision, so you can see where your service lands before
 moving one.
 
@@ -62,8 +62,8 @@ recorded runs this turned a 0.65 / 0.34 split into one pick at 0.98.
 ## Where values come from
 
 Values are read from the whole conversation, both sides, not just the last message. The question
-the agent asked is what makes a bare "5843990922" an order ID. In our measurements, reading
-values with the agent's lines in view got 98.6% of them right; without, 93.2%.
+the agent asked is what makes a bare "5843990922" an order ID, and in our evals reading with the
+agent's lines in view was clearly better than reading the customer's lines alone.
 
 A value is read at most once per customer message, and a value already known isn't asked for
 again. A tool result can fill values from your system (`values: { amount: "42.00" }`), marked as
