@@ -43,6 +43,28 @@ export function priceOf(item: OrderItem): number {
   return Math.round(each * item.number * 100) / 100;
 }
 
+/** What the agent says about each part of the menu when asked ("what crusts do you have?"). */
+export function menuAnswers(): { sizes: string; crusts: string; toppings: string; drinks: string } {
+  const m = pizzaMenu();
+  const names = (field: string) => m.field(field)?.values.map((v) => v.name) ?? [];
+  const price = (x: number) => `$${x.toFixed(2)}`;
+  const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+  const styles = names("style").map((n) => {
+    const id = m.field("style")!.values.find((v) => v.name === n)!.id as keyof typeof PRICES.style;
+    return PRICES.style[id] ? `${n} (${price(PRICES.style[id])} more)` : n;
+  });
+  const drinks = names("drink").map((n) => {
+    const id = m.field("drink")!.values.find((v) => v.name === n)!.id as keyof typeof PRICES.drink;
+    return `${n} (${price(PRICES.drink[id] ?? 0)})`;
+  });
+  return {
+    sizes: `Pizzas come small (${price(PRICES.pizza.SMALL)}), medium (${price(PRICES.pizza.MEDIUM)}) or large (${price(PRICES.pizza.LARGE)}). Drinks are a can, 20 oz or 2 liter.`,
+    crusts: `We do ${list(styles)}, or regular crust.`,
+    toppings: `Toppings are ${list(names("topping"))}: ${price(PRICES.topping)} each, double for extra, and cheese is free.`,
+    drinks: `We have ${list(drinks)}, as a can, 20 oz (${price(PRICES.volume.TWENTY_OZ)}) or 2 liter (${price(PRICES.volume.TWO_LITER)}).`,
+  };
+}
+
 /** The menu as the register shows it: one line per group, with prices. */
 export function menuLines(): string[] {
   const m = pizzaMenu();

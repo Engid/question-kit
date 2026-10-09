@@ -15,6 +15,8 @@ export interface IntentSpec {
   description?: string;
   /** A few things customers have said that belong here. */
   examples?: string[];
+  /** What it doesn't cover, to keep look-alikes apart: "ordering a drink (that's an order)". */
+  notFor?: string;
   /**
    * The company's written procedure for it, conditions included ("If the oracle says yes, remove
    * the fee"). Jev reads it to decide optional steps. Default: the description.

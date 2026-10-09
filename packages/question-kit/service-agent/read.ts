@@ -140,7 +140,7 @@ export const CONFIRM_OPTIONS: Record<ConfirmAnswer, string> = {
 };
 export const FIXED_STATEMENT = "In their last message, the customer says the problem is fixed or that it works now.";
 export const REPEAT_QUESTION = "The customer is placing an order: `order` is what's on it so far, and `message` is what they just said. What does this part of the message call for?";
-export const REPEAT_NONE = "Nothing on the order: it doesn't add, change or remove anything.";
+export const REPEAT_NONE = "Nothing on the order: it doesn't add, change or remove anything (a question about the menu, the hours or the place, say, or small talk).";
 export const FINISHED_STATEMENT = "The customer says they have finished ordering: that's all, nothing else.";
 export const RIGHT_STATEMENT = "The agent read the order back and asked whether it's right. In their last message, the customer says it is (yes, that's right), rather than pointing out a mistake or changing something.";
 export const REVIEW_QUESTION = (what: string) => `\`order\` is what the agent has on the customer's order, line by line, after the \`chat\` so far. Is ${what} wrong: not something the customer asked for, or a size, number, kind or detail different from what they said (taking their changes into account)?`;
@@ -153,6 +153,7 @@ export function intentLabels(s: Service): Record<string, Label> {
     Object.entries(s.intents).map(([id, x]) => {
       const label: Record<string, string | string[]> = { what: x.group ? `${x.name} (${x.group})` : x.name };
       if (x.description) label.description = x.description;
+      if (x.notFor) label.not_for = x.notFor;
       if (x.examples?.length) label.examples = x.examples;
       return [id, label as unknown as Label];
     }),

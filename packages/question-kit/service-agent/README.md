@@ -53,8 +53,8 @@ const service = defineService({
 });
 ```
 
-- **Intents:** a name, the company's description, a few examples, and optionally its written
-  `procedure`, conditions included ("If the oracle says yes, remove the fee"). `aside: true` marks
+- **Intents:** a name, the company's description, a few examples, a `notFor` to keep look-alikes
+  apart, and optionally its written `procedure`, conditions included ("If the oracle says yes, remove the fee"). `aside: true` marks
   a question the customer may ask at any point (opening hours): answered, then the conversation
   carries on where it was.
 - **Slots:** what to collect. Code finds the candidates (a pattern, a list of known values) and Jev

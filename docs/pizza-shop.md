@@ -90,9 +90,10 @@ Then the procedure carries on to placing the order.
 the items: sizes, styles, toppings with "extra" and "no", drinks, the ways customers say each.
 The register prices them.
 
-**Hours and the menu are asides.** "What time do you close?" or "what do you have?" can come at
-any point. The agent answers (the hours from a say step; the menu from a `show-menu` tool the
-register answers with the menu) and carries on: at the start it then asks "What can I get for
+**Hours and the menu are asides.** "What time do you close?", "what do you have?", "what kinds of
+crust are there?" or "do you have breadsticks?" can come at any point. The agent answers (the
+hours and the menu questions from say steps written from the menu data; the whole menu from a
+`show-menu` tool the register answers) and carries on: at the start it then asks "What can I get for
 you?", mid-order it goes back to "Anything else?". Every message is read for asides, with one
 Choice riding along in the request the message gets anyway.
 

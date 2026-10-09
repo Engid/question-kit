@@ -18,7 +18,18 @@ export function fakeShopClient(): SystemOneClient {
     const st = state as Record<string, unknown>;
     const keys = q.type === "choice" ? Object.keys(q.criteria) : [];
     const last = (t: unknown) => String(t).split("\n").at(-1)!.replace(/^customer: /, "");
-    const which = (t: string) => (/open|close|hours/i.test(t) ? "hours" : /menu|what do you have|what sizes|how much/i.test(t) ? "menu" : null);
+    // A question about the shop, by a few words; an order never is.
+    const asks = (t: string) => /\?|^(do you|what|which|how|any|is there|are there|can i see|got any)\b/i.test(t.trim());
+    const which = (t: string) =>
+      !asks(t) ? null
+      : /open|close|hours/i.test(t) ? "hours"
+      : /menu|what do you have|what is there|what have you got/i.test(t) ? "menu"
+      : /sizes?\b|how big/i.test(t) ? "sizes"
+      : /crust|gluten|deep dish|stuffed/i.test(t) ? "crusts"
+      : /toppings?|mushroom|pepperoni|jalapeno|olive|bacon|ham\b/i.test(t) ? "toppings"
+      : /drinks?|lemonade|soda|coke|sprite|water/i.test(t) ? "drinks"
+      : /breadsticks|wings|dessert|salad|pasta|beer/i.test(t) ? "not-on-menu"
+      : null;
     if (id === "label") return pick(q, which(last(st.customer ?? st.chat)) ?? "order", 0.98);
     if (id.startsWith("tag_w")) return "none";
     const [task] = id.split("::") as [string];
@@ -29,6 +40,7 @@ export function fakeShopClient(): SystemOneClient {
     if (task === "missing" || /^i\d+$/.test(task)) return { type: "noul", noul: 0.02 };
     if (/^p\d+$/.test(task)) {
       const text = (st.phrases as Record<string, string>)[task] ?? "";
+      if (asks(String(st.message))) return pick(q, "none", 0.97);
       const order = (st.order as Record<string, string>) ?? {};
       const lines = Object.keys(order);
       const on = text.match(/\b(first|second|third)\b/)?.[0];

@@ -60,6 +60,9 @@ export const conversations: Conversation[] = [
   { name: "the menu, mid-order", moves: ["a large pepperoni pizza", "what drinks do you have?", "a lemonade"], lines: ["1 large pizza with pepperoni", "1 lemonade"] },
   { name: "hours, mid-order", moves: ["a coke", "how late are you open?", "and a small cheese pizza"], lines: ["1 coke", "1 small pizza with cheese"] },
   { name: "a question about the menu", moves: ["what sizes do you have?", "a large pepperoni then"], lines: ["1 large pizza with pepperoni"] },
+  { name: "crusts, then an order", moves: ["what kinds of pizza crust do you have?", "a medium thin crust pepperoni"], lines: ["1 medium thin crust pizza with pepperoni"] },
+  { name: "not on the menu", moves: ["do you have breadsticks?", "ok, a large cheese pizza then"], lines: ["1 large pizza with cheese"] },
+  { name: "a topping question mid-order", moves: ["a large pepperoni pizza", "do you have jalapenos?", "put jalapenos on it"], lines: ["1 large pizza with pepperoni and jalapenos"] },
   { name: "small talk then order", moves: ["hey how's it going", "a large pepperoni pizza please"], lines: ["1 large pizza with pepperoni"] },
   { name: "unrelated", moves: ["is the parking lot free?", "a large pepperoni pizza please"], lines: ["1 large pizza with pepperoni"] },
 ];

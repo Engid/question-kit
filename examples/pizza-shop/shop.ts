@@ -3,19 +3,25 @@
 // owns the order.
 
 import { defineService, type Templates } from "question-kit/service-agent";
-import { pizzaMenu } from "./menu.ts";
+import { menuAnswers, pizzaMenu } from "./menu.ts";
 import { formatPhone } from "./register.ts";
 
 export const shop = defineService({
   intents: {
     order: {
       name: "Order food",
-      description: "The customer wants pizza or drinks, or is still ordering.",
-      examples: ["can I get a large pepperoni?", "two medium pizzas with mushrooms and a sprite", "hi, I'd like to order"],
+      description: "The customer orders pizza or drinks, or is still ordering: naming items, with or without a please or a question mark.",
+      examples: ["can I get a large pepperoni?", "two medium pizzas with mushrooms and a sprite", "two sprites", "a coke", "hi, I'd like to order"],
     },
     // Asides: answered whenever they come up, then the order carries on (or starts).
     hours: { name: "Opening hours", description: "The customer asks when the shop is open or closes.", aside: true },
-    menu: { name: "The menu", description: "The customer asks what's on the menu, what there is, or what something costs.", examples: ["what do you have?", "can I see the menu?", "what sizes are there?"], aside: true },
+    menu: { name: "The whole menu", description: "The customer asks to see the menu or what there is in general.", notFor: "ordering something", examples: ["what do you have?", "can I see the menu?"], aside: true },
+    // Questions about a part of the menu, each answered from the menu data.
+    sizes: { name: "Sizes", description: "The customer asks what sizes there are, or how big something is.", notFor: "ordering something in a size (that's an order)", examples: ["what sizes do you have?", "how big is a large?"], aside: true },
+    crusts: { name: "Crusts and styles", description: "The customer asks about pizza crusts or styles: thin, deep dish, stuffed, gluten free.", notFor: "ordering a pizza in a style (that's an order)", examples: ["what kinds of crust do you have?", "do you do gluten free?"], aside: true },
+    toppings: { name: "Toppings", description: "The customer asks which toppings there are, whether a topping is available, or what toppings cost.", notFor: "ordering a pizza with toppings, or adding a topping to one (that's an order)", examples: ["do you have mushrooms?", "what toppings are there?"], aside: true },
+    drinks: { name: "Drinks", description: "The customer asks which drinks there are, or about drink sizes.", notFor: "ordering a drink, even just naming one (that's an order)", examples: ["what drinks do you have?", "do you have lemonade?"], aside: true },
+    "not-on-menu": { name: "Something not on the menu", description: "The customer asks whether there's something the shop doesn't sell: sides, desserts, breadsticks, wings, salads, pasta, beer.", examples: ["do you have breadsticks?", "any desserts?"], aside: true },
   },
   slots: {
     // Read by question-kit/order: items from the menu.
@@ -35,6 +41,11 @@ export const shop = defineService({
     order: [{ repeat: ["add-items", "change-item", "remove-item"], ask: "What can I get for you?", more: "Anything else?" }, "place-order"],
     hours: [{ say: "We're open 11am to 11pm every day." }],
     menu: ["show-menu"],
+    sizes: [{ say: menuAnswers().sizes }],
+    crusts: [{ say: menuAnswers().crusts }],
+    toppings: [{ say: menuAnswers().toppings }],
+    drinks: [{ say: menuAnswers().drinks }],
+    "not-on-menu": [{ say: "Sorry, we don't have that: it's pizzas and drinks here. Ask for the menu to see it all." }],
   },
   // Once the order is placed there's nothing else to ask: no "anything else?" round.
   wrapUps: 0,

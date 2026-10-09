@@ -41,8 +41,9 @@ const service = defineService({
 `defineService` checks that the parts fit together (every procedure's tools exist, every tool's
 slots exist, a change isn't marked skippable) and throws a list of problems if not.
 
-**Intents** are what customers come for: a name, the company's description, a few examples, and
-optionally the written procedure, conditions included ("If the item has shipped, refund part of the
+**Intents** are what customers come for: a name, the company's description, a few examples, a
+`notFor` to keep look-alikes apart ("ordering a drink: that's an order"), and optionally the
+written procedure, conditions included ("If the item has shipped, refund part of the
 fee; otherwise waive it"). Jev reads the procedure when it has to pick an optional step. An intent
 marked `aside: true` is a question the customer may ask at any point (opening hours, the menu): it's
 answered and the conversation carries on where it was, at the start (the agent then asks what they

@@ -82,10 +82,10 @@ the bold line is what the agent said; the box is the order.
 
 ## How it's put together
 
-- [shop.ts](shop.ts) describes the shop as data: three intents (ordering, and two asides: opening
-  hours and the menu, answered whenever they come up), three slots, five tools, and the steps for
-  each intent. The ordering procedure is one *repeat* step (add, change or remove items until the
-  customer is done) and then placing the order. It's about 50 lines.
+- [shop.ts](shop.ts) describes the shop as data: the ordering intent and seven asides (opening
+  hours, the whole menu, and questions about sizes, crusts, toppings, drinks or something that isn't
+  sold, answered whenever they come up), three slots, five tools, and the steps for each intent. The ordering procedure is one *repeat* step (add, change or remove items until the
+  customer is done) and then placing the order. It's about 60 lines.
 - [menu.ts](menu.ts) is the [order example's](../order/pizza/README.md) pizza menu, with prices.
 - [register.ts](register.ts) is the made-up register behind the tools. It owns the order; the agent
   never touches it. Each tool returns the current lines (so the agent can ask about "line 2") and
