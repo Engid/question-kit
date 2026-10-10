@@ -3,7 +3,7 @@
 **Building kits for System One models.** For now that means [Jev](https://docs.typesafe.ai),
 TypeSafe's; see [model support](#model-support).
 
-> **Alpha.** question-kit is a prototype, and its APIs will change between 0.x releases. Please try
+> **Alpha.** question-kit is new, and its APIs will change between 0.x releases. Please try
 > it and tell us what breaks or feels awkward: [open an issue](https://github.com/Engid/question-kit/issues).
 > We're not taking pull requests yet; if you'd like to contribute, open an issue first so we can
 > talk it over.
