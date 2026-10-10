@@ -1,6 +1,6 @@
 # question-kit
 
-**Building-kits for System One models.** For now that means [Jev](https://docs.typesafe.ai), from TypeSafe.
+**Tool kits for System One models.** For now that means [Jev](https://docs.typesafe.ai), from TypeSafe.
 
 see [model support](#model-support).
 
