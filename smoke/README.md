@@ -2,7 +2,8 @@
 
 A few hand-written cases per method in [`packages/question-kit`](../packages/question-kit/README.md), run
 against the real model. It's a smoke test that each method's questions and code steps work end to
-end, not a measurement: bigger test sets per method come later.
+end, not a measurement: the methods' evals are internal, and what they found is summarized in
+[the building blocks](../docs/building-blocks.md).
 
 ```sh
 bun run smoke --client dry       # no Jev: how many requests, and the estimated cost

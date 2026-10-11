@@ -37,7 +37,7 @@ that need more than one request (a pick among many, a search) take the client an
 | `classifyTree` | which leaf of a label tree, keeping the best few paths | 1 per level | Hierarchical classification |
 | `pickOne` | which one of many options, or none | 2 | Skill suggestion |
 | `extractValue` | an exact value (email, phone, amount, number, name) | 1 | Pre-parsed value extraction |
-| `extractDate` | a calendar date, including "tomorrow", "last Friday" | 1 | Date extraction |
+| `extractDate` | a calendar date, including "tomorrow", "last Friday", "in three days", "the end of the month" | 1 | Date extraction |
 | `callFunction` | which function and its arguments | 1 | Function calling |
 | `verifyRecord` | whether anything in an extracted record is wrong | 1 | SDE cascade |
 | `checkClaim` | whether a source supports, contradicts or ignores a claim | 0–1 | Double-checking citations |
@@ -72,7 +72,7 @@ What those evals taught, in the code:
   wrong answers by nearly half, at about three times the cost of names alone. Name labels well, give
   each a few real examples, and write `not_for` for the pairs you see confused.
 - **Thresholds come from data, not the cookbooks.** `verifyRecord` flags at 0.8 (as many planted
-  errors caught as at 0.7, half the false alarms); `search` calls a question unanswered under 0.5,
+  errors caught as at 0.7, half the false alarms); `search` calls a question unanswered under 0.7,
   with its existence question rewritten against the usual failure, lines on the topic without the
   answer; `pickOne` picks nothing when the best fit is under 0.7.
 - **Dates come in more shapes than the cookbook's seven parts.** Customer messages count from today

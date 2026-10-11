@@ -50,9 +50,9 @@ and at most 50,000 input tokens a second, half of TypeSafe's current limit of 10
 requests a second), so a run doesn't lean on retries. `pace: false` turns it off; `pace: { … }`
 changes it; `pacedJev(client, opts)` paces any client.
 
-`cachedJev` keeps every answer on disk, keyed by a hash of the request. With `{ mode: "replay" }`
-it never calls anything and throws `CacheMissError` on a request it hasn't seen, which suits tests
-and repeatable measurements. For tests, `fakeJev((id, question, state) => answer)` answers without
+`cachedJev` keeps every answer on disk, keyed by what the model sees (the state and the questions,
+not their ids). With `{ mode: "replay" }` it never calls anything and throws `CacheMissError` on a
+request it hasn't seen, which suits tests and repeatable measurements. For tests, `fakeJev((id, question, state) => answer)` answers without
 calling anything.
 
 ## Methods
@@ -66,7 +66,7 @@ One-request methods return a *task*: run it with `run(client, task)`, or send se
 | `classifyTree` | which leaf of a label tree, keeping the best few paths | 1 per level | Hierarchical classification |
 | `pickOne` | which one of many options, or none | 2 | Skill suggestion |
 | `extractValue` | an exact value (email, phone, amount, number, name) | 1 | Pre-parsed value extraction |
-| `extractDate` | a calendar date, including "tomorrow", "last Friday" | 1 | Date extraction |
+| `extractDate` | a calendar date, including "tomorrow", "last Friday", "in three days", "the end of the month" | 1 | Date extraction |
 | `callFunction` | which function and its arguments | 1 | Function calling |
 | `verifyRecord` | whether anything in an extracted record is wrong | 1 | SDE cascade |
 | `checkClaim` | whether a source supports, contradicts or ignores a claim | 0–1 | Double-checking citations |

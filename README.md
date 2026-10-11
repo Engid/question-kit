@@ -207,7 +207,7 @@ test/         offline unit tests
 bun install
 bun run typecheck && bun test        # offline
 bun run build                        # dist/ for the package
-bun run smoke --client record        # the core methods' live checks (59 requests, about $0.002)
+bun run smoke --client record        # the core methods' live checks (64 requests, about $0.002)
 ```
 
 ## Contributing

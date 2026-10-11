@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-10-11)
 
-- **The methods have been through evals of their own**, and five changed as a result:
+- **The methods have been through evals of their own**, and these changed as a result:
   - `extractDate` reads dates counted from today ("in three days", "two weeks ago", "a week from
     today"), month ends ("the end of this month") and a bare day of the month ("on the 2nd", with
     the month chosen the way the year already was; the result says `monthGuessed`, and
@@ -38,8 +38,9 @@
   whole question instead of "About \`summary\`: …". A plain string works as before.
 - **The answer cache ignores question ids.** `cachedJev` keys a request on its model, state and
   question bodies in order; TypeSafe doesn't send ids to the model. A cached answer replays under
-  whatever ids the request uses. Caches written by 0.1 use the old key: re-key them once with the
-  script in the lab (every entry holds its request, so nothing is lost), or let them fill again.
+  whatever ids the request uses. Caches written by 0.1 use the old key: `rekeyCache(dir)` from
+  `question-kit/cache` moves every entry to its new key once (each entry holds its request, so
+  nothing is lost), or let the cache fill again.
 
 ## 0.1.0
 
