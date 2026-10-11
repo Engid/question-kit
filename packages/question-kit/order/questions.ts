@@ -19,7 +19,7 @@ import { aliasesOf, lookalikesOf, type Menu, type MenuValue } from "./menu.ts";
 import { defaultReadBack, type OrderItem } from "./order.ts";
 import { tagOf } from "./rules.ts";
 
-/** What a question is about, for logs and for explaining an order; kept in the request's `meta`, never sent. */
+/** What a task's question is about, for logs and for explaining an order; `runAll` keeps it in the request's `meta`, never sent. */
 export interface About {
   set: "word-tag" | "order-check" | "order-pick";
   level?: "tag" | "whole" | "item" | "missing";
@@ -28,7 +28,7 @@ export interface About {
   checked?: unknown;
 }
 
-/** A set of tasks sent together, and what each one's question is about. */
+/** A set of tasks to send together with `runAll`, and what each one is about (its `about` option). */
 export interface Asked<T> {
   tasks: Record<string, Task<T>>;
   about: Record<string, About>;

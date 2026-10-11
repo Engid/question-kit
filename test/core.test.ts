@@ -166,6 +166,14 @@ describe("tasks", () => {
     const r = await run(client, rate("very angry!!!", "How frustrated is the customer?", ["Calm", "Annoyed", "Very angry"]));
     expect(r.level).toBe(2);
   });
+  test("`about` lands in the request's meta under each task's question ids, and isn't sent", async () => {
+    const client = fakeJev(() => 0.8);
+    const msg = ref("message");
+    await runAll(client, { upset: check(msg, "The customer is upset."), refund: check(msg, "The customer wants a refund.") }, { state: { message: "broken again" }, about: { upset: { set: "mood" } }, log: [] });
+    expect(client.requests[0]!.meta).toEqual({ "upset::check": { set: "mood" } });
+    await run(client, check("broken again", "The customer is upset."), { about: { set: "mood" } });
+    expect(client.requests[1]!.meta).toEqual({ check: { set: "mood" } });
+  });
   test("the whole question can be written as a function of the text's Ref", () => {
     const order = ref("order");
     const { questions } = requestAll(

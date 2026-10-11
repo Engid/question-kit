@@ -22,6 +22,12 @@ export interface Task<T> {
 export interface RunOptions extends SendOptions {
   /** State to send along with the tasks' own parts (for tasks that point at it with Refs). */
   state?: Record<string, Json>;
+  /**
+   * What each task is about, by task name (`runAll`) or for the one task (`run`): kept in the
+   * request's `meta` under each of the task's question ids, never sent. For logs and for
+   * explaining a result later.
+   */
+  about?: Record<string, unknown>;
   /** Warnings from the pre-send checks are pushed here. Errors throw. */
   warnings?: Problem[];
 }
@@ -35,7 +41,7 @@ export function request<T>(task: Task<T>, opts: Pick<RunOptions, "state"> = {}):
 export async function run<T>(client: SystemOneClient, task: Task<T>, opts: RunOptions = {}): Promise<T> {
   const { state, questions } = request(task, opts);
   check(state, questions, opts);
-  const answers = await send(client, state, questions, opts);
+  const answers = await send(client, state, questions, withMeta(opts, Object.keys(questions).map((id) => [id, opts.about])));
   return task.read(answers);
 }
 
@@ -81,7 +87,7 @@ export function requestAll<M extends Record<string, Task<unknown>>>(tasks: M, op
 export async function runAll<M extends Record<string, Task<unknown>>>(client: SystemOneClient, tasks: M, opts: RunOptions = {}): Promise<{ [K in keyof M]: M[K] extends Task<infer T> ? T : never }> {
   const { state, questions } = requestAll(tasks, opts);
   check(state, questions, opts);
-  const answers = await send(client, state, questions, opts);
+  const answers = await send(client, state, questions, withMeta(opts, Object.keys(questions).map((id) => [id, opts.about?.[id.split("::")[0]!]])));
   const out: Record<string, unknown> = {};
   for (const [name, task] of Object.entries(tasks)) {
     const own: Record<string, Answer> = {};
@@ -90,6 +96,14 @@ export async function runAll<M extends Record<string, Task<unknown>>>(client: Sy
     out[name] = task.read(own);
   }
   return out as { [K in keyof M]: M[K] extends Task<infer T> ? T : never };
+}
+
+/** `opts` with `about` folded into `meta` under the question ids it applies to. */
+function withMeta(opts: RunOptions, about: [id: string, about: unknown][]): SendOptions {
+  if (!opts.about) return opts;
+  const meta = { ...(opts.meta ?? {}) };
+  for (const [id, a] of about) if (a !== undefined && !(id in meta)) meta[id] = a;
+  return { ...opts, meta };
 }
 
 function check(state: Entry, questions: Record<string, Question>, opts: RunOptions) {

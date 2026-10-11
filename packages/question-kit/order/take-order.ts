@@ -8,11 +8,10 @@
 //   5. Accept the order if every check answer says it's probably right; otherwise read back the
 //      items the check doubts (and ask "anything else?" if it thinks something is missing).
 
-import type { SystemOneCall, SystemOneClient } from "../core/index.ts";
 import type { Menu } from "./menu.ts";
 import { type OrderItem, sameItems } from "./order.ts";
 import { assemble, menuTags, type Tag, tokenize } from "./rules.ts";
-import { askAll } from "./client.ts";
+import { runAll, type SystemOneCall, type SystemOneClient } from "../core/index.ts";
 import { checkState, orderChecks, pickOrder, pickState, pickSwap, readBackLines, wordsState, wordTags } from "./questions.ts";
 
 export type Design = "gaps" | "every-word" | "pick";
@@ -104,7 +103,8 @@ export async function takeOrder(text: string, menu: Menu, client: SystemOneClien
       pick = { agreed: true };
     } else {
       const swap = pickSwap(text);
-      const { pick: picked } = await askAll(client, calls, "pick between the two orders", pickState(text, a.items, b.items, menu, swap), pickOrder(a.items, b.items, menu, swap));
+      const asked = pickOrder(a.items, b.items, menu, swap);
+      const { pick: picked } = await runAll(client, asked.tasks, { state: pickState(text, a.items, b.items, menu, swap), log: calls, title: "pick between the two orders", about: asked.about });
       const choice = picked?.value ?? "neither";
       const p = picked?.probability ?? 0;
       const second = choice !== "neither" && (choice === "a") === swap;
@@ -120,7 +120,8 @@ export async function takeOrder(text: string, menu: Menu, client: SystemOneClien
   const readBack = readBackLines(chosen.items, menu);
   let check: OrderCheck | undefined;
   if (options.check ?? true) {
-    const read = await askAll(client, calls, "check the order read back", checkState(text, chosen.items, menu), orderChecks(chosen.items, menu));
+    const asked = orderChecks(chosen.items, menu);
+    const read = await runAll(client, asked.tasks, { state: checkState(text, chosen.items, menu), log: calls, title: "check the order read back", about: asked.about });
     const pWrong = (name: string) => read[name]?.probability ?? 1;
     check = { whole: pWrong("check_order"), items: chosen.items.map((_, k) => pWrong(`check_i${k + 1}`)), missing: pWrong("check_missing") };
     note(`Check, P(wrong): ${check.items.map((p, k) => `item ${k + 1} ${p.toFixed(2)}`).join(", ") || "no items"}, anything missing ${check.missing.toFixed(2)}.`);
@@ -157,7 +158,8 @@ export async function takeOrder(text: string, menu: Menu, client: SystemOneClien
 async function tagWords(text: string, words: string[], menu: Menu, client: SystemOneClient, calls: SystemOneCall[], design: "gaps" | "every-word", options: TakeOrderOptions): Promise<Tagged> {
   const known = design === "gaps" ? menuTags(words, menu) : ["", ...words.map(() => "none")];
   const asked = words.map((_, i) => i + 1).filter((w) => design === "every-word" || known[w] === "none");
-  const read = await askAll(client, calls, design === "gaps" ? "tags for the words the menu doesn't know" : "what each word is", wordsState(text, words), wordTags(asked, menu));
+  const questions = wordTags(asked, menu);
+  const read = await runAll(client, questions.tasks, { state: wordsState(text, words), log: calls, title: design === "gaps" ? "tags for the words the menu doesn't know" : "what each word is", about: questions.about });
   const tags = [...known];
   const readings: WordReading[] = words.map((word, i) => ({ word, tag: known[i + 1]!, by: "menu" }));
   const ps: number[] = [];

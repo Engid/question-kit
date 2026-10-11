@@ -2,7 +2,6 @@
 // checks the result. Built on question-kit's tasks: `choose` for the words and the pick, `check` for
 // the read-back, `runAll` to send each set together. See README.md in this folder.
 
-export { askAll } from "./client.ts";
 export type { Answer, Entry, Question, SystemOneCall, SystemOneClient, SystemOneRequest, SystemOneResponse } from "../core/index.ts";
 export {
   DEFAULT_AMOUNTS,

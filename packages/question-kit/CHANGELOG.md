@@ -6,9 +6,10 @@
   questions as before, now as `choose` and `check` tasks sent with `runAll`. `defineMenu`,
   `takeOrder` and the result are unchanged. Gone: `ask`, `topChoice`, `yes`, `wordTagQuestions`,
   `checkQuestions`, `pickQuestion`; in their place `wordTags`, `orderChecks`, `pickOrder` (each a
-  set of tasks plus what every question is about), `wordsState`, `checkState`, `pickState`, and
-  `askAll` to send a set. Question ids now carry the task's name (`tag_w3::choice`,
-  `check_i1::check`).
+  set of tasks for `runAll`, plus what every question is about), `wordsState`, `checkState` and
+  `pickState`. Question ids now carry the task's name (`tag_w3::choice`, `check_i1::check`).
+- **`run` and `runAll` take `about`:** what each task is about, by task name, kept in the request's
+  `meta` under the task's question ids and never sent. For logs and explaining results.
 - **`check`, `checks` and `rate` take their question as a function of the text's `Ref`**, the way
   `choose` already did: `check(ref("summary"), (s) => q\`Is ${s} wrong anywhere?\`)` writes the
   whole question instead of "About \`summary\`: …". A plain string works as before.
