@@ -53,8 +53,29 @@ that need more than one request (a pick among many, a search) take the client an
 
 Every value `extractValue` returns is text that's really in the input: code finds the candidates
 (a pattern, a list of names) and Jev picks which plays the role, so there's nothing to hallucinate.
-`extractDate` works the same way on the parts of a date. The methods have offline tests and a few
-live smoke checks each; they haven't been through evals of their own yet.
+`extractDate` works the same way on the parts of a date.
+
+Each method has offline tests, a few live smoke checks, and an eval of its own in our internal
+set: public labeled data where a public set fits the task (intent sets with out-of-scope queries,
+reading-comprehension questions with unanswerable ones, matched product records) and cases we
+wrote where none does, with Jev's answers cached so every change is measured on the same inputs.
+What those evals taught, in the code:
+
+- **One Choice beats a walk.** `classify` with the leaves as labels and their parents for back-off
+  was right far more often than `classifyTree` on a two-level intent set; use the tree only when
+  the leaves don't fit in one Choice. The same held for `pickOne` against `classify` with a "none"
+  option; `pickOne`'s gate questions did little, its fit check does the work, so its threshold is
+  the one to tune.
+- **Thresholds come from data, not the cookbooks.** `verifyRecord` flags at 0.8 (as many planted
+  errors caught as at 0.7, half the false alarms); `search` calls a question unanswered under 0.5,
+  with its existence question rewritten against the usual failure, lines on the topic without the
+  answer; `pickOne` picks nothing when the best fit is under 0.7.
+- **Dates come in more shapes than the cookbook's seven parts.** Customer messages count from today
+  ("in three days", "two weeks ago"), name a month's end, and give a bare day of the month;
+  `extractDate` asks for those parts too.
+- **A block can't be typed alone.** With the markers gone, a list of full sentences looks like
+  paragraphs one block at a time; `recoverStructure` also asks whether each pair of neighbours are
+  entries of the same list and types the run together.
 
 ## Underneath
 

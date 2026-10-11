@@ -2,6 +2,22 @@
 
 ## 0.2.0 (unreleased)
 
+- **The methods have been through evals of their own**, and five changed as a result:
+  - `extractDate` reads dates counted from today ("in three days", "two weeks ago", "a week from
+    today"), month ends ("the end of this month") and a bare day of the month ("on the 2nd", with
+    the month chosen the way the year already was; the result says `monthGuessed`). Three more
+    Choices per request (`span`, `count`, `period`); the rest is unchanged.
+  - `recoverStructure` asks, per pair of neighbouring blocks, whether they are entries of the same
+    list, and types a linked run as list items together; each block reports `list`, the
+    probability it continues the list before it. Fixes lists of full sentences coming back as
+    paragraphs.
+  - `search`'s "is it answered at all?" question is rewritten against lines that are on the topic
+    without holding the answer, and `absentBelow` defaults to 0.5 (was 0.35).
+  - `verifyRecord`'s `flagAbove` defaults to 0.8 (was 0.7): as many planted errors caught, half the
+    false alarms on correct records.
+  - `pickOne`'s `fitsBelow` defaults to 0.7 (was 0.3): the fit check is what rejects requests
+    nothing covers, and 0.3 let most of them through. Its doc and `classifyTree`'s now say when the
+    one-Choice `classify` is the better call.
 - **The order taker is built on the building blocks.** `question-kit/order` asks the same
   questions as before, now as `choose` and `check` tasks sent with `runAll`. `defineMenu`,
   `takeOrder` and the result are unchanged. Gone: `ask`, `topChoice`, `yes`, `wordTagQuestions`,

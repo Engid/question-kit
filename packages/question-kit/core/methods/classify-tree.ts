@@ -5,6 +5,12 @@
 // is the geometric mean of its choices' probabilities, so shallow and deep leaves compare fairly.
 // All of a round's questions share the text, so each round is one request.
 // Based on the approach in TypeSafe's "Hierarchical classification" cookbook.
+//
+// When to use it: when the leaves don't fit in one Choice (more than about 240), or when the
+// level is the thing you need. When they do fit, `classify` with the leaves as labels and their
+// parents for back-off asks one question and, on a public two-level intent set, was right far
+// more often than the walk: the first step is the one that loses, and the beam doesn't get it
+// back.
 
 import type { SystemOneCall, SystemOneClient } from "../system-one.ts";
 import { choice } from "../questions.ts";

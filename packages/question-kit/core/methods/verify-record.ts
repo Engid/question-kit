@@ -34,7 +34,11 @@ export interface FieldSpec {
 export type Check = "mismatch" | "unsupported" | "off_target" | "incomplete" | "format" | "missing" | "date";
 
 export interface VerifyOptions {
-  /** Flag the record when any check's probability is above this. Default 0.7. */
+  /**
+   * Flag the record when any check's probability is above this. Default 0.8: on records with one
+   * planted error, 0.8 caught as many errors as the cookbook's 0.7 and raised half as many false
+   * alarms on correct records.
+   */
   flagAbove?: number;
   /** Today's date, as YYYY-MM-DD. Needed for date fields. */
   today?: string;
@@ -155,7 +159,7 @@ export function verifyRecord(source: Text, schema: Record<string, FieldSpec>, re
       return qs;
     },
     read: (a) => {
-      const threshold = opts.flagAbove ?? 0.7;
+      const threshold = opts.flagAbove ?? 0.8;
       const all: { field: string; check: Check; probability: number }[] = asked.map(([field, check]) => ({ field, check, probability: readNoul(a[`${field}.${check}`]).probability }));
       const dates: Record<string, DateCheck> = {};
       const review: { field: string; note: string }[] = [];

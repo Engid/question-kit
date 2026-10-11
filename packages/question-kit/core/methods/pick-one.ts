@@ -6,6 +6,14 @@
 // candidate. The Choice settles which one; the gates and the fit checks settle whether to pick any.
 // Use it for intents, for "which of your orders do you mean?", or any catalog.
 // Based on the approach in TypeSafe's "Skill suggestion" cookbook.
+//
+// When to use it: when the catalog is too big for one Choice, or when "pick nothing" has to be
+// a confident, separately checked decision. For a catalog that fits in one Choice, `classify`
+// with a "none" option asks one question for two here and, on a public intent set with
+// out-of-scope queries, was right more often on the same cases: it rejected the out-of-scope
+// ones as well as this did and picked more of the in-scope ones. What this method adds is the
+// fit check, whose threshold (`fitsBelow`) is the lever that keeps requests nothing covers from
+// being matched to the nearest option; the gate questions did little.
 
 import { type SystemOneCall, type SystemOneClient, type Json } from "../system-one.ts";
 import { choice, NONE, noul } from "../questions.ts";
@@ -32,7 +40,12 @@ export interface PickOneOptions {
   gateBelow?: number;
   /** How many top options to look at closely. Default 3. */
   shortlist?: number;
-  /** Pick nothing if no candidate's "fits" is at least this. Default 0.3. */
+  /**
+   * Pick nothing if no candidate's "fits" is at least this. Default 0.7: the "fits" question is
+   * the check that keeps requests nothing covers from being matched to the nearest option, and
+   * at the cookbook's 0.3 it let most of them through; 0.7 rejected most of them and cost a few
+   * in-scope picks. Lower it when a wrong pick is cheap and a missed one isn't.
+   */
   fitsBelow?: number;
   /** Options per Choice in the first request; bigger catalogs are split into several Choices. Default 240. */
   chunk?: number;
@@ -127,13 +140,13 @@ export async function pickOne<K extends string>(client: SystemOneClient, text: T
       questions: (at) => ({ fits0: noul({ question: `Does the ${noun} "${only}" cover the specific thing ${t.ref(at)} asks for?`, [noun]: catalog[only].full ?? catalog[only].short }) }),
       read: (a) => readNoul(a.fits0).probability,
     }, { log: opts.log, title: "pickOne: check" });
-    const ok = fit >= (opts.fitsBelow ?? 0.3);
+    const ok = fit >= (opts.fitsBelow ?? 0.7);
     return { value: ok ? only : null, ...(ok ? {} : { reason: "no-fit" as const }), probability: fit, confidence: Math.abs(2 * fit - 1), gate: first.gate, shortlist: [{ id: only, rank: 1, fits: fit }] };
   }
   const second = await run(client, close, { log: opts.log, title: "pickOne: close look" });
   const shortlist = top.map((id, i) => ({ id, rank: i + 1, fits: second.fits[id] ?? 0 }));
   const bestFit = Math.max(...shortlist.map((s) => s.fits));
-  if (bestFit < (opts.fitsBelow ?? 0.3)) return { value: null, reason: "no-fit", probability: second.probability, confidence: second.confidence, gate: first.gate, shortlist };
+  if (bestFit < (opts.fitsBelow ?? 0.7)) return { value: null, reason: "no-fit", probability: second.probability, confidence: second.confidence, gate: first.gate, shortlist };
   return { value: second.pick, probability: second.probability, confidence: second.confidence, gate: first.gate, shortlist };
 }
 

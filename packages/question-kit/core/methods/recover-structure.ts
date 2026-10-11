@@ -5,7 +5,10 @@
 //    sentence left unfinished on the line before? Lines that do are joined into blocks.
 // 2. With every block tagged, per block: what kind of block it is (heading, paragraph, list item,
 //    quote, code, callout), how deep a heading it is, whether it's a step in an ordered list, and
-//    what kind of callout it is.
+//    what kind of callout it is; and per pair of neighbouring blocks, whether they are two entries
+//    of the same list. A block typed on its own can't tell a list entry that is a full sentence from
+//    a paragraph once the markers are gone; the pair question can, so a run of blocks linked by it
+//    is typed as a list together.
 // Code then renders headings, lists (numbered when the items are steps), code fences, quotes and
 // callouts. "Continues a sentence" works better than "same paragraph", which over-merges.
 // Based on the approach in TypeSafe's "Structure recovery" cookbook.
@@ -24,6 +27,8 @@ export interface Block {
   confidence: number;
   level?: "title" | "section" | "subsection";
   step?: number;
+  /** Probability that this block and the one before are entries of the same list. */
+  list?: number;
   callout?: "note" | "tip" | "warning";
 }
 
@@ -37,7 +42,7 @@ export interface Recovered {
 const TYPES: Record<BlockType, string> = {
   heading: "A short title or label for the document or the section that follows, not a full sentence.",
   paragraph: "Running prose: one or more full sentences.",
-  list_item: "One entry in a list of similar entries.",
+  list_item: "One entry in a list of similar entries, whether a few words or whole sentences.",
   quote: "Words attributed to a person or another source.",
   code: "Code, a command, program output, or configuration meant to be copied exactly.",
   callout: "A note, tip or warning set apart from the flow for the reader to notice.",
@@ -107,6 +112,11 @@ export async function recoverStructure(client: SystemOneClient, text: string, op
               subsection: "A smaller heading inside a section.",
             });
           qs[`step.${id}`] = noul(`In ${at("blocks")}, block ${id} is one step in a sequence where the order of the steps matters.`);
+          if (i > 0)
+            qs[`list.${id}`] = noul(`In ${at("blocks")}, blocks ${bid(i - 1)} and ${id} are two entries of the same list: parallel items of one kind, one after the other.`, {
+              true: "They are consecutive entries of one list (options, steps, parts, examples, or items each named then described), even if each is a full sentence or several.",
+              false: "One continues or introduces the other, or they are different kinds of content: a heading and its text, two paragraphs of running prose, a sentence and a code line.",
+            });
           qs[`callout.${id}`] = choice(`In ${at("blocks")}, if block ${id} is set apart for the reader, what kind of aside is it?`, {
             note: "Neutral extra information.",
             tip: "A helpful suggestion or shortcut.",
@@ -115,20 +125,39 @@ export async function recoverStructure(client: SystemOneClient, text: string, op
         });
         return qs;
       },
-      read: (a) =>
-        blocks.map((b, i): Block => {
+      read: (a) => {
+        const out = blocks.map((b, i): Block => {
           const id = bid(i);
           const type = readChoice<BlockType>(a[`type.${id}`]);
           const block: Block = { id, text: b, type: type.value, confidence: type.confidence };
           if (type.value === "heading") block.level = (a[`level.${id}`] ? readChoice<"title" | "section" | "subsection">(a[`level.${id}`]).value : "section");
           block.step = readNoul(a[`step.${id}`]).probability;
+          if (i > 0) block.list = readNoul(a[`list.${id}`]).probability;
           if (type.value === "callout") block.callout = readChoice<"note" | "tip" | "warning">(a[`callout.${id}`]).value;
           return block;
-        }),
+        });
+        return listRuns(out, blocks.map((_, i) => readChoice<BlockType>(a[`type.${bid(i)}`]).probability));
+      },
     },
     { log: opts.log, title: "recoverStructure: blocks" },
   );
   return { markdown: renderBlocks(read), blocks: read, confidence: lowest(...read.map((b) => b.confidence)) };
+}
+
+/**
+ * Blocks linked by "same list as the block before" (at 0.5 or above) are list entries together,
+ * unless a block is a heading or code and sure of it (probability 0.9 or above). Exported so the
+ * rule can be tested without Jev.
+ */
+export function listRuns(blocks: Block[], typeProbability: number[], linkAt = 0.5): Block[] {
+  const out = blocks.map((b) => ({ ...b }));
+  const fixed = (i: number) => (out[i]!.type === "heading" || out[i]!.type === "code") && (typeProbability[i] ?? 0) >= 0.9;
+  for (let i = 1; i < out.length; i++) {
+    if ((out[i]!.list ?? 0) < linkAt || fixed(i) || fixed(i - 1)) continue;
+    out[i - 1]!.type = "list_item";
+    out[i]!.type = "list_item";
+  }
+  return out;
 }
 
 /** Write blocks as Markdown. Exported so rendering can be tested without Jev. */

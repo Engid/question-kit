@@ -36,6 +36,7 @@ import {
   rate,
   readChoice,
   recoverStructure,
+  listRuns,
   ref,
   referencedPaths,
   renderBlocks,
@@ -295,7 +296,7 @@ describe("extractValue", () => {
 describe("extractDate", () => {
   const today = new Date(Date.UTC(2026, 9, 7)); // Wednesday 2026-10-07
   const parts = (v: Record<string, string>, confidence = 0.9) =>
-    Object.fromEntries(["mode", "month", "day", "year", "anchor", "weekday", "week"].map((k) => [k, reading(v[k] ?? "none", confidence)])) as Parameters<typeof assembleDate>[0];
+    Object.fromEntries(["mode", "month", "day", "year", "anchor", "weekday", "week", "span", "count", "period"].map((k) => [k, reading(v[k] ?? "none", confidence)])) as Parameters<typeof assembleDate>[0];
   test("absolute dates, with and without a year", () => {
     expect(assembleDate(parts({ mode: "absolute", month: "March", day: "3", year: "2027" }), today, "next", 0.6).date).toBe("2027-03-03");
     expect(assembleDate(parts({ mode: "absolute", month: "October", day: "20" }), today, "next", 0.6).date).toBe("2026-10-20");
@@ -311,6 +312,29 @@ describe("extractDate", () => {
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Tuesday", week: "last" }), today, "next", 0.6).date).toBe("2026-09-29");
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Friday" }), today, "next", 0.6).date).toBe("2026-10-09");
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Friday" }), today, "last", 0.6).date).toBe("2026-10-02");
+  });
+  test("counted from today, and the end of a month", () => {
+    const at = (v: Record<string, string>) => assembleDate(parts({ mode: "relative", ...v }), today, "next", 0.6).date;
+    expect(at({ anchor: "counted", span: "days_ahead", count: "3" })).toBe("2026-10-10");
+    expect(at({ anchor: "counted", span: "days_ago", count: "2" })).toBe("2026-10-05");
+    expect(at({ anchor: "counted", span: "weeks_ahead", count: "1" })).toBe("2026-10-14");
+    expect(at({ anchor: "counted", span: "weeks_ago", count: "2" })).toBe("2026-09-23");
+    expect(at({ anchor: "month_end", period: "current" })).toBe("2026-10-31");
+    expect(at({ anchor: "month_end", period: "next" })).toBe("2026-11-30");
+    expect(at({ anchor: "month_end", period: "last" })).toBe("2026-09-30");
+    const missing = assembleDate(parts({ mode: "relative", anchor: "counted", span: "days_ahead" }), today, "next", 0.6);
+    expect(missing.date).toBeNull();
+    expect(missing.review).toBe(true);
+  });
+  test("a bare day of the month gets its month from expect, and says so", () => {
+    const at = (day: string, expect?: "past" | "future" | "nearest") => assembleDate(parts({ mode: "absolute", day }), today, "next", 0.6, expect);
+    expect(at("2", "past").date).toBe("2026-10-02");
+    expect(at("30", "future").date).toBe("2026-10-30");
+    expect(at("2", "future").date).toBe("2026-11-02");
+    expect(at("30", "past").date).toBe("2026-09-30");
+    expect(at("20").date).toBe("2026-10-20");
+    expect(at("20").monthGuessed).toBe(true);
+    expect(at("31", "future").date).toBe("2026-10-31");
   });
   test("without a year: nearest by default, or past or future when asked", () => {
     const at = (month: string, day: string, expect?: "past" | "future" | "nearest") => assembleDate(parts({ mode: "absolute", month, day }), today, "next", 0.6, expect);
@@ -340,10 +364,10 @@ describe("extractDate", () => {
     expect(r.confidence).toBeCloseTo(0.4);
     expect(r.review).toBe(true);
   });
-  test("asks seven questions in one request", async () => {
+  test("asks ten questions in one request", async () => {
     const client = fakeJev((id) => ({ mode: "relative", anchor: "tomorrow" })[id] ?? "none");
     const r = await run(client, extractDate("it should arrive tomorrow", { role: "the delivery date", today: "2026-10-07" }));
-    expect(Object.keys(client.requests[0]!.questions)).toHaveLength(7);
+    expect(Object.keys(client.requests[0]!.questions)).toHaveLength(10);
     expect(r.date).toBe("2026-10-08");
   });
 });
@@ -416,7 +440,7 @@ describe("verifyRecord", () => {
       expect(r.dates.arrives).toMatchObject({ found: "2026-10-09", matches: true, yearGuessed: true });
       expect(r.fields.arrives).toBeLessThan(0.2);
       const ids = Object.keys(j.requests[0]!.questions);
-      expect(ids.filter((id) => id.startsWith("arrives.")).sort()).toEqual(["arrives.date.anchor", "arrives.date.day", "arrives.date.mode", "arrives.date.month", "arrives.date.week", "arrives.date.weekday", "arrives.date.year"]);
+      expect(ids.filter((id) => id.startsWith("arrives.")).sort()).toEqual(["arrives.date.anchor", "arrives.date.count", "arrives.date.day", "arrives.date.mode", "arrives.date.month", "arrives.date.period", "arrives.date.span", "arrives.date.week", "arrives.date.weekday", "arrives.date.year"]);
       expect(j.requests.length).toBe(1);
     });
     test("a different date is flagged", async () => {
@@ -524,11 +548,23 @@ describe("recoverStructure", () => {
       if (id.startsWith("type.")) return block === "B000" ? "heading" : block === "B001" ? "paragraph" : "list_item";
       if (id.startsWith("level.")) return "title";
       if (id.startsWith("step.")) return 0.9;
+      if (id.startsWith("list.")) return 0.05;
       return "note";
     });
     const r = await recoverStructure(client, text);
     expect(r.blocks.map((b) => b.text)).toEqual(["Getting started", "Install the tool and then run it.", "First step", "Second step"]);
     expect(r.markdown).toBe("# Getting started\n\nInstall the tool and then run it.\n\n1. First step\n2. Second step\n");
+  });
+  test("blocks that are entries of the same list become list items together; a sure heading stays a heading", () => {
+    const b = (id: string, type: "heading" | "paragraph" | "list_item" | "code", list?: number) => ({ id, text: id, type, confidence: 0.9, ...(list !== undefined ? { list } : {}) });
+    const out = listRuns([b("h", "heading"), b("a", "paragraph", 0.1), b("b", "paragraph", 0.8), b("c", "paragraph", 0.7), b("d", "paragraph", 0.2)], [0.95, 0.9, 0.9, 0.9, 0.9]);
+    expect(out.map((x) => x.type)).toEqual(["heading", "list_item", "list_item", "list_item", "paragraph"]);
+    // A heading the model is sure of isn't pulled into the list after it, even when the pair question says yes.
+    const kept = listRuns([b("h", "heading"), b("a", "paragraph", 0.9), b("b", "paragraph", 0.9)], [0.95, 0.9, 0.9]);
+    expect(kept.map((x) => x.type)).toEqual(["heading", "list_item", "list_item"]);
+    // An unsure "heading" can be.
+    const pulled = listRuns([b("h", "heading"), b("a", "paragraph", 0.9)], [0.6, 0.9]);
+    expect(pulled.map((x) => x.type)).toEqual(["list_item", "list_item"]);
   });
   test("renderBlocks: code runs become one fence, bullets when order doesn't matter", () => {
     expect(renderBlocks([{ id: "B0", text: "a", type: "code", confidence: 1 }, { id: "B1", text: "b", type: "code", confidence: 1 }, { id: "B2", text: "x", type: "list_item", confidence: 1, step: 0.1 }])).toBe("```\na\nb\n```\n\n- x\n");
