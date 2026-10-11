@@ -1,6 +1,6 @@
 {
   "name": "question-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Building kits for System One models, starting with Jev: a service agent you configure, an order taker, and the building blocks they're made of.",
   "type": "module",
   "license": "MIT",
@@ -28,6 +28,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "sideEffects": false,

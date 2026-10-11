@@ -8,6 +8,7 @@ import {
   band,
   callFunction,
   check,
+  checks,
   checkClaim,
   choice,
   type ChoiceReading,
@@ -164,6 +165,25 @@ describe("tasks", () => {
     const client = fakeJev(() => ({ level: 2 }));
     const r = await run(client, rate("very angry!!!", "How frustrated is the customer?", ["Calm", "Annoyed", "Very angry"]));
     expect(r.level).toBe(2);
+  });
+  test("the whole question can be written as a function of the text's Ref", () => {
+    const order = ref("order");
+    const { questions } = requestAll(
+      {
+        whole: check(ref("summary"), (s) => q`${order} is what the customer said. Is ${s} wrong anywhere?`, { true: q`${order} and the summary differ` }),
+        both: checks(ref("summary"), { a: (s) => q`Is ${s} complete?`, b: { statement: "It lists two items.", true: "two items" } }),
+        tone: rate(ref("order"), (o) => q`How polite is ${o}?`, ["Rude", "Polite"]),
+        which: choose(ref("order"), { a: "a", b: "b" }, { question: (o) => q`Which clerk wrote ${o}?`, none: false }),
+      },
+      { state: { order: "two pizzas", summary: "2 pizzas" } },
+    );
+    expect((questions["whole::check"] as Question).instructions).toBe("`order` is what the customer said. Is `summary` wrong anywhere?");
+    expect((questions["whole::check"] as Question).criteria).toEqual({ true: "`order` and the summary differ", false: undefined });
+    expect((questions["both::a"] as Question).instructions).toBe("Is `summary` complete?");
+    expect((questions["both::b"] as Question).instructions).toBe("About `summary`: It lists two items.");
+    expect((questions["tone::score"] as Question).instructions).toBe("How polite is `order`?");
+    expect((questions["which::choice"] as Question).instructions).toBe("Which clerk wrote `order`?");
+    expect(Object.keys((questions["which::choice"] as Question).criteria as object)).toEqual(["a", "b"]);
   });
 });
 

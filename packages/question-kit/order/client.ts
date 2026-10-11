@@ -1,34 +1,21 @@
-// What the order taker needs from a System One client: send one batch of questions about one state
-// and get the answers back. The wire types and `send` come from question-kit; this adds the `meta`
-// bookkeeping (what each question is about, for logs and explaining an order) and two readers.
+// Sending a set of tasks about one order: question-kit's `runAll` (one request, split only if it
+// would be too big), plus the `meta` bookkeeping the order taker keeps for logs and for explaining
+// an order: what each question was about.
 
-import { type Answer, type Entry, type Question, send, type SystemOneCall, type SystemOneClient } from "../core/index.ts";
-
-/** A question plus what it is about (kept in the request's `meta`, never sent to the API). */
-export interface Asked {
-  question: Question;
-  about: Record<string, unknown>;
-}
+import { requestAll, type RunOptions, runAll, type SystemOneCall, type SystemOneClient, type Task } from "../core/index.ts";
+import type { About, Asked } from "./questions.ts";
 
 /**
- * Ask every question about `state` in one request (question-kit's `send` splits it into several if
- * it would be too big) and return all the answers. Each request made is pushed onto `log`.
+ * Run every task in `asked` together, about `state`, and return each task's reading by the task's
+ * name. Each request made is pushed onto `log`. Each question's `about` goes into the request's
+ * `meta` under the question's id (a task's question ids start with the task's name).
  */
-export async function ask(client: SystemOneClient, log: SystemOneCall[], title: string, state: Entry, asked: Record<string, Asked>): Promise<Record<string, Answer>> {
-  const questions = Object.fromEntries(Object.entries(asked).map(([id, a]) => [id, a.question]));
-  const meta = Object.fromEntries(Object.entries(asked).map(([id, a]) => [id, a.about]));
-  return send(client, state, questions, { log, title, meta });
-}
-
-/** A Choice answer's top option and its probability. */
-export function topChoice(a: Answer | undefined): [string, number] | undefined {
-  if (!a || !("probabilities" in a)) return undefined;
-  let best: [string, number] = ["", -1];
-  for (const [k, p] of Object.entries(a.probabilities)) if (p > best[1]) best = [k, p];
-  return best;
-}
-
-/** A Noul answer's probability of yes. */
-export function yes(a: Answer | undefined): number | undefined {
-  return a && "noul" in a ? a.noul : undefined;
+export async function askAll<T>(client: SystemOneClient, log: SystemOneCall[], title: string, state: RunOptions["state"], asked: Asked<T>): Promise<Record<string, T>> {
+  const tasks = asked.tasks as Record<string, Task<unknown>>;
+  const meta: Record<string, About> = {};
+  for (const id of Object.keys(requestAll(tasks, { state }).questions)) {
+    const name = id.split("::")[0]!;
+    if (asked.about[name]) meta[id] = asked.about[name];
+  }
+  return (await runAll(client, tasks, { state, log, title, meta })) as Record<string, T>;
 }

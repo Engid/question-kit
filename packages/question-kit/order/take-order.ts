@@ -8,12 +8,12 @@
 //   5. Accept the order if every check answer says it's probably right; otherwise read back the
 //      items the check doubts (and ask "anything else?" if it thinks something is missing).
 
-import type { Answer, SystemOneCall, SystemOneClient } from "../core/index.ts";
-import { ask, topChoice, yes } from "./client.ts";
+import type { SystemOneCall, SystemOneClient } from "../core/index.ts";
 import type { Menu } from "./menu.ts";
 import { type OrderItem, sameItems } from "./order.ts";
-import { checkQuestions, checkState, pickQuestion, pickSwap, readBackLines, wordsState, wordTagQuestions } from "./questions.ts";
 import { assemble, menuTags, type Tag, tokenize } from "./rules.ts";
+import { askAll } from "./client.ts";
+import { checkState, orderChecks, pickOrder, pickState, pickSwap, readBackLines, wordsState, wordTags } from "./questions.ts";
 
 export type Design = "gaps" | "every-word" | "pick";
 
@@ -104,8 +104,9 @@ export async function takeOrder(text: string, menu: Menu, client: SystemOneClien
       pick = { agreed: true };
     } else {
       const swap = pickSwap(text);
-      const q = pickQuestion(text, a.items, b.items, menu, swap);
-      const [choice, p] = topChoice((await ask(client, calls, "pick between the two orders", q.state, q.questions)).pick) ?? ["neither", 0];
+      const { pick: picked } = await askAll(client, calls, "pick between the two orders", pickState(text, a.items, b.items, menu, swap), pickOrder(a.items, b.items, menu, swap));
+      const choice = picked?.value ?? "neither";
+      const p = picked?.probability ?? 0;
       const second = choice !== "neither" && (choice === "a") === swap;
       chosen = second ? b : a;
       pick = { agreed: false, choice: choice === "neither" ? "neither" : second ? "every-word" : "gaps", p };
@@ -119,9 +120,9 @@ export async function takeOrder(text: string, menu: Menu, client: SystemOneClien
   const readBack = readBackLines(chosen.items, menu);
   let check: OrderCheck | undefined;
   if (options.check ?? true) {
-    const answers = await ask(client, calls, "check the order read back", checkState(text, chosen.items, menu), checkQuestions(chosen.items, menu));
-    const pWrong = (a: Answer | undefined) => yes(a) ?? 1;
-    check = { whole: pWrong(answers.check_order), items: chosen.items.map((_, k) => pWrong(answers[`check_i${k + 1}`])), missing: pWrong(answers.check_missing) };
+    const read = await askAll(client, calls, "check the order read back", checkState(text, chosen.items, menu), orderChecks(chosen.items, menu));
+    const pWrong = (name: string) => read[name]?.probability ?? 1;
+    check = { whole: pWrong("check_order"), items: chosen.items.map((_, k) => pWrong(`check_i${k + 1}`)), missing: pWrong("check_missing") };
     note(`Check, P(wrong): ${check.items.map((p, k) => `item ${k + 1} ${p.toFixed(2)}`).join(", ") || "no items"}, anything missing ${check.missing.toFixed(2)}.`);
   }
 
@@ -156,14 +157,14 @@ export async function takeOrder(text: string, menu: Menu, client: SystemOneClien
 async function tagWords(text: string, words: string[], menu: Menu, client: SystemOneClient, calls: SystemOneCall[], design: "gaps" | "every-word", options: TakeOrderOptions): Promise<Tagged> {
   const known = design === "gaps" ? menuTags(words, menu) : ["", ...words.map(() => "none")];
   const asked = words.map((_, i) => i + 1).filter((w) => design === "every-word" || known[w] === "none");
-  const answers = await ask(client, calls, design === "gaps" ? "tags for the words the menu doesn't know" : "what each word is", wordsState(text, words), wordTagQuestions(asked, menu));
+  const read = await askAll(client, calls, design === "gaps" ? "tags for the words the menu doesn't know" : "what each word is", wordsState(text, words), wordTags(asked, menu));
   const tags = [...known];
   const readings: WordReading[] = words.map((word, i) => ({ word, tag: known[i + 1]!, by: "menu" }));
   const ps: number[] = [];
   for (const w of asked) {
-    const top = topChoice(answers[`tag_w${w}`]);
-    if (!top) continue;
-    const [tag, p] = top;
+    const r = read[`tag_w${w}`];
+    if (!r) continue;
+    const { value: tag, probability: p } = r;
     ps.push(p);
     readings[w - 1] = { word: words[w - 1]!, tag, by: "jev", p };
     if (tag !== "none") tags[w] = tag;

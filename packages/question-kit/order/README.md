@@ -89,6 +89,11 @@ const client = cachedJev(typesafeJev(), ".cache/jev");   // typesafeJev() reads 
    under `readBackAt` (default 0.3). Otherwise `confirm` lists the items to read back, and whether
    to ask "anything else?".
 
+The Jev steps are question-kit's own building blocks: step 2 is one `choose` task per word, step 4
+one `check` task per item (plus the whole order and "anything missing?"), each set sent with
+`runAll`. `questions.ts` has them; `wordTags`, `orderChecks` and `pickOrder` are exported if you
+want to send them yourself or reuse one.
+
 ## Options
 
 | Option | Default | What it does |

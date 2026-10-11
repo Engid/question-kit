@@ -115,3 +115,8 @@ haven't been through evals yet.
 
 The service agent uses it for menu slots, with the `partial` option that keeps the parts of a
 message that change an order without naming an item ("a medium", "no onions").
+
+The order taker is built from the methods above: `choose` for each word and for the pick between
+two readings, `check` for the read-back, sent together with `runAll`. Its questions are written
+out in full rather than taken from the defaults (each method takes its question as a function of
+the text's `Ref`), so what it asks is exactly what was measured.
