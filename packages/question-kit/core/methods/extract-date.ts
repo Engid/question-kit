@@ -145,7 +145,18 @@ export function assembleDate(parts: Record<Part, ChoiceReading>, today: Date, ba
         ? candidates.find((d) => d.getTime() >= t)
         : candidates.reduce<Date | undefined>((best, d) => (best === undefined || Math.abs(d.getTime() - t) < Math.abs(best.getTime() - t) ? d : best), undefined);
   if (v.mode === "none") return out(null, ["mode"], "no date given");
-  if (v.mode === "absolute") {
+  // The parts are answered independently, so the summary question (`mode`) can disagree with the
+  // details. Assemble the reading `mode` chose; if its parts don't make a date, try the other reading
+  // (with `mode`'s confidence counted against it); if both readings make a date, say so for review.
+  const absolute = () => assembleAbsolute();
+  const relative = () => assembleRelative();
+  const first = v.mode === "absolute" ? absolute() : relative();
+  const other = v.mode === "absolute" ? relative() : absolute();
+  if (first.date === null && other.date !== null) return { ...other, confidence: lowest(other.confidence, parts.mode.confidence), review: true, note: `read as ${v.mode === "absolute" ? "relative" : "a calendar date"} although the text seemed to give it the other way` };
+  if (first.date !== null && other.date !== null && first.date !== other.date) return { ...first, review: true, note: `the parts also read as ${other.date}` };
+  return first;
+
+  function assembleAbsolute(): ExtractedDate {
     const used: Part[] = ["mode", "month", "day", "year"];
     if (v.day === "none") return out(null, used, "the date is missing its day");
     if (v.month === "none") {
@@ -173,7 +184,8 @@ export function assembleDate(parts: Record<Part, ChoiceReading>, today: Date, ba
     if (!pick) return out(null, ["mode", "month", "day"], `there's no ${v.month} ${day}`);
     return out(iso(pick), ["mode", "month", "day"]);
   }
-  // Relative.
+
+  function assembleRelative(): ExtractedDate {
   const offsets: Record<string, number> = { today: 0, tomorrow: 1, day_after: 2, yesterday: -1 };
   if (v.anchor in offsets) return out(iso(addDays(today, offsets[v.anchor]!)), ["mode", "anchor"]);
   if (v.anchor === "counted") {
@@ -202,6 +214,7 @@ export function assembleDate(parts: Record<Part, ChoiceReading>, today: Date, ba
     return out(iso(d), ["mode", "anchor", "weekday", "week"]);
   }
   return out(null, ["mode", "anchor"], "a relative date without a day it's relative to");
+  }
 }
 
 function parseDay(s: string): Date {

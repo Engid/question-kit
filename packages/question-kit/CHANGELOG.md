@@ -5,14 +5,21 @@
 - **The methods have been through evals of their own**, and five changed as a result:
   - `extractDate` reads dates counted from today ("in three days", "two weeks ago", "a week from
     today"), month ends ("the end of this month") and a bare day of the month ("on the 2nd", with
-    the month chosen the way the year already was; the result says `monthGuessed`). Three more
-    Choices per request (`span`, `count`, `period`); the rest is unchanged.
+    the month chosen the way the year already was; the result says `monthGuessed`, and
+    `verifyRecord`'s date checks carry it and compare the day alone). Three more Choices per
+    request (`span`, `count`, `period`). When the "how is the date given" part disagrees with
+    the detail parts, the details are assembled anyway and the result is flagged for review; when
+    both readings make different dates, the other is in the note.
   - `recoverStructure` asks, per pair of neighbouring blocks, whether they are entries of the same
     list, and types a linked run as list items together; each block reports `list`, the
     probability it continues the list before it. Fixes lists of full sentences coming back as
-    paragraphs.
+    paragraphs. In text with blank lines it also asks, per pair of lines with no blank between,
+    whether the line starts a new unit, and joins a line that almost certainly doesn't even at a
+    sentence end (`joinBelow`, default 0.1): fewer paragraphs split at a wrapped sentence end.
   - `search`'s "is it answered at all?" question is rewritten against lines that are on the topic
-    without holding the answer, and `absentBelow` defaults to 0.5 (was 0.35).
+    without holding the answer, and `absentBelow` defaults to 0.7 (was 0.35), so by default a
+    question is answered or not found; lower it to get "partly" back. A `confirm` option asks a
+    second request about the top line and takes the lower answer.
   - `verifyRecord`'s `flagAbove` defaults to 0.8 (was 0.7): as many planted errors caught, half the
     false alarms on correct records.
   - `pickOne`'s `fitsBelow` defaults to 0.7 (was 0.3): the fit check is what rejects requests

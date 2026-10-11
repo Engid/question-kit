@@ -1,8 +1,13 @@
 // recoverStructure: rebuild Markdown from text that lost its formatting.
 //
 // Two requests, and code writes every character of the output from the input:
-// 1. With every line tagged, one Noul per pair of neighbouring lines: does this line continue a
-//    sentence left unfinished on the line before? Lines that do are joined into blocks.
+// 1. With every line tagged, per pair of neighbouring lines: does this line continue a sentence
+//    left unfinished on the line before? Lines that do are joined. When the text has blank lines,
+//    they already separate most blocks, so a second question is asked of each pair with no blank
+//    between: does the line start a new unit (a heading, a list entry, a quote, a code line)? A
+//    line that almost certainly doesn't is joined too, which catches a wrap at a sentence end. The
+//    second question is kept strict: read loosely, it merges list entries of sentence length, which
+//    loses more than a paragraph split in two.
 // 2. With every block tagged, per block: what kind of block it is (heading, paragraph, list item,
 //    quote, code, callout), how deep a heading it is, whether it's a step in an ordered list, and
 //    what kind of callout it is; and per pair of neighbouring blocks, whether they are two entries
@@ -48,7 +53,18 @@ const TYPES: Record<BlockType, string> = {
   callout: "A note, tip or warning set apart from the flow for the reader to notice.",
 };
 
-export async function recoverStructure(client: SystemOneClient, text: string, opts: { log?: SystemOneCall[] } = {}): Promise<Recovered> {
+export interface RecoverOptions {
+  log?: SystemOneCall[];
+  /**
+   * In text with blank lines, a line with no blank before it is joined to the line before when
+   * its "starts a new unit" probability is under this, even if it doesn't continue a sentence.
+   * Default 0.1: on our docs, 0.1 removed a quarter of the wrong splits and merged 3% of list
+   * entries; 0.2 removed three quarters and merged a sixth.
+   */
+  joinBelow?: number;
+}
+
+export async function recoverStructure(client: SystemOneClient, text: string, opts: RecoverOptions = {}): Promise<Recovered> {
   // Pass 1: which line breaks are inside a sentence?
   const raw = text.split("\n");
   const lines: { text: string; blankBefore: boolean }[] = [];
@@ -64,6 +80,7 @@ export async function recoverStructure(client: SystemOneClient, text: string, op
   const lid = (i: number) => `L${String(i).padStart(3, "0")}`;
   const tagged = lines.map((l, i) => `${l.blankBefore && i > 0 ? "\n" : ""}${lid(i)}| ${l.text}`).join("\n");
   const pairs = lines.map((l, i) => i).filter((i) => i > 0 && !lines[i]!.blankBefore);
+  const hasBlanks = lines.some((l, i) => i > 0 && l.blankBefore);
   const joins = pairs.length
     ? await run(
         client,
@@ -71,15 +88,28 @@ export async function recoverStructure(client: SystemOneClient, text: string, op
           parts: { lines: tagged },
           questions: (at) =>
             Object.fromEntries(
-              pairs.map((i) => [
-                lid(i),
-                noul(`In ${at("lines")}, line ${lid(i)} picks up mid-sentence, continuing a sentence left unfinished at the end of line ${lid(i - 1)}.`, {
-                  true: "The line starts in the middle of a sentence begun on the line before; the line break split the sentence.",
-                  false: "The line starts a new sentence, list entry, heading, or thought.",
-                }),
+              pairs.flatMap((i) => [
+                [
+                  lid(i),
+                  noul(`In ${at("lines")}, line ${lid(i)} picks up mid-sentence, continuing a sentence left unfinished at the end of line ${lid(i - 1)}.`, {
+                    true: "The line starts in the middle of a sentence begun on the line before; the line break split the sentence.",
+                    false: "The line starts a new sentence, list entry, heading, or thought.",
+                  }),
+                ],
+                ...(hasBlanks
+                  ? [
+                      [
+                        `new.${lid(i)}`,
+                        noul(`In ${at("lines")}, line ${lid(i)} starts a new unit of the document rather than carrying on the text of line ${lid(i - 1)}.`, {
+                          true: "The line begins something of its own: a heading, an entry in a list, a quote, a line of code or a command.",
+                          false: "The line carries on the text before it: the rest of its sentence, or the next sentence of the same paragraph or list entry.",
+                        }),
+                      ],
+                    ]
+                  : []),
               ]),
             ),
-          read: (a) => Object.fromEntries(pairs.map((i) => [i, readNoul(a[lid(i)]).probability])),
+          read: (a) => Object.fromEntries(pairs.map((i) => [i, { mid: readNoul(a[lid(i)]).probability, unit: hasBlanks ? readNoul(a[`new.${lid(i)}`]).probability : undefined }])),
         },
         { log: opts.log, title: "recoverStructure: joins" },
       )
@@ -87,9 +117,11 @@ export async function recoverStructure(client: SystemOneClient, text: string, op
   const blocks: string[] = [];
   lines.forEach((l, i) => {
     const prev = blocks.length ? blocks[blocks.length - 1]! : "";
-    const p = (joins as Record<number, number>)[i];
+    const p = (joins as Record<number, { mid: number; unit?: number }>)[i];
     const ended = /[.!?:;…]["')\]]?$/.test(prev);
-    if (i > 0 && p !== undefined && p >= (ended ? 0.5 : 0.2)) blocks[blocks.length - 1] = `${prev} ${l.text}`;
+    // Join when the line continues a sentence, or (with blank lines in the text) almost certainly doesn't start a new unit.
+    const join = p !== undefined && (p.mid >= (ended ? 0.5 : 0.2) || (p.unit !== undefined && p.unit < (opts.joinBelow ?? 0.1)));
+    if (i > 0 && join) blocks[blocks.length - 1] = `${prev} ${l.text}`;
     else blocks.push(l.text);
   });
 

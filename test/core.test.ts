@@ -326,6 +326,19 @@ describe("extractDate", () => {
     expect(missing.date).toBeNull();
     expect(missing.review).toBe(true);
   });
+  test("when the summary part disagrees with the details, the details win, flagged for review", () => {
+    // mode says "absolute" but only a weekday is given: the relative reading is used.
+    const r = assembleDate(parts({ mode: "absolute", anchor: "weekday", weekday: "Monday" }), today, "last", 0.6, "past");
+    expect(r.date).toBe("2026-10-05");
+    expect(r.review).toBe(true);
+    // Both readings make a date and differ: the chosen one stands, with the other in the note.
+    const two = assembleDate(parts({ mode: "relative", anchor: "yesterday", month: "October", day: "2" }), today, "next", 0.6);
+    expect(two.date).toBe("2026-10-06");
+    expect(two.review).toBe(true);
+    expect(two.note).toContain("2026-10-02");
+    // Both readings agree: no flag.
+    expect(assembleDate(parts({ mode: "relative", anchor: "tomorrow", month: "October", day: "8" }), today, "next", 0.6).review).toBe(false);
+  });
   test("a bare day of the month gets its month from expect, and says so", () => {
     const at = (day: string, expect?: "past" | "future" | "nearest") => assembleDate(parts({ mode: "absolute", day }), today, "next", 0.6, expect);
     expect(at("2", "past").date).toBe("2026-10-02");
@@ -538,11 +551,13 @@ describe("rerank, matchRecords, screen, filterPassages", () => {
 });
 
 describe("recoverStructure", () => {
-  test("joins broken lines and renders blocks", async () => {
+  test("joins broken lines and renders blocks (text with blank lines: lines join unless they start a new unit)", async () => {
     const text = "Getting started\nInstall the tool and then\nrun it.\n\nFirst step\nSecond step";
     const client = fakeJev((id, question) => {
-      if (id === "L002") return 0.9; // "run it." continues line 1
+      if (id === "L002") return 0.9; // "run it." continues line 1 mid-sentence
+      if (id === "new.L004") return 0.9; // "Second step" starts its own unit
       if (id.startsWith("L")) return 0.05;
+      if (id.startsWith("new.")) return 0.5; // not sure either way: the mid-sentence answer decides
       const instr = String((question as { instructions: unknown }).instructions);
       const block = /block (B\d+)/.exec(instr)?.[1];
       if (id.startsWith("type.")) return block === "B000" ? "heading" : block === "B001" ? "paragraph" : "list_item";
@@ -554,6 +569,34 @@ describe("recoverStructure", () => {
     const r = await recoverStructure(client, text);
     expect(r.blocks.map((b) => b.text)).toEqual(["Getting started", "Install the tool and then run it.", "First step", "Second step"]);
     expect(r.markdown).toBe("# Getting started\n\nInstall the tool and then run it.\n\n1. First step\n2. Second step\n");
+  });
+  test("without blank lines, a line joins when it continues a sentence", async () => {
+    const text = "Install the tool and then\nrun it.\nThen open the app.";
+    const client = fakeJev((id, question) => {
+      if (id === "L001") return 0.9; // mid-sentence
+      if (id === "L002") return 0.1; // a new sentence: not joined without a blank-line signal
+      if (id.startsWith("new.")) throw new Error("no new-unit question without blank lines");
+      if (id.startsWith("type.")) return "paragraph";
+      if (id.startsWith("step.") || id.startsWith("list.")) return 0.1;
+      return "note";
+    });
+    const r = await recoverStructure(client, text);
+    expect(r.blocks.map((b) => b.text)).toEqual(["Install the tool and then run it.", "Then open the app."]);
+    expect(String((client.requests[0]!.questions.L001 as { instructions: string }).instructions)).toContain("mid-sentence");
+    expect(Object.keys(client.requests[0]!.questions)).toEqual(["L001", "L002"]);
+  });
+  test("with blank lines, a line that almost certainly starts no new unit joins even at a sentence end", async () => {
+    const text = "One sentence.\nAnother in the same paragraph.\n\nA heading";
+    const client = fakeJev((id) => {
+      if (id === "L001") return 0.1; // not mid-sentence
+      if (id === "new.L001") return 0.03; // but plainly the same paragraph
+      if (id.startsWith("type.")) return "paragraph";
+      if (id.startsWith("step.") || id.startsWith("list.")) return 0.1;
+      return "note";
+    });
+    const r = await recoverStructure(client, text);
+    expect(r.blocks.map((b) => b.text)).toEqual(["One sentence. Another in the same paragraph.", "A heading"]);
+    expect((await recoverStructure(client, text, { joinBelow: 0.02 })).blocks).toHaveLength(3);
   });
   test("blocks that are entries of the same list become list items together; a sure heading stays a heading", () => {
     const b = (id: string, type: "heading" | "paragraph" | "list_item" | "code", list?: number) => ({ id, text: id, type, confidence: 0.9, ...(list !== undefined ? { list } : {}) });

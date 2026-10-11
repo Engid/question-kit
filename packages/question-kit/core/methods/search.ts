@@ -27,12 +27,22 @@ export interface SearchOptions {
   /** Found when the "answered" probability is at least this. Default 0.7. */
   foundAt?: number;
   /**
-   * Not found when it's under this. Default 0.5 (the cookbook's 0.35 was set on one document; on
-   * questions written to look answerable, 0.5 caught more of them for one lost answer in a hundred).
+   * Not found when it's under this. Default 0.7, the same as `foundAt`, so by default a question is
+   * either answered or not found and "partly" needs a lower `absentBelow`. The cookbook's 0.35 was
+   * set on one document; on questions written to look answerable, 0.7 caught most of them for one
+   * lost answer in a hundred.
    */
   absentBelow?: number;
   /** Lines per block for long documents. Default 60. */
   block?: number;
+  /**
+   * After the lines are ranked, ask in a second request whether the top line itself gives the
+   * answer, and take the lower of that and the whole-document answer as `answered`. Measured on
+   * questions written to look answerable, it caught a few more of them, lost a few answers, and
+   * cut confident wrong verdicts most of the way, at twice the requests; the default threshold
+   * above did better without it. Default false.
+   */
+  confirm?: boolean;
   /** How many lines to return. Default 5. */
   top?: number;
   log?: SystemOneCall[];
@@ -115,6 +125,27 @@ export async function search(client: SystemOneClient, document: string | string[
     { log: opts.log, title: "search" },
   );
   answered = res.answered;
+  if (opts.confirm) {
+    const top = Object.entries(res.probs).sort((x, y) => y[1] - x[1])[0]?.[0];
+    const line = pool.find((l) => l.id === top);
+    if (line) {
+      const check = await run(
+        client,
+        {
+          parts: { line: line.text, query },
+          questions: (at) => ({
+            gives: noul(`${at("line")} gives the answer to ${at("query")}: it states the answer, or a fact it follows from directly.`, {
+              true: "The answer is in this line.",
+              false: "The line is about the same topic, or mentions the same people and things, but the answer to this question is not in it.",
+            }),
+          }),
+          read: (a) => readNoul(a.gives).probability,
+        },
+        { log: opts.log, title: "search: confirm" },
+      );
+      answered = Math.min(answered, check);
+    }
+  }
   return result(pool, res.probs, answered, opts);
 }
 
@@ -123,6 +154,6 @@ function result(pool: { id: string; line: number; text: string }[], probs: Recor
     .map((l) => ({ ...l, probability: probs[l.id] ?? 0 }))
     .sort((x, y) => y.probability - x.probability)
     .slice(0, opts.top ?? 5);
-  const verdict = answered >= (opts.foundAt ?? 0.7) ? "answered" : answered < (opts.absentBelow ?? 0.5) ? "not found" : "partly";
+  const verdict = answered >= (opts.foundAt ?? 0.7) ? "answered" : answered < (opts.absentBelow ?? 0.7) ? "not found" : "partly";
   return { verdict, answered, lines };
 }

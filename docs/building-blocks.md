@@ -66,6 +66,11 @@ What those evals taught, in the code:
   the leaves don't fit in one Choice. The same held for `pickOne` against `classify` with a "none"
   option; `pickOne`'s gate questions did little, its fit check does the work, so its threshold is
   the one to tune.
+- **Examples beat descriptions.** On two public intent sets with the labels given three ways,
+  written descriptions mostly made `classify` surer (far fewer back-offs) without making it much
+  more accurate, while two real examples per label raised accuracy on both sets and cut confident
+  wrong answers by nearly half, at about three times the cost of names alone. Name labels well, give
+  each a few real examples, and write `not_for` for the pairs you see confused.
 - **Thresholds come from data, not the cookbooks.** `verifyRecord` flags at 0.8 (as many planted
   errors caught as at 0.7, half the false alarms); `search` calls a question unanswered under 0.5,
   with its existence question rewritten against the usual failure, lines on the topic without the
