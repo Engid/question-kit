@@ -44,6 +44,13 @@
   whatever ids the request uses. Caches written by 0.1 use the old key: `rekeyCache(dir)` from
   `question-kit/cache` moves every entry to its new key once (each entry holds its request, so
   nothing is lost), or let the cache fill again.
+- **A skill for coding agents ships in the package:** `skills/question-kit/SKILL.md` (the mental
+  model, which method for which job, composing them, thresholds, testing, the traps) with
+  `reference.md` (every export, with options and defaults) beside it, in the Agent Skills format.
+  It's in `node_modules/question-kit/skills/` after an install, and mirrored at the repository
+  root for `npx skills add Engid/question-kit`.
+- **Two tutorials** in the repository's `docs/tutorials/`: sorting a support inbox with the core
+  methods (with the runnable `examples/triage`), and building a service agent step by step.
 
 ## 0.1.0
 

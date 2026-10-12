@@ -38,6 +38,11 @@ turn the recipes into functions you can call with a little structured state.
 - [Building an agent](service-agent.md): the service description, one turn, the loop.
 - [How the agent decides](how-the-agent-decides.md): gates, confidences, what happens when Jev
   isn't sure.
+- Tutorials: [sort a support inbox with the core](tutorials/triage.md), the methods composed one
+  request at a time; [build a service agent](tutorials/service-agent.md), the description written
+  in the order the needs come up.
+- Building with a coding agent? The package ships a skill for it: `skills/question-kit/SKILL.md`
+  in `node_modules/question-kit/`, or `npx skills add Engid/question-kit`.
 
 Everything here is in the Markdown under `docs/` in the repository; a docs site at questionkit.dev
 is coming.

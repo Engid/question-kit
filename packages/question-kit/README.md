@@ -22,6 +22,11 @@ npm install question-kit @typesafe-ai/sdk
 > We're not taking pull requests yet; if you'd like to contribute, open an issue first so we can
 > talk it over.
 
+Building with a coding agent? [`skills/question-kit/SKILL.md`](skills/question-kit/SKILL.md) ships
+in this package for it: the mental model, which method for which job, composing them, thresholds,
+testing and the traps, with [every export](skills/question-kit/reference.md) beside it. Point the
+agent at it, or install it with `npx skills add Engid/question-kit`.
+
 ## Connect Jev
 
 Any object with a `systemOne(request)` method works. For TypeSafe's API, `question-kit/typesafe`

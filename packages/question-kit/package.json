@@ -23,10 +23,13 @@
     "extraction",
     "customer service",
     "agent",
-    "order taking"
+    "order taking",
+    "agent skills",
+    "tanstack-intent"
   ],
   "files": [
     "dist",
+    "skills",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"

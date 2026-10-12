@@ -15,6 +15,7 @@
     "smoke": "bun smoke/run.ts",
     "order:pizza": "bun examples/order/pizza/take-order.ts",
     "service:chat": "bun examples/service-agent/chat.ts",
+    "triage": "bun examples/triage/triage.ts",
     "pizza": "bun examples/pizza-shop/chat.ts",
     "pizza:check": "bun examples/pizza-shop/check.ts",
     "pizza:web": "bun examples/pizza-shop/web/server.ts",

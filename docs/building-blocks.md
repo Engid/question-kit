@@ -3,7 +3,8 @@
 `question-kit`, the package's main entry, is what the kits are made of: ready-made methods for the jobs
 people most often give Jev, and underneath them the pieces for writing your own questions. The
 [package README](https://github.com/Engid/question-kit/blob/main/packages/question-kit/README.md) has
-every method with examples and options; this page is the map.
+every method with examples and options; this page is the map, and the
+[triage tutorial](tutorials/triage.md) puts five of the methods together on one job.
 
 ## The shape of a method
 

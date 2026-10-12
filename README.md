@@ -163,7 +163,14 @@ keeps answers on disk so re-runs are free.
 The guide is Markdown in [`docs/`](docs/index.md): [getting started](docs/getting-started.md),
 [building an agent](docs/service-agent.md), [the pizza shop, step by step](docs/pizza-shop.md),
 [how the agent decides](docs/how-the-agent-decides.md), and
-[the building blocks](docs/building-blocks.md). A docs site is coming at questionkit.dev.
+[the building blocks](docs/building-blocks.md). Two tutorials build something from start to finish:
+[sorting a support inbox with the core](docs/tutorials/triage.md) and
+[building a service agent](docs/tutorials/service-agent.md). A docs site is coming at questionkit.dev.
+
+If you build with a coding agent, the package ships a skill for it: `skills/question-kit/SKILL.md`
+(in `node_modules/question-kit/` after an install, or `npx skills add Engid/question-kit` from
+this repository) tells an agent how to think in Jev's questions, which method to reach for, and
+the traps, with every export listed beside it.
 
 ## Model support
 
@@ -197,8 +204,9 @@ lessons they taught are all over the code:
 
 ```
 packages/     the question-kit package: core/, order/ and service-agent/, one entry each
-examples/     the pizza shop (terminal and web), an outdoor store's support chat, a one-message order taker
-docs/         the guide, as Markdown
+examples/     the pizza shop (terminal and web), an outdoor store's support chat, a support-inbox triage, a one-message order taker
+docs/         the guide and the tutorials, as Markdown
+skills/       the skill for coding agents (a mirror of the package's; a test keeps them identical)
 smoke/        a few live checks per core method
 test/         offline unit tests
 ```
