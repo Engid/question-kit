@@ -77,6 +77,8 @@ One-request methods return a *task*: run it with `run(client, task)`, or send se
 | `checkClaim` | whether a source supports, contradicts or ignores a claim | 0–1 | Double-checking citations |
 | `search` | which line of a document answers a query, and whether any does | 1–2 | Line-by-line search |
 | `rerank` | a shortlist in order of best match | 1 per candidate (or group) | Re-ranking |
+| `rankByScore` | a list in order by a judgement you can write as levels (relevance, quality, readability) | 1 | — (graded rating, sorted by expected level) |
+| `rankPairwise` | a list in order by a judgement made side by side (relevance, quality, closeness) | 1 | — (pairwise comparison, Bradley–Terry) |
 | `matchRecords` | whether two records describe the same thing | 1 | Knowledge graph entity alignment |
 | `screen` | which flags a message raises, and what to do | 1 | Guardrails for LLMs |
 | `filterPassages` | which retrieved passages to give an answering model | 1 per passage | Classifying RAG passages |
@@ -186,6 +188,8 @@ await run(client, checkClaim("Sale items can be refunded.", policyText));       
 await run(client, checkClaim(claim, policyText, { quote: "within 60 days" }));               // "fabricated" if the quote isn't there
 await search(client, policyText, "how long do refunds take?");                              // verdict + best lines
 await rerank(client, "a waterproof hiking jacket", productDescriptions);                      // best first
+await run(client, rankByScore(productDescriptions, { query: "a waterproof hiking jacket", levels }));  // best first, by a Score each
+await run(client, rankPairwise(productDescriptions, { query: "a waterproof hiking jacket" })); // best first, by pairwise comparison
 await run(client, matchRecords(crmRow, orderRow, { noun: "customers", fields: { email: "email address" } }));  // "same" | "review" | "different"
 ```
 

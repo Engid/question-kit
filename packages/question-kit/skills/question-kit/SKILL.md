@@ -77,6 +77,8 @@ return a promise.
 | whether a source supports a claim | `checkClaim(claim, source, { quote })` | verified / contradicted / unsupported / fabricated |
 | which line of a document answers a query, if any | `search(client, lines, query, { foundAt, absentBelow })` | Choice over lines + Noul "answered at all?" |
 | a shortlist in best-match order | `rerank(client, query, candidates, { match })` | one Noul per candidate |
+| a list ordered by a judgement you can write as levels (relevance, quality, readability) | `rankByScore(items, { query, question, levels })` | one Score per item, one request, sorted by expected level; the first thing to try for ranking |
+| a list ordered by a side-by-side judgement, when good levels are hard to write | `rankPairwise(items, { query, better, opponents })` | one two-option Choice per pair, one request; Bradley–Terry strengths |
 | whether two records are the same thing | `matchRecords(a, b, { noun, fields })` | same / review / different |
 | which flags a message raises and what to do | `screen(text, flags, { precedence, policy })` | one Noul per flag; policy thresholds + precedence in code |
 | which retrieved passages to give an answering model | `filterPassages(client, query, passages)` | include / conflict / exclude with reasons |

@@ -50,6 +50,8 @@ that need more than one request (a pick among many, a search) take the client an
 | `checkClaim` | whether a source supports, contradicts or ignores a claim | 0–1 | Double-checking citations |
 | `search` | which line of a document answers a query, and whether any does | 1–2 | Line-by-line search |
 | `rerank` | a shortlist in order of best match | 1 per candidate (or group) | Re-ranking |
+| `rankByScore` | a list in order by a judgement you can write as levels (relevance, quality, readability) | 1 | — (graded rating, sorted by expected level) |
+| `rankPairwise` | a list in order by a judgement made side by side (relevance, quality, closeness) | 1 | — (pairwise comparison, Bradley–Terry) |
 | `matchRecords` | whether two records describe the same thing | 1 | Knowledge graph entity alignment |
 | `screen` | which flags a message raises, and what to do | 1 | Guardrails for LLMs |
 | `filterPassages` | which retrieved passages to give an answering model | 1 per passage | Classifying RAG passages |

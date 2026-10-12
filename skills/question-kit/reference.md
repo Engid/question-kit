@@ -148,6 +148,17 @@ Result: `{ verdict: "answered" | "partly" | "not found", answered, lines: { id, 
 Options: `match?: { statement, true?, false? }`, `perRequest?` 1, `concurrency?` 8, `log?`.
 Result: `{ candidate, index, probability }[]`, best first.
 
+**`rankByScore(items, opts) → Task<ScoreRanking>`**
+One Score per item ("How relevant is `items.i3` to `query`?" on your levels), all in one request, sorted by expected level (the probability-weighted average level), which separates items that share a most likely level.
+Options: `levels` (required, lowest first, each saying what it means), `query?` (sent as `query`), `question?` (a statement after "About `items.i3`:", or `(item, query) => string`; default with `query`: "How relevant is `items.i3` to `query`?"), `name?` "items". Needs `question` or `query`.
+Result: `{ ranked: { item, index, key, value, level, confidence, probabilities, beatsNext? }[], confidence (chance the top item's level is above the runner-up's) }`. n questions, 1 request. Also exported: `above(a, b)` (chance one level distribution is above another, ties half).
+In our evals it ordered lists about as well as `rankPairwise`, better on some, for fewer questions; sort by `value`, not `level`.
+
+**`rankPairwise(items, opts) → Task<PairwiseRanking>`**
+One two-option Choice per pair ("Which is <better>: `items.i3` or `items.i7`?"), all in one request, alternating which item is offered first; a Bradley–Terry fit turns the answers (each a soft win) into strengths.
+Options: `query?` (sent as `query`), `better?` (finishes "Which is ___"; default "more relevant to `query`"), `question?: (a, b, query) => string`, `opponents?` (compare each item with k others instead of all; use past ~30 items), `bothOrders?` false (true asks each pair twice and reports `orderGap`), `prior?` 0.1, `name?` "items". Needs `query`, `better` or `question`.
+Result: `{ ranked: { item, index, key, strength, wins, games, beatsNext? }[], confidence (chance the top beats the runner-up), orderGap? (with both orders; 0 = offer order doesn't matter), duels }`. n·(n−1)/2 questions, 1 request. Also exported: `rankFromDuels(items, duels)` (re-rank from any set of answered pairs), `bradleyTerry(wins, games)`, `pairsFor(n, opponents?)`, `firstOf(a, b)`.
+
 **`matchRecords(a, b, opts?) → Task<Matched>`**
 Options: `noun?` ("things"), `fields?: Record<field, description>`, `levels?: [different, maybe, same]`.
 Result: `{ verdict: "different" | "review" | "same", score 0–2, confidence, fields: Record<field, pAgree> }`.
