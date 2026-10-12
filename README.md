@@ -160,12 +160,13 @@ keeps answers on disk so re-runs are free.
 
 ## Docs
 
-The guide is Markdown in [`docs/`](docs/index.md): [getting started](docs/getting-started.md),
+The docs are at **[docs.questionkit.dev](https://docs.questionkit.dev)**, and as Markdown in
+[`docs/`](docs/index.md): [getting started](docs/getting-started.md),
 [building an agent](docs/service-agent.md), [the pizza shop, step by step](docs/pizza-shop.md),
 [how the agent decides](docs/how-the-agent-decides.md), and
 [the building blocks](docs/building-blocks.md). Two tutorials build something from start to finish:
 [sorting a support inbox with the core](docs/tutorials/triage.md) and
-[building a service agent](docs/tutorials/service-agent.md). A docs site is coming at questionkit.dev.
+[building a service agent](docs/tutorials/service-agent.md).
 
 If you build with a coding agent, the package ships a skill for it: `skills/question-kit/SKILL.md`
 (in `node_modules/question-kit/` after an install, or `npx skills add Engid/question-kit` from

@@ -3,17 +3,23 @@
 How to go from "we'd like a bot for support chat" to a service the agent can run: what you have
 to write down, in what order the needs show up, and why each part is shaped the way it is. The
 finished service is the store in
-[`examples/service-agent/store.ts`](../../examples/service-agent/store.ts), and
-`bun run service:chat` talks to it. [Building an agent](../service-agent.md) is the reference for
-every part; this page is the order you'd actually write it in.
+[`examples/service-agent/store.ts`](https://github.com/Engid/question-kit/blob/main/examples/service-agent/store.ts),
+and `bun run service:chat` talks to it.
+
+> [!NOTE]
+> [Building an agent](../service-agent.md) is the reference for every part. This page is the order
+> you'd actually write it in.
 
 The business is a small outdoor-gear store. Support gets three kinds of message: people who want
 to return something, people who want their order faster, and people who can't sign in.
 
 The agent runs the conversation from a *description* of the service. Code runs the procedure, Jev
 reads the customer, and nothing is written by a language model: every line the agent says comes
-from a template. So building one means writing the description, connecting the agent to your
-system, and deciding what it does when Jev isn't sure.
+from a template. So building one means three things:
+
+1. writing the description;
+2. connecting the agent to your system;
+3. deciding what it does when Jev isn't sure.
 
 ## 1. What customers come for: intents
 
@@ -28,7 +34,11 @@ const service = defineService({
     refund: {
       name: "Return or refund",
       description: "The customer wants to return an item or get their money back for it.",
-      examples: ["I want to return my boots", "can I get a refund for order 1234567890?", "the jacket I got is torn"],
+      examples: [
+        "I want to return my boots",
+        "can I get a refund for order 1234567890?",
+        "the jacket I got is torn",
+      ],
     },
     shipping: {
       name: "Change delivery speed",
@@ -41,25 +51,32 @@ const service = defineService({
       examples: ["I forgot my password", "I can't log in to my account"],
     },
   },
-  slots: {}, tools: {}, procedures: {},
+  slots: {},
+  tools: {},
+  procedures: {},
 });
 ```
 
 Under the hood this is one `classify` over the intents, with "none" for an opening that doesn't
 say yet ("hi, I have a question"). The examples are the most useful thing you can give it: in our
 evals of `classify`, two real examples per label did more for accuracy than any description. If
-two intents keep getting confused, give each a `notFor` saying what the other one is.
+two intents keep getting confused, give each a `notFor` saying what the other one is (it's the
+service agent's spelling of the core's `not_for`).
 
 What happens when the reading is under the gate (0.9 by default) is already decided for you: the
 agent offers the likeliest few ("Is this about a return, or about delivery?") and reads the reply
-against just those; after repeated misses it hands off. You don't write that logic; you'll tune
+against just those; after repeated misses it hands off. You don't write that logic. You'll tune
 the gate later, from the log.
 
 ## 2. What each request needs: slots
 
-Now go through each request and ask what your system needs to act on it. A return needs the order
-and the customer's email to find it. A faster delivery needs the order and the speed they want. A
-password reset needs the email. Those are the *slots*:
+Now go through each request and ask what your system needs to act on it:
+
+- a return needs the order, and the customer's email to find it;
+- a faster delivery needs the order and the speed they want;
+- a password reset needs the email.
+
+Those are the *slots*:
 
 ```ts
 slots: {
@@ -68,17 +85,26 @@ slots: {
   speed: {
     label: "shipping speed",
     role: "the shipping speed the customer wants",
-    options: { standard: "standard (5 to 7 days)", express: "express (2 days)", overnight: "overnight" },
+    options: {
+      standard: "standard (5 to 7 days)",
+      express: "express (2 days)",
+      overnight: "overnight",
+    },
   },
 },
 ```
 
 Every slot says *how its value is found*, and that's the part worth understanding. Jev can't write
-a value out; it can only choose. So for an order ID, code finds every ten-digit run in the
-conversation with the `pattern`, and Jev picks which one is the order ID. For an email, the
-built-in `email` pattern finds candidates. For the speed, the candidates are the fixed `options`
-and Jev picks the one the customer asked for. The other kinds work the same way: `list` for known
-names, `date` for a calendar date read part by part, `from` for one of the records a tool reported.
+a value out; it can only choose. So:
+
+- for an **order ID**, code finds every ten-digit run in the conversation with the `pattern`, and
+  Jev picks which one is the order ID;
+- for an **email**, the built-in `email` pattern finds the candidates;
+- for the **speed**, the candidates are the fixed `options`, and Jev picks the one the customer
+  asked for.
+
+The other kinds work the same way: `list` for known names, `date` for a calendar date read part by
+part, `from` for one of the records a tool reported.
 
 The value Jev picks is always text that's really there, which is what makes it safe to send to
 your order system. Over-finding is fine: a phone number that happens to be ten digits is just a
@@ -86,10 +112,10 @@ candidate Jev won't pick.
 
 `format` ("10 digits") is told to Jev along with the role, and helps most with bare values: when
 the agent has just asked for the order ID and the customer types "5550001111", the question the
-agent asked is what makes that an order ID. Values are read from the whole conversation, both
-sides, for that reason.
+agent asked is what makes that an order ID. That's also why values are read from the whole
+conversation, both sides.
 
-A value under the gate (0.9) is also handled for you: if Jev's likeliest candidate is there, the
+A value under the gate (0.9) is handled for you too: if Jev's likeliest candidate is there, the
 agent checks it ("Just to check, is your order ID 5550001111?"); otherwise it asks again, then
 hands off.
 
@@ -99,28 +125,56 @@ A tool is something your system does, named for Jev and the logs, with the slots
 
 ```ts
 tools: {
-  "look-up-order": { name: "Look Up Order", description: "find the order and what's in it", needs: ["order_id", "email"] },
-  refund: { name: "Refund", description: "refund the price to the original payment method", needs: ["amount"], changes: true },
-  "store-credit": { name: "Store Credit", description: "give store credit for the price", needs: ["amount"], changes: true },
-  "change-speed": { name: "Change Shipping Speed", description: "change how fast the order ships", needs: ["speed"], changes: true },
-  "send-reset": { name: "Send Reset Link", description: "email a link to reset the password", needs: ["email"] },
+  "look-up-order": {
+    name: "Look Up Order",
+    description: "find the order and what's in it",
+    needs: ["order_id", "email"],
+  },
+  refund: {
+    name: "Refund",
+    description: "refund the price to the original payment method",
+    needs: ["amount"],
+    changes: true,
+  },
+  "store-credit": {
+    name: "Store Credit",
+    description: "give store credit for the price",
+    needs: ["amount"],
+    changes: true,
+  },
+  "change-speed": {
+    name: "Change Shipping Speed",
+    description: "change how fast the order ships",
+    needs: ["speed"],
+    changes: true,
+  },
+  "send-reset": {
+    name: "Send Reset Link",
+    description: "email a link to reset the password",
+    needs: ["email"],
+  },
 },
 ```
 
-Two things to notice. `refund` needs an `amount`, and no customer is going to be asked for it: the
-order lookup fills it in (that's in step 6). Add a slot for it anyway, so the agent knows the
-refund can't run until something has supplied it:
+Two things to notice.
+
+**`refund` needs an `amount`, and no customer is going to be asked for it.** The order lookup fills
+it in (that's in step 6). Add a slot for it anyway, so the agent knows the refund can't run until
+something has supplied it:
 
 ```ts
-amount: { label: "amount", pattern: "amount" },   // filled by the order lookup, not asked for
+// Filled by the order lookup, not asked for.
+amount: { label: "amount", pattern: "amount" },
 ```
 
-And three tools are marked `changes: true`. A change is anything that alters an order, an account
+**Three tools are marked `changes: true`.** A change is anything that alters an order, an account
 or money. The agent never calls one straight away: it reads the change back with its values ("Just
 to confirm, I'll refund the order (amount: $120.00). Shall I go ahead?") and reads the reply as go
 ahead, a correction, or no. A correction makes it read the values again with the correction in
-view and read the change back again. This is the one place a wrong reading could do damage, so the
-customer is always the last gate.
+view and read the change back again.
+
+> [!IMPORTANT]
+> This is the one place a wrong reading could do damage, so the customer is always the last gate.
 
 The agent never *runs* a tool, either. It tells your code which one to call with which values, and
 your code reports back. That's step 6.
@@ -171,7 +225,9 @@ intents: {
   },
   shipping: {
     …,
-    procedure: "Look up the order. If it hasn't shipped yet, change the shipping speed to the one the customer asks for. If it has shipped, it can't be changed.",
+    procedure:
+      "Look up the order. If it hasn't shipped yet, change the shipping speed to the one the " +
+      "customer asks for. If it has shipped, it can't be changed.",
   },
 },
 procedures: {
@@ -207,12 +263,20 @@ let log: AgentEvent[] = [];
 
 async function onMessage(text: string): Promise<string[]> {
   let r = await turn(service, log, { type: "customer", text }, { client });
+
   while (r.action.type === "call") {
-    const result = runTool(r.action.tool, r.action.values);   // your code; `ok`, and optionally note / values / say
-    r = await turn(service, r.log, { type: "result", tool: r.action.tool, step: r.action.step, ...result }, { client });
+    // Your code: `ok`, and optionally note / values / say.
+    const result = runTool(r.action.tool, r.action.values);
+    r = await turn(
+      service,
+      r.log,
+      { type: "result", tool: r.action.tool, step: r.action.step, ...result },
+      { client },
+    );
   }
-  log = r.log;          // plain JSON: store it between messages
-  return r.messages;    // what the agent says this turn
+
+  log = r.log;       // plain JSON: store it between messages
+  return r.messages; // what the agent says this turn
 }
 ```
 
@@ -225,23 +289,38 @@ function runTool(tool: string, values: Record<string, Json>) {
   if (tool === "look-up-order") {
     const id = String(values.order_id);
     const order = ORDERS[id];
-    if (!order || order.email !== String(values.email).toLowerCase()) return { ok: false, note: "Look Up Order: no order with that ID and email address." };
+    if (!order || order.email !== String(values.email).toLowerCase()) {
+      return {
+        ok: false,
+        note: "Look Up Order: no order with that ID and email address.",
+      };
+    }
     return {
       ok: true,
-      values: { amount: order.price },                                             // fills the slot the refund needs
-      note: `Look Up Order: order ${id}, ${order.item}, $${order.price}, ${order.status}.`,  // for Jev to read
+      // Fills the slot the refund needs.
+      values: { amount: order.price },
+      // What the system found, for Jev to read.
+      note: `Look Up Order: order ${id}, ${order.item}, $${order.price}, ${order.status}.`,
     };
   }
-  if (tool === "refund") return { ok: true, note: `Refund: $${values.amount} refunded to the original payment method.` };
-  …
+  if (tool === "refund") {
+    return {
+      ok: true,
+      note: `Refund: $${values.amount} refunded to the original payment method.`,
+    };
+  }
+  // …
 }
 ```
 
-`values` fill slots from your system, marked as coming from the system rather than the customer.
-`note` is what the tool found, in words: it goes into the conversation Jev reads, so "delivered 45
-days ago" is what lets the policy pick "neither". `say` (not used here) is something to tell the
-customer about the result, said before the agent's next line. A failed tool (`ok: false`) hands
-off.
+- **`values`** fill slots from your system, marked as coming from the system rather than the
+  customer.
+- **`note`** is what the tool found, in words. It goes into the conversation Jev reads, so
+  "delivered 45 days ago" is what lets the policy pick "neither".
+- **`say`** (not used here) is something to tell the customer about the result, said before the
+  agent's next line.
+
+A failed tool (`ok: false`) hands off.
 
 The log is the whole state. Keep it (it's plain JSON) and the conversation can be resumed,
 replayed or inspected from it alone; `view(log)` derives the intent, the values and where each
@@ -259,7 +338,11 @@ const wording: Partial<Templates> = {
   done: () => "Thanks for shopping with us. Bye for now!",
   handoff: () => "Let me get a colleague to take this one; they'll be with you shortly.",
 };
-await turn(service, log, input, { client, templates: { ...defaultTemplates, ...wording } });
+
+await turn(service, log, input, {
+  client,
+  templates: { ...defaultTemplates, ...wording },
+});
 ```
 
 Anything the company wants said at a fixed point in a procedure is a *say step*
@@ -273,22 +356,32 @@ The store doesn't need these, but most services hit one of them:
 - **A question the customer may ask at any point** (opening hours, the menu): an intent with
   `aside: true`, whose procedure only says things or calls tools that need no values. It's answered
   and the conversation carries on where it was.
-- **Troubleshooting**: `{ try: ["log-out-in", "cookies"] }`, tools with an `instruction` for the
+- **Troubleshooting:** `{ try: ["log-out-in", "cookies"] }`, tools with an `instruction` for the
   customer, tried in turn with "did that fix it?" after each.
 - **A step that needs one of several values** (`needs: [{ anyOf: ["name", "account_id"] }]`), a
   value fixed by the procedure (`{ tool: "notify", fixed: { team: "web" } }`), or a slot that
   means something different at one step (`roles`).
 - **A note the procedure can do without** (`skipIfMissing: true`): a customer who can't give its
   values isn't handed off.
-- **An order built up over several messages**: a *repeat* step with a `menu` slot, read by
+- **An order built up over several messages:** a *repeat* step with a `menu` slot, read by
   `question-kit/order`. That's the [pizza shop](../pizza-shop.md), and it's different enough to
   have its own walkthrough.
 
 ## 9. Tuning it: gates and the log
 
 Every reading passes a gate before the agent acts on it, and the defaults are the ones the agent
-ran with in our evals: `intent` 0.9, `value` 0.9, `policy` 0.9, `confirm` 0.8, `repeat` 0.7,
-`yesNo` 0.6. Lower gates act more and ask less; higher gates ask more and hand off more.
+ran with in our evals:
+
+| Gate | Default |
+| --- | --- |
+| `intent` | 0.9 |
+| `value` | 0.9 |
+| `policy` | 0.9 |
+| `confirm` | 0.8 |
+| `repeat` | 0.7 |
+| `yesNo` | 0.6 |
+
+Lower gates act more and ask less; higher gates ask more and hand off more.
 [How the agent decides](../how-the-agent-decides.md) says what happens on each side of each one.
 
 Don't move them by feel. Pass a `recorder` and every gate decision is reported as it's made: which
@@ -297,7 +390,8 @@ reading, its confidence, the threshold, what the code did.
 ```ts
 import { consoleRecorder } from "question-kit";
 
-await turn(service, log, input, { client, recorder: consoleRecorder });  // `bun run service:chat --gates`
+// The same as `bun run service:chat --gates`.
+await turn(service, log, input, { client, recorder: consoleRecorder });
 ```
 
 Run a few dozen conversations, look at where readings land relative to each gate, and move a gate
@@ -307,20 +401,25 @@ a cent).
 
 ## 10. Testing without Jev
 
-Two clients make the agent testable. `cachedJev` keeps every answer on disk; with
-`{ mode: "replay" }` it never calls the API and throws on a request it hasn't seen, which is how
-`bun run service:chat --replay` works and how a test on recorded conversations can run in CI for
-free. `fakeJev(answer)` answers from a function you write, for unit tests of your own procedure
-logic (the kit's own tests script Jev's answers per kind of question and check the actions that
-come out).
+Two clients make the agent testable:
+
+- **`cachedJev`** keeps every answer on disk. With `{ mode: "replay" }` it never calls the API and
+  throws on a request it hasn't seen, which is how `bun run service:chat --replay` works and how a
+  test on recorded conversations can run in CI for free.
+- **`fakeJev(answer)`** answers from a function you write, for unit tests of your own procedure
+  logic. The kit's own tests script Jev's answers per kind of question and check the actions that
+  come out.
 
 Also run `defineService` in a test. It's cheap, and it's where a renamed tool or a slot nobody
 collects shows up.
 
 ## What it doesn't do yet
 
-Replies written by a model; a customer changing topic mid-chat (a second request goes to a
-person); a value needed only in some cases (an address only for deliveries); learning the steps
-of a procedure from past chats. The agent is an alpha that has been through our evals on recorded
-conversations but hasn't run on live chats; the gates are there so that when it's unsure, it asks
-or hands off rather than guesses.
+- replies written by a model;
+- a customer changing topic mid-chat (a second request goes to a person);
+- a value needed only in some cases (an address only for deliveries);
+- learning the steps of a procedure from past chats.
+
+The agent is an alpha that has been through our evals on recorded conversations but hasn't run on
+live chats. The gates are there so that when it's unsure, it asks or hands off rather than
+guesses.

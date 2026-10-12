@@ -15,8 +15,14 @@ into a typed result with a confidence.
 ```ts
 import { classify, extractDate, run, runAll } from "question-kit";
 
-const r = await run(client, extractDate("it was due last Friday", { role: "the date it was due", today: "2026-10-07" }));
-r.date; // "2026-10-02": Jev reads the parts ("last", "Friday"), code does the calendar
+const r = await run(
+  client,
+  extractDate("it was due last Friday", {
+    role: "the date it was due",
+    today: "2026-10-07",
+  }),
+);
+r.date; // "2026-10-02": Jev reads "last" and "Friday", code does the calendar
 r.confidence;
 
 const both = await runAll(client, {
@@ -57,25 +63,21 @@ Every value `extractValue` returns is text that's really in the input: code find
 `extractDate` works the same way on the parts of a date.
 
 Each method has offline tests, a few live smoke checks, and an eval of its own in our internal
-set: public labeled data where a public set fits the task (intent sets with out-of-scope queries,
-reading-comprehension questions with unanswerable ones, matched product records) and cases we
-wrote where none does, with Jev's answers cached so every change is measured on the same inputs.
-What those evals taught, in the code:
+set, with Jev's answers cached so every change is measured on the same inputs. What those evals
+taught, in the code:
 
 - **One Choice beats a walk.** `classify` with the leaves as labels and their parents for back-off
-  was right far more often than `classifyTree` on a two-level intent set; use the tree only when
-  the leaves don't fit in one Choice. The same held for `pickOne` against `classify` with a "none"
-  option; `pickOne`'s gate questions did little, its fit check does the work, so its threshold is
-  the one to tune.
-- **Examples beat descriptions.** On two public intent sets with the labels given three ways,
-  written descriptions mostly made `classify` surer (far fewer back-offs) without making it much
-  more accurate, while two real examples per label raised accuracy on both sets and cut confident
-  wrong answers by nearly half, at about three times the cost of names alone. Name labels well, give
-  each a few real examples, and write `not_for` for the pairs you see confused.
-- **Thresholds come from data, not the cookbooks.** `verifyRecord` flags at 0.8 (as many planted
-  errors caught as at 0.7, half the false alarms); `search` calls a question unanswered under 0.7,
-  with its existence question rewritten against the usual failure, lines on the topic without the
-  answer; `pickOne` picks nothing when the best fit is under 0.7.
+  was right far more often than `classifyTree`; use the tree only when the leaves don't fit in one
+  Choice. The same held for `pickOne` against `classify` with a "none" option. `pickOne`'s gate
+  questions did little and its fit check does the work, so its threshold is the one to tune.
+- **Examples beat descriptions.** Written descriptions mostly made `classify` surer (far fewer
+  back-offs) without making it much more accurate, while two real examples per label raised
+  accuracy and cut confident wrong answers, for a longer request. Name labels well, give each a few
+  real examples, and write `not_for` for the pairs you see confused.
+- **Thresholds come from data, not the cookbooks.** `verifyRecord` flags at 0.8, which catches as
+  many errors as 0.7 with fewer false alarms. `search` calls a question unanswered under 0.7, with
+  its existence question rewritten against the usual failure: lines on the topic without the
+  answer. `pickOne` picks nothing when the best fit is under 0.7.
 - **Dates come in more shapes than the cookbook's seven parts.** Customer messages count from today
   ("in three days", "two weeks ago"), name a month's end, and give a bare day of the month;
   `extractDate` asks for those parts too.
@@ -120,17 +122,37 @@ const cafe = defineMenu({
   place: "a coffee counter",
   items: { drink: {}, pastry: {} },
   fields: {
-    drink: { items: ["drink"], names: true, values: { LATTE: ["latte", "lattes"], AMERICANO: ["americano"] } },
-    size: { items: ["drink"], values: { SMALL: ["small"], LARGE: ["large", "big"] } },
-    extras: { items: ["drink"], many: true, amounts: true, values: { SHOT: ["shot", "espresso shot"], FOAM: ["foam"] } },
-    pastry: { items: ["pastry"], names: true, values: { CROISSANT: ["croissant", "croissants"] } },
+    drink: {
+      items: ["drink"],
+      names: true,
+      values: { LATTE: ["latte", "lattes"], AMERICANO: ["americano"] },
+    },
+    size: {
+      items: ["drink"],
+      values: { SMALL: ["small"], LARGE: ["large", "big"] },
+    },
+    extras: {
+      items: ["drink"],
+      many: true,
+      amounts: true,
+      values: { SHOT: ["shot", "espresso shot"], FOAM: ["foam"] },
+    },
+    pastry: {
+      items: ["pastry"],
+      names: true,
+      values: { CROISSANT: ["croissant", "croissants"] },
+    },
   },
 });
 
-const order = await takeOrder("a large latte with an extra shot and no foam and two croissants", cafe, client);
+const order = await takeOrder(
+  "a large latte with an extra shot and no foam and two croissants",
+  cafe,
+  client,
+);
 order.readBack; // ["1 large latte with extra shot and no foam", "2 croissants"]
 order.accept;   // true when every check answer says the order is probably right
-order.confirm;  // otherwise, which items to read back, and whether to ask "anything else?"
+order.confirm;  // otherwise: which items to read back, and whether to ask for more
 ```
 
 Code looks every word up in the menu; Jev tags the words the menu doesn't know, in one request;

@@ -12,3 +12,8 @@ data/
 results/
 __pycache__/
 .DS_Store
+# The docs site's build output and VitePress's cache
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+# Wrangler's local state
+.wrangler/
