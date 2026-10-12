@@ -44,7 +44,9 @@ export interface PickOneOptions {
    * Pick nothing if no candidate's "fits" is at least this. Default 0.7: the "fits" question is
    * the check that keeps requests nothing covers from being matched to the nearest option, and
    * at the cookbook's 0.3 it let most of them through; 0.7 rejected most of them and cost a few
-   * in-scope picks. Lower it when a wrong pick is cheap and a missed one isn't.
+   * in-scope picks. The scale depends on the catalog: on an intent list the right option reads
+   * 0.7 and up; on a few records ("which of your orders?") it reads 0.3–0.4 against 0.01 for the
+   * others, so 0.2 is right there. Set it from your own cases.
    */
   fitsBelow?: number;
   /** Options per Choice in the first request; bigger catalogs are split into several Choices. Default 240. */
@@ -123,7 +125,10 @@ export async function pickOne<K extends string>(client: SystemOneClient, text: T
       };
       top.forEach((id, i) => {
         const c = catalog[id];
-        qs[`fits${i}`] = noul({ question: `Does the ${noun} "${id}" cover the specific thing ${r} asks for?`, [noun]: c.full ?? c.short });
+        qs[`fits${i}`] = noul(
+          { question: `Is the ${noun} "${id}" the one ${r} is about: the specific thing it asks for or refers to?`, [noun]: c.full ?? c.short },
+          { true: `${r} is about this ${noun} specifically.`, false: `${r} is about a different ${noun}, or about nothing on the list.` },
+        );
       });
       return qs;
     },
@@ -137,7 +142,12 @@ export async function pickOne<K extends string>(client: SystemOneClient, text: T
     const only = top[0]!;
     const fit = await run(client, {
       parts: t.parts,
-      questions: (at) => ({ fits0: noul({ question: `Does the ${noun} "${only}" cover the specific thing ${t.ref(at)} asks for?`, [noun]: catalog[only].full ?? catalog[only].short }) }),
+      questions: (at) => ({
+        fits0: noul(
+          { question: `Is the ${noun} "${only}" the one ${t.ref(at)} is about: the specific thing it asks for or refers to?`, [noun]: catalog[only].full ?? catalog[only].short },
+          { true: `${t.ref(at)} is about this ${noun} specifically.`, false: `${t.ref(at)} is about a different ${noun}, or about nothing on the list.` },
+        ),
+      }),
       read: (a) => readNoul(a.fits0).probability,
     }, { log: opts.log, title: "pickOne: check" });
     const ok = fit >= (opts.fitsBelow ?? 0.7);

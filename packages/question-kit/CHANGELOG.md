@@ -23,7 +23,10 @@
   - `verifyRecord`'s `flagAbove` defaults to 0.8 (was 0.7): as many planted errors caught, half the
     false alarms on correct records.
   - `pickOne`'s `fitsBelow` defaults to 0.7 (was 0.3): the fit check is what rejects requests
-    nothing covers, and 0.3 let most of them through. Its doc and `classifyTree`'s now say when the
+    nothing covers, and 0.3 let most of them through. The fit question now asks whether the
+    option is the one the text is about, rather than whether it "covers" what the text asks for.
+    The scale depends on the catalog (records read low even when the pick is clear), so set it
+    from your own cases; the order example uses 0.2. Its doc and `classifyTree`'s now say when the
     one-Choice `classify` is the better call.
 - **The order taker is built on the building blocks.** `question-kit/order` asks the same
   questions as before, now as `choose` and `check` tasks sent with `runAll`. `defineMenu`,

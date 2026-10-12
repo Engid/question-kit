@@ -126,7 +126,7 @@ await run(client, extractValue("about order 4410982, zip 94110", { kind: "number
 // { value: "4410982", … }: always text that's really in the message
 await run(client, extractDate("it was due last Friday", { role: "the date it was due", today: "2026-10-07" }));
 // { date: "2026-10-02", … }: Jev reads the parts, code does the calendar
-await pickOne(client, "the blender still hasn't come", customerOrders, { noun: "order" });
+await pickOne(client, "the blender still hasn't come", customerOrders, { noun: "order", fitsBelow: 0.2 });
 // { value: "4410982", … }, or null when none of them fits
 ```
 

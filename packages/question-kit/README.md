@@ -101,6 +101,7 @@ const orders = fromRecords(customer.orders, (o) => o.id, (o) => `${o.item}, orde
 const which = await pickOne(client, "the blender still hasn't come", orders, {
   noun: "order",
   gates: ["The customer is talking about one of their own orders."],
+  fitsBelow: 0.2,  // the fit check reads low on records even when the pick is clear; 0.7, the default, suits intent catalogs
 });
 which.value;  // "4410982", or null (which.reason: "gate" | "no-fit")
 ```

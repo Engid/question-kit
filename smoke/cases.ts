@@ -110,7 +110,8 @@ export const CASES: Case[] = [
   ).map(([text, want]): Case => ({
     method: "pickOne",
     name: text,
-    run: (client, log) => pickOne(client, text, ORDERS, { noun: "order", gates: ["The customer is talking about one of their own orders."], log }),
+    // Records read low on the fit check even when the pick is clear (0.3–0.4 against 0.01 for the others), so the gate is lower than for an intent catalog.
+    run: (client, log) => pickOne(client, text, ORDERS, { noun: "order", gates: ["The customer is talking about one of their own orders."], fitsBelow: 0.2, log }),
     check: (r) => is(r.value, want),
   })),
 
