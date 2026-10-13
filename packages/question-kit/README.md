@@ -1,5 +1,9 @@
 # question-kit: the core
 
+**The standard library for System One models.** Built by measurement, not guesswork: the core
+methods are developed against thousands of labeled cases, from public benchmarks and our own test
+sets, and tuned on what the results show. Docs: [docs.questionkit.dev](https://docs.questionkit.dev).
+
 The package's main entry. The kits are the other entries, with their own READMEs:
 [question-kit/service-agent](service-agent/README.md) and [question-kit/order](order/README.md).
 
@@ -21,6 +25,11 @@ npm install question-kit @typesafe-ai/sdk
 > it and tell us what breaks or feels awkward: [open an issue](https://github.com/Engid/question-kit/issues).
 > We're not taking pull requests yet; if you'd like to contribute, open an issue first so we can
 > talk it over.
+
+Building with a coding agent? [`skills/question-kit/SKILL.md`](skills/question-kit/SKILL.md) ships
+in this package for it: the mental model, which method for which job, composing them, thresholds,
+testing and the traps, with [every export](skills/question-kit/reference.md) beside it. Point the
+agent at it, or install it with `npx skills add Engid/question-kit`.
 
 ## Connect Jev
 
@@ -50,9 +59,9 @@ and at most 50,000 input tokens a second, half of TypeSafe's current limit of 10
 requests a second), so a run doesn't lean on retries. `pace: false` turns it off; `pace: { … }`
 changes it; `pacedJev(client, opts)` paces any client.
 
-`cachedJev` keeps every answer on disk, keyed by a hash of the request. With `{ mode: "replay" }`
-it never calls anything and throws `CacheMissError` on a request it hasn't seen, which suits tests
-and repeatable measurements. For tests, `fakeJev((id, question, state) => answer)` answers without
+`cachedJev` keeps every answer on disk, keyed by what the model sees (the state and the questions,
+not their ids). With `{ mode: "replay" }` it never calls anything and throws `CacheMissError` on a
+request it hasn't seen, which suits tests and repeatable measurements. For tests, `fakeJev((id, question, state) => answer)` answers without
 calling anything.
 
 ## Methods
@@ -66,12 +75,14 @@ One-request methods return a *task*: run it with `run(client, task)`, or send se
 | `classifyTree` | which leaf of a label tree, keeping the best few paths | 1 per level | Hierarchical classification |
 | `pickOne` | which one of many options, or none | 2 | Skill suggestion |
 | `extractValue` | an exact value (email, phone, amount, number, name) | 1 | Pre-parsed value extraction |
-| `extractDate` | a calendar date, including "tomorrow", "last Friday" | 1 | Date extraction |
+| `extractDate` | a calendar date, including "tomorrow", "last Friday", "in three days", "the end of the month" | 1 | Date extraction |
 | `callFunction` | which function and its arguments | 1 | Function calling |
 | `verifyRecord` | whether anything in an extracted record is wrong | 1 | SDE cascade |
 | `checkClaim` | whether a source supports, contradicts or ignores a claim | 0–1 | Double-checking citations |
 | `search` | which line of a document answers a query, and whether any does | 1–2 | Line-by-line search |
 | `rerank` | a shortlist in order of best match | 1 per candidate (or group) | Re-ranking |
+| `rankByScore` | a list in order by a judgement you can write as levels (relevance, quality, readability) | 1 | — (graded rating, sorted by expected level) |
+| `rankPairwise` | a list in order by a judgement made side by side (relevance, quality, closeness) | 1 | — (pairwise comparison, Bradley–Terry) |
 | `matchRecords` | whether two records describe the same thing | 1 | Knowledge graph entity alignment |
 | `screen` | which flags a message raises, and what to do | 1 | Guardrails for LLMs |
 | `filterPassages` | which retrieved passages to give an answering model | 1 per passage | Classifying RAG passages |
@@ -101,6 +112,7 @@ const orders = fromRecords(customer.orders, (o) => o.id, (o) => `${o.item}, orde
 const which = await pickOne(client, "the blender still hasn't come", orders, {
   noun: "order",
   gates: ["The customer is talking about one of their own orders."],
+  fitsBelow: 0.2,  // the fit check reads low on records even when the pick is clear; 0.7, the default, suits intent catalogs
 });
 which.value;  // "4410982", or null (which.reason: "gate" | "no-fit")
 ```
@@ -180,6 +192,8 @@ await run(client, checkClaim("Sale items can be refunded.", policyText));       
 await run(client, checkClaim(claim, policyText, { quote: "within 60 days" }));               // "fabricated" if the quote isn't there
 await search(client, policyText, "how long do refunds take?");                              // verdict + best lines
 await rerank(client, "a waterproof hiking jacket", productDescriptions);                      // best first
+await run(client, rankByScore(productDescriptions, { query: "a waterproof hiking jacket", levels }));  // best first, by a Score each
+await run(client, rankPairwise(productDescriptions, { query: "a waterproof hiking jacket" })); // best first, by pairwise comparison
 await run(client, matchRecords(crmRow, orderRow, { noun: "customers", fields: { email: "email address" } }));  // "same" | "review" | "different"
 ```
 

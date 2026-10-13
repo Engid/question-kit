@@ -8,6 +8,7 @@ import {
   band,
   callFunction,
   check,
+  checks,
   checkClaim,
   choice,
   type ChoiceReading,
@@ -35,6 +36,7 @@ import {
   rate,
   readChoice,
   recoverStructure,
+  listRuns,
   ref,
   referencedPaths,
   renderBlocks,
@@ -165,6 +167,33 @@ describe("tasks", () => {
     const r = await run(client, rate("very angry!!!", "How frustrated is the customer?", ["Calm", "Annoyed", "Very angry"]));
     expect(r.level).toBe(2);
   });
+  test("`about` lands in the request's meta under each task's question ids, and isn't sent", async () => {
+    const client = fakeJev(() => 0.8);
+    const msg = ref("message");
+    await runAll(client, { upset: check(msg, "The customer is upset."), refund: check(msg, "The customer wants a refund.") }, { state: { message: "broken again" }, about: { upset: { set: "mood" } }, log: [] });
+    expect(client.requests[0]!.meta).toEqual({ "upset::check": { set: "mood" } });
+    await run(client, check("broken again", "The customer is upset."), { about: { set: "mood" } });
+    expect(client.requests[1]!.meta).toEqual({ check: { set: "mood" } });
+  });
+  test("the whole question can be written as a function of the text's Ref", () => {
+    const order = ref("order");
+    const { questions } = requestAll(
+      {
+        whole: check(ref("summary"), (s) => q`${order} is what the customer said. Is ${s} wrong anywhere?`, { true: q`${order} and the summary differ` }),
+        both: checks(ref("summary"), { a: (s) => q`Is ${s} complete?`, b: { statement: "It lists two items.", true: "two items" } }),
+        tone: rate(ref("order"), (o) => q`How polite is ${o}?`, ["Rude", "Polite"]),
+        which: choose(ref("order"), { a: "a", b: "b" }, { question: (o) => q`Which clerk wrote ${o}?`, none: false }),
+      },
+      { state: { order: "two pizzas", summary: "2 pizzas" } },
+    );
+    expect((questions["whole::check"] as Question).instructions).toBe("`order` is what the customer said. Is `summary` wrong anywhere?");
+    expect((questions["whole::check"] as Question).criteria).toEqual({ true: "`order` and the summary differ", false: undefined });
+    expect((questions["both::a"] as Question).instructions).toBe("Is `summary` complete?");
+    expect((questions["both::b"] as Question).instructions).toBe("About `summary`: It lists two items.");
+    expect((questions["tone::score"] as Question).instructions).toBe("How polite is `order`?");
+    expect((questions["which::choice"] as Question).instructions).toBe("Which clerk wrote `order`?");
+    expect(Object.keys((questions["which::choice"] as Question).criteria as object)).toEqual(["a", "b"]);
+  });
 });
 
 describe("classify", () => {
@@ -267,7 +296,7 @@ describe("extractValue", () => {
 describe("extractDate", () => {
   const today = new Date(Date.UTC(2026, 9, 7)); // Wednesday 2026-10-07
   const parts = (v: Record<string, string>, confidence = 0.9) =>
-    Object.fromEntries(["mode", "month", "day", "year", "anchor", "weekday", "week"].map((k) => [k, reading(v[k] ?? "none", confidence)])) as Parameters<typeof assembleDate>[0];
+    Object.fromEntries(["mode", "month", "day", "year", "anchor", "weekday", "week", "span", "count", "period"].map((k) => [k, reading(v[k] ?? "none", confidence)])) as Parameters<typeof assembleDate>[0];
   test("absolute dates, with and without a year", () => {
     expect(assembleDate(parts({ mode: "absolute", month: "March", day: "3", year: "2027" }), today, "next", 0.6).date).toBe("2027-03-03");
     expect(assembleDate(parts({ mode: "absolute", month: "October", day: "20" }), today, "next", 0.6).date).toBe("2026-10-20");
@@ -283,6 +312,42 @@ describe("extractDate", () => {
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Tuesday", week: "last" }), today, "next", 0.6).date).toBe("2026-09-29");
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Friday" }), today, "next", 0.6).date).toBe("2026-10-09");
     expect(assembleDate(parts({ mode: "relative", anchor: "weekday", weekday: "Friday" }), today, "last", 0.6).date).toBe("2026-10-02");
+  });
+  test("counted from today, and the end of a month", () => {
+    const at = (v: Record<string, string>) => assembleDate(parts({ mode: "relative", ...v }), today, "next", 0.6).date;
+    expect(at({ anchor: "counted", span: "days_ahead", count: "3" })).toBe("2026-10-10");
+    expect(at({ anchor: "counted", span: "days_ago", count: "2" })).toBe("2026-10-05");
+    expect(at({ anchor: "counted", span: "weeks_ahead", count: "1" })).toBe("2026-10-14");
+    expect(at({ anchor: "counted", span: "weeks_ago", count: "2" })).toBe("2026-09-23");
+    expect(at({ anchor: "month_end", period: "current" })).toBe("2026-10-31");
+    expect(at({ anchor: "month_end", period: "next" })).toBe("2026-11-30");
+    expect(at({ anchor: "month_end", period: "last" })).toBe("2026-09-30");
+    const missing = assembleDate(parts({ mode: "relative", anchor: "counted", span: "days_ahead" }), today, "next", 0.6);
+    expect(missing.date).toBeNull();
+    expect(missing.review).toBe(true);
+  });
+  test("when the summary part disagrees with the details, the details win, flagged for review", () => {
+    // mode says "absolute" but only a weekday is given: the relative reading is used.
+    const r = assembleDate(parts({ mode: "absolute", anchor: "weekday", weekday: "Monday" }), today, "last", 0.6, "past");
+    expect(r.date).toBe("2026-10-05");
+    expect(r.review).toBe(true);
+    // Both readings make a date and differ: the chosen one stands, with the other in the note.
+    const two = assembleDate(parts({ mode: "relative", anchor: "yesterday", month: "October", day: "2" }), today, "next", 0.6);
+    expect(two.date).toBe("2026-10-06");
+    expect(two.review).toBe(true);
+    expect(two.note).toContain("2026-10-02");
+    // Both readings agree: no flag.
+    expect(assembleDate(parts({ mode: "relative", anchor: "tomorrow", month: "October", day: "8" }), today, "next", 0.6).review).toBe(false);
+  });
+  test("a bare day of the month gets its month from expect, and says so", () => {
+    const at = (day: string, expect?: "past" | "future" | "nearest") => assembleDate(parts({ mode: "absolute", day }), today, "next", 0.6, expect);
+    expect(at("2", "past").date).toBe("2026-10-02");
+    expect(at("30", "future").date).toBe("2026-10-30");
+    expect(at("2", "future").date).toBe("2026-11-02");
+    expect(at("30", "past").date).toBe("2026-09-30");
+    expect(at("20").date).toBe("2026-10-20");
+    expect(at("20").monthGuessed).toBe(true);
+    expect(at("31", "future").date).toBe("2026-10-31");
   });
   test("without a year: nearest by default, or past or future when asked", () => {
     const at = (month: string, day: string, expect?: "past" | "future" | "nearest") => assembleDate(parts({ mode: "absolute", month, day }), today, "next", 0.6, expect);
@@ -312,10 +377,10 @@ describe("extractDate", () => {
     expect(r.confidence).toBeCloseTo(0.4);
     expect(r.review).toBe(true);
   });
-  test("asks seven questions in one request", async () => {
+  test("asks ten questions in one request", async () => {
     const client = fakeJev((id) => ({ mode: "relative", anchor: "tomorrow" })[id] ?? "none");
     const r = await run(client, extractDate("it should arrive tomorrow", { role: "the delivery date", today: "2026-10-07" }));
-    expect(Object.keys(client.requests[0]!.questions)).toHaveLength(7);
+    expect(Object.keys(client.requests[0]!.questions)).toHaveLength(10);
     expect(r.date).toBe("2026-10-08");
   });
 });
@@ -388,7 +453,7 @@ describe("verifyRecord", () => {
       expect(r.dates.arrives).toMatchObject({ found: "2026-10-09", matches: true, yearGuessed: true });
       expect(r.fields.arrives).toBeLessThan(0.2);
       const ids = Object.keys(j.requests[0]!.questions);
-      expect(ids.filter((id) => id.startsWith("arrives.")).sort()).toEqual(["arrives.date.anchor", "arrives.date.day", "arrives.date.mode", "arrives.date.month", "arrives.date.week", "arrives.date.weekday", "arrives.date.year"]);
+      expect(ids.filter((id) => id.startsWith("arrives.")).sort()).toEqual(["arrives.date.anchor", "arrives.date.count", "arrives.date.day", "arrives.date.mode", "arrives.date.month", "arrives.date.period", "arrives.date.span", "arrives.date.week", "arrives.date.weekday", "arrives.date.year"]);
       expect(j.requests.length).toBe(1);
     });
     test("a different date is flagged", async () => {
@@ -486,21 +551,63 @@ describe("rerank, matchRecords, screen, filterPassages", () => {
 });
 
 describe("recoverStructure", () => {
-  test("joins broken lines and renders blocks", async () => {
+  test("joins broken lines and renders blocks (text with blank lines: lines join unless they start a new unit)", async () => {
     const text = "Getting started\nInstall the tool and then\nrun it.\n\nFirst step\nSecond step";
     const client = fakeJev((id, question) => {
-      if (id === "L002") return 0.9; // "run it." continues line 1
+      if (id === "L002") return 0.9; // "run it." continues line 1 mid-sentence
+      if (id === "new.L004") return 0.9; // "Second step" starts its own unit
       if (id.startsWith("L")) return 0.05;
+      if (id.startsWith("new.")) return 0.5; // not sure either way: the mid-sentence answer decides
       const instr = String((question as { instructions: unknown }).instructions);
       const block = /block (B\d+)/.exec(instr)?.[1];
       if (id.startsWith("type.")) return block === "B000" ? "heading" : block === "B001" ? "paragraph" : "list_item";
       if (id.startsWith("level.")) return "title";
       if (id.startsWith("step.")) return 0.9;
+      if (id.startsWith("list.")) return 0.05;
       return "note";
     });
     const r = await recoverStructure(client, text);
     expect(r.blocks.map((b) => b.text)).toEqual(["Getting started", "Install the tool and then run it.", "First step", "Second step"]);
     expect(r.markdown).toBe("# Getting started\n\nInstall the tool and then run it.\n\n1. First step\n2. Second step\n");
+  });
+  test("without blank lines, a line joins when it continues a sentence", async () => {
+    const text = "Install the tool and then\nrun it.\nThen open the app.";
+    const client = fakeJev((id, question) => {
+      if (id === "L001") return 0.9; // mid-sentence
+      if (id === "L002") return 0.1; // a new sentence: not joined without a blank-line signal
+      if (id.startsWith("new.")) throw new Error("no new-unit question without blank lines");
+      if (id.startsWith("type.")) return "paragraph";
+      if (id.startsWith("step.") || id.startsWith("list.")) return 0.1;
+      return "note";
+    });
+    const r = await recoverStructure(client, text);
+    expect(r.blocks.map((b) => b.text)).toEqual(["Install the tool and then run it.", "Then open the app."]);
+    expect(String((client.requests[0]!.questions.L001 as { instructions: string }).instructions)).toContain("mid-sentence");
+    expect(Object.keys(client.requests[0]!.questions)).toEqual(["L001", "L002"]);
+  });
+  test("with blank lines, a line that almost certainly starts no new unit joins even at a sentence end", async () => {
+    const text = "One sentence.\nAnother in the same paragraph.\n\nA heading";
+    const client = fakeJev((id) => {
+      if (id === "L001") return 0.1; // not mid-sentence
+      if (id === "new.L001") return 0.03; // but plainly the same paragraph
+      if (id.startsWith("type.")) return "paragraph";
+      if (id.startsWith("step.") || id.startsWith("list.")) return 0.1;
+      return "note";
+    });
+    const r = await recoverStructure(client, text);
+    expect(r.blocks.map((b) => b.text)).toEqual(["One sentence. Another in the same paragraph.", "A heading"]);
+    expect((await recoverStructure(client, text, { joinBelow: 0.02 })).blocks).toHaveLength(3);
+  });
+  test("blocks that are entries of the same list become list items together; a sure heading stays a heading", () => {
+    const b = (id: string, type: "heading" | "paragraph" | "list_item" | "code", list?: number) => ({ id, text: id, type, confidence: 0.9, ...(list !== undefined ? { list } : {}) });
+    const out = listRuns([b("h", "heading"), b("a", "paragraph", 0.1), b("b", "paragraph", 0.8), b("c", "paragraph", 0.7), b("d", "paragraph", 0.2)], [0.95, 0.9, 0.9, 0.9, 0.9]);
+    expect(out.map((x) => x.type)).toEqual(["heading", "list_item", "list_item", "list_item", "paragraph"]);
+    // A heading the model is sure of isn't pulled into the list after it, even when the pair question says yes.
+    const kept = listRuns([b("h", "heading"), b("a", "paragraph", 0.9), b("b", "paragraph", 0.9)], [0.95, 0.9, 0.9]);
+    expect(kept.map((x) => x.type)).toEqual(["heading", "list_item", "list_item"]);
+    // An unsure "heading" can be.
+    const pulled = listRuns([b("h", "heading"), b("a", "paragraph", 0.9)], [0.6, 0.9]);
+    expect(pulled.map((x) => x.type)).toEqual(["list_item", "list_item"]);
   });
   test("renderBlocks: code runs become one fence, bullets when order doesn't matter", () => {
     expect(renderBlocks([{ id: "B0", text: "a", type: "code", confidence: 1 }, { id: "B1", text: "b", type: "code", confidence: 1 }, { id: "B2", text: "x", type: "list_item", confidence: 1, step: 0.1 }])).toBe("```\na\nb\n```\n\n- x\n");

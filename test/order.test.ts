@@ -10,10 +10,16 @@ import {
   takeOrder,
   tokenize,
   wordTagOptions,
-  checkQuestions,
+  orderChecks,
   plural,
-  wordTagQuestions,
+  wordTags,
+  checkState,
+  wordsState,
 } from "../packages/question-kit/order/index.ts";
+import { type Question, requestAll } from "../packages/question-kit/core/index.ts";
+
+/** The word a question id is about: "tag_w3::choice" → "w3". */
+const wordOf = (id: string) => `w${/^tag_w(\d+)/.exec(id)?.[1]}`;
 
 // A small cafe: nothing in the library knows about pizza.
 const CAFE = defineMenu({
@@ -43,7 +49,7 @@ function fakeJev(tags: Record<string, [string, number]>, pWrong: (id: string) =>
           answers[id] = { type: "noul", noul: pWrong(id) };
           continue;
         }
-        const word = id.startsWith("tag_w") ? words[`w${id.slice(5)}`] : undefined;
+        const word = id.startsWith("tag_w") ? words[wordOf(id)] : undefined;
         const [tag, p] = (word && tags[word]) || ["none", 0.95];
         const options = Object.keys(q.criteria);
         const rest = (1 - p) / Math.max(1, options.length - 1);
@@ -90,9 +96,11 @@ describe("order taker: any menu (a small cafe)", () => {
     expect(Object.keys(options).slice(0, 4)).toEqual(["none", "not", "extra", "light"]);
     expect(options.drink_FLAT_WHITE).toBe("Drink: flat white");
     expect(options.milk_OAT).toBe("Milk: oat (also written: oat milk)");
-    const q = wordTagQuestions([3], CAFE).tag_w3!.question;
+    const words = "can i get a latte".split(" ");
+    const q = requestAll(wordTags([3], CAFE).tasks, { state: wordsState(words.join(" "), words) }).questions["tag_w3::choice"] as Question;
     expect(q.instructions).toBe('`order` is a customer\'s coffee order. What is `words.w3` in that order? If it is part of a longer name or phrase (like "flat" in "flat white"), answer for the whole phrase.');
-    const check = checkQuestions(parse("a latte"), CAFE).check_missing!.question;
+    const items = parse("a latte");
+    const check = requestAll(orderChecks(items, CAFE).tasks, { state: checkState("a latte", items, CAFE) }).questions["check_missing::check"] as Question;
     expect(check.instructions).toContain("at a coffee counter");
     expect(check.instructions).toContain("a whole drink or pastry, or a drink, size, milk, extras or pastry detail?");
   });
@@ -114,15 +122,15 @@ describe("order taker: takeOrder", () => {
     const r = await takeOrder("Can I get one large latte with more vanilla, please", CAFE, client);
     expect(client.requests.length).toBe(2);
     const state = client.requests[0]!.state as { words: Record<string, string> };
-    expect(Object.keys(client.requests[0]!.questions).map((id) => state.words[`w${id.slice(5)}`])).toEqual(["can", "i", "get", "with", "more", "please"]);
+    expect(Object.keys(client.requests[0]!.questions).map((id) => state.words[wordOf(id)])).toEqual(["can", "i", "get", "with", "more", "please"]);
     expect(r.readBack).toEqual(["1 large latte with extra vanilla"]);
     expect(r.accept).toBe(true);
     expect(r.confidence).toBeCloseTo(0.86);
-    expect(Object.keys(client.requests[1]!.questions)).toEqual(["check_order", "check_i1", "check_missing"]);
+    expect(Object.keys(client.requests[1]!.questions)).toEqual(["check_order::check", "check_i1::check", "check_missing::check"]);
   });
 
   test("the check decides what to read back", async () => {
-    const client = fakeJev({}, (id) => (id === "check_i2" ? 0.4 : id === "check_missing" ? 0.35 : 0.05));
+    const client = fakeJev({}, (id) => (id.startsWith("check_i2") ? 0.4 : id.startsWith("check_missing") ? 0.35 : 0.05));
     const r = await takeOrder("a large latte and a muffin", CAFE, client);
     expect(r.accept).toBe(false);
     expect(r.confirm).toEqual({ items: [2], missing: true });

@@ -1,0 +1,240 @@
+/* question-kit docs: VitePress's default theme in questionkit.dev's drafting-sheet look.
+   Palette: paper #F4EEE2, ink #1F3F6E, red pencil #B4442A, shade #E6DFD0 (dark: blueprint). */
+
+:root {
+  --qk-paper: #f4eee2;
+  --qk-shade: #e6dfd0;
+  --qk-ink: #1f3f6e;
+  --qk-red: #b4442a;
+  --qk-line: rgba(31, 63, 110, 0.28);
+  --qk-line-soft: rgba(31, 63, 110, 0.12);
+
+  --vp-c-bg: var(--qk-paper);
+  --vp-c-bg-alt: #ede6d8;
+  --vp-c-bg-elv: #f8f3ea;
+  --vp-c-bg-soft: var(--qk-shade);
+
+  --vp-c-text-1: #2a2622;
+  --vp-c-text-2: #5e554b;
+  --vp-c-text-3: #8a8075;
+
+  --vp-c-divider: rgba(31, 63, 110, 0.16);
+  --vp-c-gutter: var(--qk-shade);
+  --vp-c-border: var(--qk-line);
+
+  --vp-c-brand-1: var(--qk-ink);
+  --vp-c-brand-2: #3a6299;
+  --vp-c-brand-3: var(--qk-ink);
+  --vp-c-brand-soft: rgba(31, 63, 110, 0.1);
+
+  --vp-c-danger-1: var(--qk-red);
+  --vp-c-danger-soft: rgba(180, 68, 42, 0.1);
+
+  --vp-font-family-base: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --vp-font-family-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --qk-font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+
+  --vp-code-font-size: 0.8125em;
+  --vp-code-color: var(--qk-ink);
+  --vp-code-bg: rgba(31, 63, 110, 0.07);
+  --vp-code-block-bg: #ece5d7;
+  --vp-code-copy-code-bg: var(--vp-c-bg-elv);
+
+  --vp-button-brand-bg: var(--qk-ink);
+  --vp-button-brand-border: var(--qk-ink);
+  --vp-button-brand-text: var(--qk-paper);
+  --vp-button-brand-hover-bg: #2f5288;
+  --vp-button-brand-hover-border: #2f5288;
+  --vp-button-brand-hover-text: var(--qk-paper);
+  --vp-button-brand-active-bg: var(--qk-ink);
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-border: var(--qk-line);
+  --vp-button-alt-text: var(--qk-ink);
+  --vp-button-alt-hover-bg: var(--vp-c-brand-soft);
+  --vp-button-alt-hover-border: var(--qk-ink);
+  --vp-button-alt-hover-text: var(--qk-ink);
+
+  --vp-home-hero-name-color: var(--qk-ink);
+  --vp-home-hero-image-background-image: none;
+}
+
+.dark {
+  --qk-paper: #142640;
+  --qk-shade: #1c3352;
+  --qk-ink: #d6e2f0;
+  --qk-red: #e58466;
+  --qk-line: rgba(214, 226, 240, 0.3);
+  --qk-line-soft: rgba(214, 226, 240, 0.1);
+
+  --vp-c-bg: var(--qk-paper);
+  --vp-c-bg-alt: #112137;
+  --vp-c-bg-elv: #1a2f4c;
+  --vp-c-bg-soft: var(--qk-shade);
+
+  --vp-c-text-1: #eee7d8;
+  --vp-c-text-2: #b3bccb;
+  --vp-c-text-3: #8591a3;
+
+  --vp-c-divider: rgba(214, 226, 240, 0.14);
+
+  --vp-c-brand-1: #a9c4ea;
+  --vp-c-brand-2: #c9dbf2;
+  --vp-c-brand-3: #a9c4ea;
+  --vp-c-brand-soft: rgba(169, 196, 234, 0.14);
+
+  --vp-c-danger-soft: rgba(229, 132, 102, 0.14);
+
+  --vp-code-color: #c9dbf2;
+  --vp-code-bg: rgba(214, 226, 240, 0.08);
+  --vp-code-block-bg: #0f1d31;
+
+  --vp-button-brand-bg: var(--qk-ink);
+  --vp-button-brand-border: var(--qk-ink);
+  --vp-button-brand-text: #142640;
+  --vp-button-brand-hover-bg: #ffffff;
+  --vp-button-brand-hover-border: #ffffff;
+  --vp-button-brand-hover-text: #142640;
+  --vp-button-brand-active-bg: var(--qk-ink);
+  --vp-button-alt-text: var(--qk-ink);
+  --vp-button-alt-hover-text: #ffffff;
+  --vp-button-alt-hover-border: var(--qk-ink);
+}
+
+/* ---------- type ---------- */
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.VPHero .name,
+.VPHero .text,
+.VPFeature .title {
+  font-family: var(--qk-font-display);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.vp-doc h1 { font-size: 40px; line-height: 1.15; }
+.vp-doc h2 { font-size: 28px; }
+.vp-doc h3 { font-size: 21px; }
+
+.vp-doc h2 {
+  border-top: 1px solid var(--qk-line);
+}
+
+.vp-doc a { text-underline-offset: 3px; }
+
+/* Inline code in a heading: smaller, so the heading still reads as one line of type. */
+.vp-doc h2 code,
+.vp-doc h3 code {
+  font-size: 0.72em;
+  padding: 2px 6px;
+  vertical-align: 0.08em;
+}
+
+/* The site's small mono caps, for the sidebar's section titles. */
+.VPSidebarItem.level-0 > .item .text {
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--vp-c-text-2);
+}
+
+/* ---------- square corners, ruled lines: a drafting sheet, not a card deck ---------- */
+
+.vp-doc div[class*="language-"],
+.vp-doc .custom-block,
+.vp-doc table,
+.VPButton,
+.VPFeature,
+.DocSearch-Button,
+.VPLocalSearchBox .shell {
+  border-radius: 2px !important;
+}
+
+.vp-doc div[class*="language-"] {
+  border: 1px solid var(--qk-line-soft);
+}
+
+.vp-doc th {
+  background-color: var(--vp-c-bg-soft);
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.VPButton {
+  font-family: var(--vp-font-family-mono);
+  font-weight: 500 !important;
+}
+
+/* ---------- home ---------- */
+
+/* A faint drafting grid behind the hero and the parts, fixed to the window so the two line up;
+   the page body below sits on plain paper. */
+.VPHome .VPHero,
+.VPHome .VPFeatures {
+  background-image:
+    linear-gradient(var(--qk-line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--qk-line-soft) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-attachment: fixed;
+}
+
+.VPHome .VPFeatures {
+  padding-bottom: 56px;
+  border-bottom: 1px solid var(--qk-line);
+}
+
+.VPHome .vp-doc {
+  padding-top: 48px;
+}
+
+/* Reading width for the text under the parts, aligned with the hero. */
+.VPHome .vp-doc > div {
+  max-width: 760px;
+}
+
+@media (min-width: 960px) {
+  .VPHero .text { max-width: 880px; }
+  .VPHero .tagline { max-width: 640px; }
+}
+
+.VPHero .name {
+  font-size: 64px;
+  line-height: 1.05;
+}
+
+.VPHero .text {
+  color: var(--vp-c-text-1);
+}
+
+.VPHero .tagline {
+  color: var(--vp-c-text-2);
+}
+
+.VPFeature {
+  background-color: var(--vp-c-bg) !important;
+  border: 1px solid var(--qk-line) !important;
+}
+
+.VPFeature:hover {
+  border-color: var(--qk-ink) !important;
+}
+
+.VPFeature .VPImage {
+  margin-bottom: 12px;
+}
+
+.VPFeature .title {
+  font-size: 22px;
+}
+
+.VPFeature .link-text-value {
+  font-family: var(--vp-font-family-mono);
+  font-size: 13px;
+}
+

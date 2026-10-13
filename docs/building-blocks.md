@@ -3,7 +3,8 @@
 `question-kit`, the package's main entry, is what the kits are made of: ready-made methods for the jobs
 people most often give Jev, and underneath them the pieces for writing your own questions. The
 [package README](https://github.com/Engid/question-kit/blob/main/packages/question-kit/README.md) has
-every method with examples and options; this page is the map.
+every method with examples and options; this page is the map, and the
+[triage tutorial](tutorials/triage.md) puts five of the methods together on one job.
 
 ## The shape of a method
 
@@ -14,8 +15,14 @@ into a typed result with a confidence.
 ```ts
 import { classify, extractDate, run, runAll } from "question-kit";
 
-const r = await run(client, extractDate("it was due last Friday", { role: "the date it was due", today: "2026-10-07" }));
-r.date; // "2026-10-02": Jev reads the parts ("last", "Friday"), code does the calendar
+const r = await run(
+  client,
+  extractDate("it was due last Friday", {
+    role: "the date it was due",
+    today: "2026-10-07",
+  }),
+);
+r.date; // "2026-10-02": Jev reads "last" and "Friday", code does the calendar
 r.confidence;
 
 const both = await runAll(client, {
@@ -37,12 +44,14 @@ that need more than one request (a pick among many, a search) take the client an
 | `classifyTree` | which leaf of a label tree, keeping the best few paths | 1 per level | Hierarchical classification |
 | `pickOne` | which one of many options, or none | 2 | Skill suggestion |
 | `extractValue` | an exact value (email, phone, amount, number, name) | 1 | Pre-parsed value extraction |
-| `extractDate` | a calendar date, including "tomorrow", "last Friday" | 1 | Date extraction |
+| `extractDate` | a calendar date, including "tomorrow", "last Friday", "in three days", "the end of the month" | 1 | Date extraction |
 | `callFunction` | which function and its arguments | 1 | Function calling |
 | `verifyRecord` | whether anything in an extracted record is wrong | 1 | SDE cascade |
 | `checkClaim` | whether a source supports, contradicts or ignores a claim | 0–1 | Double-checking citations |
 | `search` | which line of a document answers a query, and whether any does | 1–2 | Line-by-line search |
 | `rerank` | a shortlist in order of best match | 1 per candidate (or group) | Re-ranking |
+| `rankByScore` | a list in order by a judgement you can write as levels (relevance, quality, readability) | 1 | — (graded rating, sorted by expected level) |
+| `rankPairwise` | a list in order by a judgement made side by side (relevance, quality, closeness) | 1 | — (pairwise comparison, Bradley–Terry) |
 | `matchRecords` | whether two records describe the same thing | 1 | Knowledge graph entity alignment |
 | `screen` | which flags a message raises, and what to do | 1 | Guardrails for LLMs |
 | `filterPassages` | which retrieved passages to give an answering model | 1 per passage | Classifying RAG passages |
@@ -53,8 +62,30 @@ that need more than one request (a pick among many, a search) take the client an
 
 Every value `extractValue` returns is text that's really in the input: code finds the candidates
 (a pattern, a list of names) and Jev picks which plays the role, so there's nothing to hallucinate.
-`extractDate` works the same way on the parts of a date. The methods have offline tests and a few
-live smoke checks each; they haven't been through evals of their own yet.
+`extractDate` works the same way on the parts of a date.
+
+Each method has offline tests, a few live smoke checks, and an eval of its own in our internal
+set, with Jev's answers cached so every change is measured on the same inputs. What those evals
+taught, in the code:
+
+- **One Choice beats a walk.** `classify` with the leaves as labels and their parents for back-off
+  was right far more often than `classifyTree`; use the tree only when the leaves don't fit in one
+  Choice. The same held for `pickOne` against `classify` with a "none" option. `pickOne`'s gate
+  questions did little and its fit check does the work, so its threshold is the one to tune.
+- **Examples beat descriptions.** Written descriptions mostly made `classify` surer (far fewer
+  back-offs) without making it much more accurate, while two real examples per label raised
+  accuracy and cut confident wrong answers, for a longer request. Name labels well, give each a few
+  real examples, and write `not_for` for the pairs you see confused.
+- **Thresholds come from data, not the cookbooks.** `verifyRecord` flags at 0.8, which catches as
+  many errors as 0.7 with fewer false alarms. `search` calls a question unanswered under 0.7, with
+  its existence question rewritten against the usual failure: lines on the topic without the
+  answer. `pickOne` picks nothing when the best fit is under 0.7.
+- **Dates come in more shapes than the cookbook's seven parts.** Customer messages count from today
+  ("in three days", "two weeks ago"), name a month's end, and give a bare day of the month;
+  `extractDate` asks for those parts too.
+- **A block can't be typed alone.** With the markers gone, a list of full sentences looks like
+  paragraphs one block at a time; `recoverStructure` also asks whether each pair of neighbours are
+  entries of the same list and types the run together.
 
 ## Underneath
 
@@ -93,17 +124,37 @@ const cafe = defineMenu({
   place: "a coffee counter",
   items: { drink: {}, pastry: {} },
   fields: {
-    drink: { items: ["drink"], names: true, values: { LATTE: ["latte", "lattes"], AMERICANO: ["americano"] } },
-    size: { items: ["drink"], values: { SMALL: ["small"], LARGE: ["large", "big"] } },
-    extras: { items: ["drink"], many: true, amounts: true, values: { SHOT: ["shot", "espresso shot"], FOAM: ["foam"] } },
-    pastry: { items: ["pastry"], names: true, values: { CROISSANT: ["croissant", "croissants"] } },
+    drink: {
+      items: ["drink"],
+      names: true,
+      values: { LATTE: ["latte", "lattes"], AMERICANO: ["americano"] },
+    },
+    size: {
+      items: ["drink"],
+      values: { SMALL: ["small"], LARGE: ["large", "big"] },
+    },
+    extras: {
+      items: ["drink"],
+      many: true,
+      amounts: true,
+      values: { SHOT: ["shot", "espresso shot"], FOAM: ["foam"] },
+    },
+    pastry: {
+      items: ["pastry"],
+      names: true,
+      values: { CROISSANT: ["croissant", "croissants"] },
+    },
   },
 });
 
-const order = await takeOrder("a large latte with an extra shot and no foam and two croissants", cafe, client);
+const order = await takeOrder(
+  "a large latte with an extra shot and no foam and two croissants",
+  cafe,
+  client,
+);
 order.readBack; // ["1 large latte with extra shot and no foam", "2 croissants"]
 order.accept;   // true when every check answer says the order is probably right
-order.confirm;  // otherwise, which items to read back, and whether to ask "anything else?"
+order.confirm;  // otherwise: which items to read back, and whether to ask for more
 ```
 
 Code looks every word up in the menu; Jev tags the words the menu doesn't know, in one request;
@@ -115,3 +166,8 @@ haven't been through evals yet.
 
 The service agent uses it for menu slots, with the `partial` option that keeps the parts of a
 message that change an order without naming an item ("a medium", "no onions").
+
+The order taker is built from the methods above: `choose` for each word and for the pick between
+two readings, `check` for the read-back, sent together with `runAll`. Its questions are written
+out in full rather than taken from the defaults (each method takes its question as a function of
+the text's `Ref`), so what it asks is exactly what was measured.

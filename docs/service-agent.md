@@ -12,6 +12,10 @@ played back against a scripted customer, scored on whether it finished with the 
 made no wrong one. It's an alpha, and it hasn't run on live chats yet, but we think it's ready to
 play with.
 
+> [!TIP]
+> New to it? [The tutorial](tutorials/service-agent.md) builds a service step by step, in the order
+> the needs come up. This page is the reference.
+
 ## A service is data
 
 ```ts
@@ -19,13 +23,24 @@ import { defineService } from "question-kit/service-agent";
 
 const service = defineService({
   intents: {
-    refund: { name: "Refund", description: "The customer wants money back for an order.", examples: ["I want a refund"] },
-    hours: { name: "Opening hours", description: "The customer asks when the store is open.", aside: true },
+    refund: {
+      name: "Refund",
+      description: "The customer wants money back for an order.",
+      examples: ["I want a refund"],
+    },
+    hours: {
+      name: "Opening hours",
+      description: "The customer asks when the store is open.",
+      aside: true,
+    },
   },
   slots: {
     order_id: { label: "order ID", pattern: /\b\d{10}\b/g, format: "10 digits" },
     email: { label: "email address", pattern: "email" },
-    method: { label: "refund method", options: { card: "back to the card", credit: "store credit" } },
+    method: {
+      label: "refund method",
+      options: { card: "back to the card", credit: "store credit" },
+    },
   },
   tools: {
     "look-up-order": { description: "look up the order", needs: ["order_id", "email"] },
@@ -43,12 +58,14 @@ slots exist, a change isn't marked skippable) and throws a list of problems if n
 
 **Intents** are what customers come for: a name, the company's description, a few examples, a
 `notFor` to keep look-alikes apart ("ordering a drink: that's an order"), and optionally the
-written procedure, conditions included ("If the item has shipped, refund part of the
-fee; otherwise waive it"). Jev reads the procedure when it has to pick an optional step. An intent
-marked `aside: true` is a question the customer may ask at any point (opening hours, the menu): it's
-answered and the conversation carries on where it was, at the start (the agent then asks what they
-need) or in the middle of another request. An aside's procedure can only say things and call tools
-that need no values; every message is read for asides once the conversation is under way.
+written procedure, conditions included ("If the item has shipped, refund part of the fee;
+otherwise waive it"). Jev reads the procedure when it has to pick an optional step.
+
+An intent marked `aside: true` is a question the customer may ask at any point (opening hours, the
+menu). It's answered and the conversation carries on where it was: at the start (the agent then
+asks what they need) or in the middle of another request. An aside's procedure can only say things
+and call tools that need no values; every message is read for asides once the conversation is
+under way.
 
 **Slots** are the values to collect. Each says how its value is found:
 
@@ -93,7 +110,12 @@ async function onMessage(text: string) {
   let r = await turn(service, log, { type: "customer", text }, { client });
   while (r.action.type === "call") {
     const result = await runTool(r.action.tool, r.action.values); // your code
-    r = await turn(service, r.log, { type: "result", tool: r.action.tool, step: r.action.step, ...result }, { client });
+    r = await turn(
+      service,
+      r.log,
+      { type: "result", tool: r.action.tool, step: r.action.step, ...result },
+      { client },
+    );
   }
   log = r.log;
   return r.messages; // what the agent says this turn
@@ -108,11 +130,21 @@ with the tool's values; you run it and send back a result: `ok`, and optionally
 - `records`, lists for `from` slots to pick among (the order's lines, each with an `id` and `text`);
 - `say`, what to tell the customer about it ("Got it: 2 large pizzas.").
 
-The other actions wait for the customer: `ask-intent`, `clarify` (which of these?), `ask` (for one
-or more values), `check-value` ("is your order ID …?"), `confirm` (a change read back), `ask-fixed`
-(did that fix it?), `repeat-ask` (anything else?), `repeat-check` (the records read back: is that
-right?), `wrap-up`; and two end the chat: `done` and
-`handoff`, with a reason.
+The other actions wait for the customer:
+
+| Action | What the agent is waiting for |
+| --- | --- |
+| `ask-intent` | what the customer needs |
+| `clarify` | which of a few intents they mean |
+| `ask` | one or more values |
+| `check-value` | a value confirmed ("is your order ID …?") |
+| `confirm` | a yes, a no or a correction to a change read back |
+| `ask-fixed` | whether a troubleshooting step fixed it |
+| `repeat-ask` | anything else, in a repeat step |
+| `repeat-check` | whether the records read back are right |
+| `wrap-up` | anything else, once the procedure is through |
+
+Two end the chat: `done`, and `handoff` with a reason.
 
 ### The log is the state
 
@@ -131,11 +163,18 @@ Everything the agent says comes from a `Templates` object; pass your own in `opt
 import { defaultTemplates, type Templates } from "question-kit/service-agent";
 
 const wording: Partial<Templates> = {
-  confirm: (_tool, values) => `Send it to the kitchen and text ${values.find((v) => v.label === "phone number")?.value} when it's ready?`,
+  confirm: (_tool, values) => {
+    const phone = values.find((v) => v.label === "phone number")?.value;
+    return `Send it to the kitchen and text ${phone} when it's ready?`;
+  },
   done: () => "Thanks! Grab a seat.",
   handoff: () => "Let me get someone to help you at the counter.",
 };
-await turn(service, log, input, { client, templates: { ...defaultTemplates, ...wording } });
+
+await turn(service, log, input, {
+  client,
+  templates: { ...defaultTemplates, ...wording },
+});
 ```
 
 ### Watching it work
@@ -161,6 +200,7 @@ decision is reported: which reading, its confidence, the threshold, and what the
 
 ## What it doesn't do yet
 
-Replies written by a model; a customer changing topic mid-chat (a second request goes to a
-person); a value needed only in some cases (an address only for deliveries); learning the steps of
-a procedure from past chats.
+- replies written by a model;
+- a customer changing topic mid-chat (a second request goes to a person);
+- a value needed only in some cases (an address only for deliveries);
+- learning the steps of a procedure from past chats.

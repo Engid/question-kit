@@ -1,8 +1,14 @@
 # question-kit
 
-**Tool kits for System One models.** For now that means [Jev](https://docs.typesafe.ai), from TypeSafe.
+**The standard library for System One models.** For now that means [Jev](https://docs.typesafe.ai),
+from TypeSafe ([model support](#model-support)).
 
-see [model support](#model-support).
+**Built by measurement, not guesswork:** the core methods are developed against thousands of
+labeled cases, from public benchmarks and our own test sets, and tuned on what the results show.
+See [how it was built](#how-it-was-built).
+
+TypeScript is the full kit. A [Python port](python/README.md) is in preview: the core plumbing and a
+first set of methods, on PyPI as `question-kit`.
 
 > **Alpha.** question-kit is new, and its APIs will change between 0.x releases. Please try
 > it and tell us what breaks or feels awkward: [open an issue](https://github.com/Engid/question-kit/issues).
@@ -126,14 +132,15 @@ await run(client, extractValue("about order 4410982, zip 94110", { kind: "number
 // { value: "4410982", … }: always text that's really in the message
 await run(client, extractDate("it was due last Friday", { role: "the date it was due", today: "2026-10-07" }));
 // { date: "2026-10-02", … }: Jev reads the parts, code does the calendar
-await pickOne(client, "the blender still hasn't come", customerOrders, { noun: "order" });
+await pickOne(client, "the blender still hasn't come", customerOrders, { noun: "order", fitsBelow: 0.2 });
 // { value: "4410982", … }, or null when none of them fits
 ```
 
 `classify`, `classifyTree`, `pickOne`, `extractValue`, `extractDate`, `callFunction`,
 `verifyRecord`, `checkClaim`, `search`, `rerank`, `matchRecords`, `screen`, `filterPassages`,
 `recoverStructure`, `rubric`, `featurize`, `stability`: each follows one of TypeSafe's
-[cookbooks](https://docs.typesafe.ai/cookbooks). The [package README](packages/question-kit/README.md)
+[cookbooks](https://docs.typesafe.ai/cookbooks). `rankByScore` and `rankPairwise` put a list in
+order, by levels you write or by comparing pairs. The [package README](packages/question-kit/README.md)
 has every one with examples, and the pieces they're made of: named state parts, question helpers,
 readings with TypeSafe's confidence formulas, a lint that catches badly formed questions before
 anything is sent, a cache, and a client for TypeSafe's API with retries and pacing.
@@ -151,6 +158,8 @@ option.
 npm install question-kit @typesafe-ai/sdk
 ```
 
+For Python (preview): `pip install "question-kit[typesafe]"`; see [`python/`](python/README.md).
+
 One package, three entries: `question-kit` (the building blocks), `question-kit/service-agent`
 and `question-kit/order`, plus `question-kit/typesafe`, `question-kit/cache` and
 `question-kit/node`. Node 20 or later, or Bun; plain ES modules with type declarations; all of it
@@ -160,10 +169,18 @@ keeps answers on disk so re-runs are free.
 
 ## Docs
 
-The guide is Markdown in [`docs/`](docs/index.md): [getting started](docs/getting-started.md),
+The docs are at **[docs.questionkit.dev](https://docs.questionkit.dev)**, and as Markdown in
+[`docs/`](docs/index.md): [getting started](docs/getting-started.md),
 [building an agent](docs/service-agent.md), [the pizza shop, step by step](docs/pizza-shop.md),
 [how the agent decides](docs/how-the-agent-decides.md), and
-[the building blocks](docs/building-blocks.md). A docs site is coming at questionkit.dev.
+[the building blocks](docs/building-blocks.md). Two tutorials build something from start to finish:
+[sorting a support inbox with the core](docs/tutorials/triage.md) and
+[building a service agent](docs/tutorials/service-agent.md).
+
+If you build with a coding agent, the package ships a skill for it: `skills/question-kit/SKILL.md`
+(in `node_modules/question-kit/` after an install, or `npx skills add Engid/question-kit` from
+this repository) tells an agent how to think in Jev's questions, which method to reach for, and
+the traps, with every export listed beside it.
 
 ## Model support
 
@@ -175,9 +192,12 @@ models may come later, each measured the same way.
 
 ## How it was built
 
-Every design here was chosen by measurement: we write the answers down first, run each design
-against them with answers cached, and keep what scores best. The evals aren't public, but the
-lessons they taught are all over the code:
+Every design here was chosen by measurement. We write the answers down first, run each design
+against them with Jev's answers cached (so every change is measured on the same inputs), and keep
+what scores best. That's thousands of labeled cases across the core methods, from public
+benchmarks where one fits the task and our own test sets where none does, plus recorded
+customer-service conversations for the agent. The evals themselves are private, but the lessons
+they taught are all over the code:
 
 - **Let code handle structure; ask Jev to classify.** Jev is very good at "which of these is this
   word?" and much weaker at "which of these words does this one attach to"; so code groups, Jev
@@ -197,8 +217,10 @@ lessons they taught are all over the code:
 
 ```
 packages/     the question-kit package: core/, order/ and service-agent/, one entry each
-examples/     the pizza shop (terminal and web), an outdoor store's support chat, a one-message order taker
-docs/         the guide, as Markdown
+examples/     the pizza shop (terminal and web), an outdoor store's support chat, a support-inbox triage, a one-message order taker
+docs/         the guide and the tutorials, as Markdown
+skills/       the skill for coding agents (a mirror of the package's; a test keeps them identical)
+python/       the Python port (preview): its own package, tests and skill, built to send the same requests
 smoke/        a few live checks per core method
 test/         offline unit tests
 ```
@@ -207,7 +229,7 @@ test/         offline unit tests
 bun install
 bun run typecheck && bun test        # offline
 bun run build                        # dist/ for the package
-bun run smoke --client record        # the core methods' live checks (59 requests, about $0.002)
+bun run smoke --client record        # the core methods' live checks (64 requests, about $0.002)
 ```
 
 ## Contributing

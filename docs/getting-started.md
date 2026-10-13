@@ -4,15 +4,31 @@
 
 ```sh
 npm install question-kit @typesafe-ai/sdk
+# or
+bun add question-kit @typesafe-ai/sdk
 ```
 
-One package with an entry per kit: `question-kit` is the core, `question-kit/service-agent` the
-agent, `question-kit/order` the order taker. TypeSafe's SDK is an optional peer: it's what
-`question-kit/typesafe` wraps, and you can leave it out if you bring your own client.
+One package, with an entry per kit:
 
-Node 20 or later, or Bun. It's plain ES modules with type declarations, and the core, the order kit
-and the agent all bundle for the browser (the key still belongs on a server; the
-pizza shop's [web page](pizza-shop.md#the-web-page) shows the shape).
+| Entry | What it is |
+| --- | --- |
+| `question-kit` | the core: the building blocks |
+| `question-kit/service-agent` | the service agent |
+| `question-kit/order` | the order taker |
+| `question-kit/typesafe` | a client for TypeSafe's API, with retries and pacing |
+| `question-kit/cache` | an answer cache on disk, to record and replay |
+| `question-kit/node` | Node-only helpers, like a recorder that writes a file |
+
+TypeSafe's SDK is an optional peer: it's what `question-kit/typesafe` wraps, and you can leave it
+out if you bring your own client.
+
+It runs on Node 20 or later, or Bun. It's plain ES modules with type declarations, and the core, the
+order kit and the agent all bundle for the browser.
+
+> [!WARNING]
+> Bundling for the browser doesn't mean calling Jev from it: the API key belongs on a server. The
+> pizza shop's [web page](pizza-shop.md#the-web-page) shows the shape, with a small server that
+> forwards the requests.
 
 ## Connect Jev
 
@@ -23,9 +39,12 @@ const client = typesafeJev(); // reads TYPESAFE_API_KEY
 ```
 
 Everything in question-kit takes a `client`: any object with a `systemOne(request)` method that
-returns Jev's answers (the type is `SystemOneClient`). `typesafeJev()` is TypeSafe's SDK with
-retries and pacing set for batch work; `cachedJev(client, dir)` from `question-kit/cache` keeps
-every answer on disk so re-runs are free and repeatable; `fakeJev(answer)` is for tests.
+returns Jev's answers (the type is `SystemOneClient`). Three come with it:
+
+- **`typesafeJev()`** is TypeSafe's SDK with retries and pacing set for batch work.
+- **`cachedJev(client, dir)`**, from `question-kit/cache`, keeps every answer on disk, so re-runs
+  are free and repeatable.
+- **`fakeJev(answer)`** answers from a function you write, for tests.
 
 ## A first question
 
@@ -40,9 +59,12 @@ const intent = await run(
     account: "Logging in, passwords, account details",
   }),
 );
-intent.value; // "shipping"
-intent.confidence; // 0.97, by TypeSafe's confidence formula (how far the top probability is above an even spread)
+intent.value;      // "shipping"
+intent.confidence; // 0.97
 ```
+
+The confidence is TypeSafe's formula: how far the top probability is above an even spread, from 0
+to 1.
 
 `classify` builds one Choice question with your labels (and a "none" option, since a message may
 fit none of them), points it at the text, sends it, and reads the answer back with its confidence.
@@ -64,5 +86,8 @@ r.upset.value; // true or false, with r.upset.confidence
 
 ## Where to go next
 
-- [Building an agent](service-agent.md), if you're here for the service agent.
-- [The building blocks](building-blocks.md), for every method and the pieces underneath.
+- **[Sort a support inbox](tutorials/triage.md)**, a tutorial: five methods composed into one
+  request per message, start to finish.
+- **[Build a service agent](tutorials/service-agent.md)**, a tutorial, if you're here for the
+  agent.
+- **[The building blocks](building-blocks.md)**, for every method and the pieces underneath.

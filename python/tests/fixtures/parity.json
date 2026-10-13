@@ -1,0 +1,539 @@
+{
+  "classify/plain": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "label": {
+        "type": "choice",
+        "instructions": "Which of these best describes `text`?",
+        "criteria": {
+          "shipping": "Where an order is",
+          "refund": "Money back for an order",
+          "none": "None of these fit."
+        }
+      }
+    },
+    "key": "738a6d7ad54abb27fc4ea327c0616fe00b67e3f2521ff1ade9102484c315b80d",
+    "keyWithModel": "91fa5e453b8d325d81607bf37716a1e9174e3646e2b682a3eb597e63ba7c9421"
+  },
+  "classify/specs": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "label": {
+        "type": "choice",
+        "instructions": "About `text`: Which queue should this go to?",
+        "criteria": {
+          "where_is_it": {
+            "what": "Asking where an order is.",
+            "examples": [
+              "where's my order?",
+              "it was due Friday"
+            ]
+          },
+          "cancel": {
+            "what": "Wants to cancel an order.",
+            "not_for": "returning something delivered",
+            "examples": [
+              "cancel order 4410982"
+            ]
+          },
+          "question": {
+            "what": "A question about the store.",
+            "not_for": "one of their own orders"
+          },
+          "none": "Something else."
+        }
+      }
+    },
+    "key": "c779493cc8552e99fc3d3c7ca829d3e98c56396d7004a9b754be33b6c2cb2401",
+    "keyWithModel": "cbc3917698c524d15bf5b19730d4e3fa452aff36d9aaef53fc725358d42a9986"
+  },
+  "classify/no-none": {
+    "state": {
+      "text": "hello"
+    },
+    "questions": {
+      "label": {
+        "type": "choice",
+        "instructions": "Which of these best describes `text`?",
+        "criteria": {
+          "a": "A",
+          "b": "B"
+        }
+      }
+    },
+    "key": "f89110144b5f51b01b09c58f799fb26970fad0b386ed2854fd616ddcf2727a64",
+    "keyWithModel": "d59d7be0c1319dd480d3e309a2fbe18cb8dbe1a6664fa4989231edeff71e6b63"
+  },
+  "extractValue/number": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "value": {
+        "type": "choice",
+        "instructions": "Which of these is the order number, as given in `text`? Choose \"none\" if it doesn't give the order number.",
+        "criteria": {
+          "4410982": null,
+          "555-0100": null,
+          "none": "None of these is the order number."
+        }
+      }
+    },
+    "key": "38b5c76068050d6b7065ce1cf1cb076737ac4b0351f3aa2bf16cb46b7ce02a5f",
+    "keyWithModel": "daa7fa74a764fc03bb92c6fe7fd9d87e95626b391bfc0f2c07cfe0f8207583b8"
+  },
+  "extractValue/email": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "value": {
+        "type": "choice",
+        "instructions": "Which of these is the email for the receipt, as given in `text`? Choose \"none\" if it doesn't give the email for the receipt.",
+        "criteria": {
+          "Ana.Diaz@Example.com": null,
+          "none": "None of these is the email for the receipt."
+        }
+      }
+    },
+    "key": "8f359b89e5ab96e759570d3d75421b797b7827cdce2c3381275cbc5fc8f71f59",
+    "keyWithModel": "00bba8a26bbe3fd6f8a3a92b70b2c6b95026e55ac9a7c125706b6943b711dc7a"
+  },
+  "extractValue/phone": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "value": {
+        "type": "choice",
+        "instructions": "Which of these is the phone number, as given in `text`? Choose \"none\" if it doesn't give the phone number.",
+        "criteria": {
+          "(479) 555-0100": null,
+          "none": "None of these is the phone number."
+        }
+      }
+    },
+    "key": "e806ee827e47cfb6b3947efd0d1be529b4c865f7191205d6b9762d8d2ad2694e",
+    "keyWithModel": "8bf9924a6b345b4b0bb57501da45140a5940285d1d6e2433436d074b30c815e9"
+  },
+  "extractValue/names": {
+    "state": {
+      "text": "dave said hi"
+    },
+    "questions": {
+      "value": {
+        "type": "choice",
+        "instructions": "Which of these is the customer's name, going by `text`? It counts if the text refers to it in a shorter or different form, like a first name. Choose \"none\" if it's none of them.",
+        "criteria": {
+          "David Minh": null,
+          "Crystal Minh": null,
+          "none (as written)": null,
+          "none": "None of these is the customer's name."
+        }
+      }
+    },
+    "key": "a0fb8f044b51a813e77da456113bbba270a1a27fc4f7a9e49519884ca844acc2",
+    "keyWithModel": "f3a5897d7b9bfc78b3b72176366668ac0f1dbd697cf933ec1b1276f3ba44f4cc"
+  },
+  "extractValue/regex": {
+    "state": {
+      "text": "codes AB-1234 and CD-5678."
+    },
+    "questions": {
+      "value": {
+        "type": "choice",
+        "instructions": "Which of these is the code to refund, as given in `text`? Choose \"none\" if it doesn't give the code to refund.",
+        "criteria": {
+          "AB-1234": null,
+          "CD-5678": null,
+          "none": "None of these is the code to refund."
+        }
+      }
+    },
+    "key": "39ba0dc277853062f194b873ab3713cd4d7db1b669aa79d41cf244ed1bc2629d",
+    "keyWithModel": "6e218d8ea6c8ef92e8ef16bfe03765709c3da2d413d89fc48ccbfe5710f7d9ce"
+  },
+  "extractValue/empty": {
+    "state": {},
+    "questions": {},
+    "key": "b2921b92697d67a9b63781f9a89f7afd964fb8e61c8df7aa819e64232603951e",
+    "keyWithModel": "2743ca8c83c0ad839d7a26e9f00fe76f720615d3e0f48d9035e9114731b54bfe"
+  },
+  "screen/flags": {
+    "state": {
+      "message": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "wants_person": {
+        "type": "noul",
+        "instructions": "About `message`: The customer asks to talk to a person."
+      },
+      "will_leave": {
+        "type": "noul",
+        "instructions": "About `message`: The customer says they will stop shopping here.",
+        "criteria": {
+          "true": "They say they're leaving."
+        }
+      },
+      "__severity": {
+        "type": "score",
+        "instructions": "About `message`: How upset is the customer?",
+        "criteria": [
+          "Calm.",
+          "Annoyed.",
+          "Angry."
+        ]
+      }
+    },
+    "key": "cc165fd79532d6b7308d29b2025987d0a2dcdd26d68ef648ba8e2586831aa820",
+    "keyWithModel": "639251c17e9955efdfbee2b1ea212aec3d919679e3108d6b37c6f1a9d5553836"
+  },
+  "rankByScore/query": {
+    "state": {
+      "items": {
+        "i1": "Reset it from the login page.",
+        "i2": {
+          "title": "Shipping",
+          "body": "5 to 7 days"
+        },
+        "i3": 42,
+        "i4": 2.5,
+        "i5": 1e-7,
+        "i6": true,
+        "i7": null
+      },
+      "query": "how do I reset my password?"
+    },
+    "questions": {
+      "i1": {
+        "type": "score",
+        "instructions": "How relevant is `items.i1` to `query`?",
+        "criteria": [
+          "Unrelated to the query.",
+          "Related, but doesn't answer it.",
+          "Answers part of it.",
+          "Answers it exactly."
+        ]
+      },
+      "i2": {
+        "type": "score",
+        "instructions": "How relevant is `items.i2` to `query`?",
+        "criteria": [
+          "Unrelated to the query.",
+          "Related, but doesn't answer it.",
+          "Answers part of it.",
+          "Answers it exactly."
+        ]
+      },
+      "i3": {
+        "type": "score",
+        "instructions": "How relevant is `items.i3` to `query`?",
+        "criteria": [
+          "Unrelated to the query.",
+          "Related, but doesn't answer it.",
+          "Answers part of it.",
+          "Answers it exactly."
+        ]
+      },
+      "i4": {
+        "type": "score",
+        "instructions": "How relevant is `items.i4` to `query`?",
+        "criteria": [
+          "Unrelated to the query.",
+          "Related, but doesn't answer it.",
+          "Answers part of it.",
+          "Answers it exactly."
+        ]
+      },
+      "i5": {
+        "type": "score",
+        "instructions": "How relevant is `items.i5` to `query`?",
+        "criteria": [
+          "Unrelated to the query.",
+          "Related, but doesn't answer it.",
+          "Answers part of it.",
+          "Answers it exactly."
+        ]
+      },
+      "i6": {
+        "type": "score",
+        "instructions": "How relevant is `items.i6` to `query`?",
+        "criteria": [
+          "Unrelated to the query.",
+          "Related, but doesn't answer it.",
+          "Answers part of it.",
+          "Answers it exactly."
+        ]
+      },
+      "i7": {
+        "type": "score",
+        "instructions": "How relevant is `items.i7` to `query`?",
+        "criteria": [
+          "Unrelated to the query.",
+          "Related, but doesn't answer it.",
+          "Answers part of it.",
+          "Answers it exactly."
+        ]
+      }
+    },
+    "key": "b36001ba6855016a064c6ebfe233f0e95fac24298d3c9e786a89afb9b6fe0d7e",
+    "keyWithModel": "7165d841083e8574611d52eb1b555df6fab2a0ba1736d6b1421010da70afa5df"
+  },
+  "rankByScore/question": {
+    "state": {
+      "texts": {
+        "i1": "a",
+        "i2": "b"
+      }
+    },
+    "questions": {
+      "i1": {
+        "type": "score",
+        "instructions": "About `texts.i1`: How formal is it?",
+        "criteria": [
+          {
+            "level": "casual"
+          },
+          {
+            "level": "formal"
+          }
+        ]
+      },
+      "i2": {
+        "type": "score",
+        "instructions": "About `texts.i2`: How formal is it?",
+        "criteria": [
+          {
+            "level": "casual"
+          },
+          {
+            "level": "formal"
+          }
+        ]
+      }
+    },
+    "key": "c25594037277c43ca61e197a1242a0e4149c503d9ecfa1c5eba08d0abaa31969",
+    "keyWithModel": "e0bb21f83930e0472804c513a1c91bd06e4601494b8905d5f5f76315cef1dc4f"
+  },
+  "rankByScore/function": {
+    "state": {
+      "items": {
+        "i1": "a",
+        "i2": "b",
+        "i3": "c"
+      },
+      "query": {
+        "q": "x"
+      }
+    },
+    "questions": {
+      "i1": {
+        "type": "score",
+        "instructions": "Is `items.i1` a better answer to `query` than most?",
+        "criteria": [
+          "No.",
+          "Yes."
+        ]
+      },
+      "i2": {
+        "type": "score",
+        "instructions": "Is `items.i2` a better answer to `query` than most?",
+        "criteria": [
+          "No.",
+          "Yes."
+        ]
+      },
+      "i3": {
+        "type": "score",
+        "instructions": "Is `items.i3` a better answer to `query` than most?",
+        "criteria": [
+          "No.",
+          "Yes."
+        ]
+      }
+    },
+    "key": "c43e746057c331afe644d6257138398d29988143730c5ed9fbd86b1412414ece",
+    "keyWithModel": "1be4058b01d5724af14431fc60391d50e4fc0e4afa2d17ddae704c4adabd5af0"
+  },
+  "check": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "check": {
+        "type": "noul",
+        "instructions": "About `text`: The customer is upset.",
+        "criteria": {
+          "true": "Upset.",
+          "false": "Calm."
+        }
+      }
+    },
+    "key": "5dcc8cffd9deeec87364519b2d012e3922690920aa3a9d6035dae6f4589a4904",
+    "keyWithModel": "aa9addbf56a6ec4cc28b397069ba10dd37a98ec7a13f2ea24d622e90d8e0d9c1"
+  },
+  "check/function": {
+    "state": {
+      "text": "text here"
+    },
+    "questions": {
+      "check": {
+        "type": "noul",
+        "instructions": "Is `text` written in English?"
+      }
+    },
+    "key": "c26b6b2891e72423d24f81e9eab91f7790a465f0b8286d7dbf36217ac27af734",
+    "keyWithModel": "fa90e973664942249e7330890177c1e8eb0f082842acc3e837c8fecfef3c21b2"
+  },
+  "checks": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "upset": {
+        "type": "noul",
+        "instructions": "About `text`: The customer is upset."
+      },
+      "late": {
+        "type": "noul",
+        "instructions": "About `text`: The order is late.",
+        "criteria": {
+          "true": "It's late."
+        }
+      },
+      "whole": {
+        "type": "noul",
+        "instructions": "Does `text` mention a phone number?"
+      }
+    },
+    "key": "9cddf23cbce908e00ef3628b6bcff0592b57d17173b21ce54bbf0ab4c39c530d",
+    "keyWithModel": "609d53ba812b1d9204ca6398b43c4bdb0c9a9b7349763594af5dff466070d0c4"
+  },
+  "choose/default": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "choice": {
+        "type": "choice",
+        "instructions": "Which of these best fits `text`?",
+        "criteria": {
+          "a": "Option A",
+          "b": {
+            "what": "Option B",
+            "examples": [
+              "b!"
+            ]
+          },
+          "none": "None of these fit."
+        }
+      }
+    },
+    "key": "00af0591359afb8180201658e388fcbd1fea78f33e03ea01e225beb9ab2e7ae9",
+    "keyWithModel": "75f6a1946335b136a1d3f831ed9ec5855ad0d8671c5dc22abd55d531506655e8"
+  },
+  "choose/question": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "choice": {
+        "type": "choice",
+        "instructions": "Pick for `text`.",
+        "criteria": {
+          "a": "A",
+          "b": "B"
+        }
+      }
+    },
+    "key": "d1b3948e04e01991b84b3298a82ec919d73647ea379faa84f01726e8e688bf04",
+    "keyWithModel": "b74ec2d0002b00eb70476588ba83576713ff8d5d82a2034052400dcdc9f65f3f"
+  },
+  "rate": {
+    "state": {
+      "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "score": {
+        "type": "score",
+        "instructions": "About `text`: How urgent is it?",
+        "criteria": [
+          "Not urgent.",
+          "Somewhat.",
+          "Very."
+        ]
+      }
+    },
+    "key": "e2624390c9974ba51149d355e6250fed0c8ec29590db20e5401993f18415c6b8",
+    "keyWithModel": "b5864fa1c7855259302af684f2691414ca6e4159707d8665894090bc764dd5c2"
+  },
+  "requestAll/triage": {
+    "state": {
+      "message": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+    },
+    "questions": {
+      "intent::label": {
+        "type": "choice",
+        "instructions": "Which of these best describes `message`?",
+        "criteria": {
+          "shipping": "Where an order is",
+          "refund": "Money back",
+          "none": "None of these fit."
+        }
+      },
+      "order::value": {
+        "type": "choice",
+        "instructions": "Which of these is the customer's order number, as given in `message`? Choose \"none\" if it doesn't give the customer's order number.",
+        "criteria": {
+          "4410982": null,
+          "none": "None of these is the customer's order number."
+        }
+      },
+      "flags::wants_person": {
+        "type": "noul",
+        "instructions": "About `message`: The customer asks for a person."
+      }
+    },
+    "key": "d9811c0d2208495aeaf016ac62fbf27c3fe02993c3943859c9ce799f94eb7bb8",
+    "keyWithModel": "fb861101fcedf83e771b3c5fd0ada387a80b615cf22d781f1249d8fed0d0849d"
+  },
+  "requestAll/shared-text": {
+    "state": {
+      "a": {
+        "text": "Hi, order 4410982 was due \"last Friday\" and it still isn't here.\nCall me at (479) 555-0100 or email Ana.Diaz@Example.com 🙂"
+      },
+      "c": {
+        "text": "other text"
+      }
+    },
+    "questions": {
+      "a::check": {
+        "type": "noul",
+        "instructions": "About `a.text`: The customer is upset."
+      },
+      "b::choice": {
+        "type": "choice",
+        "instructions": "Which of these best fits `a.text`?",
+        "criteria": {
+          "x": "X",
+          "y": "Y",
+          "none": "None of these fit."
+        }
+      },
+      "c::score": {
+        "type": "score",
+        "instructions": "About `c.text`: How long is it?",
+        "criteria": [
+          "Short.",
+          "Long."
+        ]
+      }
+    },
+    "key": "a6c01e5855a94ee61995adf8b0658d7c4beb0dc83d4692802cb0e8679e9c22bc",
+    "keyWithModel": "909ef08648d64280e52debe88938df017fe15580b8285bf31dc68fb9b8a51eac"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "question-kit-repo",
   "version": "0.0.1",
-  "description": "question-kit: building kits for System One models, starting with Jev. The packages, examples and smoke checks.",
+  "description": "question-kit: the standard library for System One models, starting with Jev. The packages, examples, docs and smoke checks; the Python port is in python/.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -15,11 +15,15 @@
     "smoke": "bun smoke/run.ts",
     "order:pizza": "bun examples/order/pizza/take-order.ts",
     "service:chat": "bun examples/service-agent/chat.ts",
+    "triage": "bun examples/triage/triage.ts",
     "pizza": "bun examples/pizza-shop/chat.ts",
     "pizza:check": "bun examples/pizza-shop/check.ts",
     "pizza:web": "bun examples/pizza-shop/web/server.ts",
     "build": "bun run --cwd packages/question-kit build",
-    "clean": "rm -rf packages/question-kit/dist"
+    "clean": "rm -rf packages/question-kit/dist",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
     "question-kit": "workspace:*",
@@ -28,6 +32,7 @@
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/node": "^22",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "vitepress": "^1.6.4"
   }
 }

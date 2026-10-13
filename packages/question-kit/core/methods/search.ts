@@ -9,15 +9,40 @@
 import type { SystemOneCall, SystemOneClient } from "../system-one.ts";
 import { choice, noul } from "../questions.ts";
 import { readChoice, readNoul } from "../readings.ts";
+import type { Ref } from "../state.ts";
 import { run } from "../task.ts";
+
+/**
+ * Is the answer in the document at all? Phrased against the usual failure: lines about the same
+ * topic, or the same people and things, with the answer itself missing.
+ */
+function answeredQuestion(at: (name: string) => Ref) {
+  return noul(`Some line of ${at("document")} gives the answer to ${at("query")}: states it, or states a fact it follows from directly.`, {
+    true: "At least one line gives the answer itself.",
+    false: "The lines may be about the same topic, or mention the same people and things, but the answer to this question is not there.",
+  });
+}
 
 export interface SearchOptions {
   /** Found when the "answered" probability is at least this. Default 0.7. */
   foundAt?: number;
-  /** Not found when it's under this. Default 0.35. */
+  /**
+   * Not found when it's under this. Default 0.7, the same as `foundAt`, so by default a question is
+   * either answered or not found and "partly" needs a lower `absentBelow`. The cookbook's 0.35 was
+   * set on one document; on questions written to look answerable, 0.7 caught most of them for one
+   * lost answer in a hundred.
+   */
   absentBelow?: number;
   /** Lines per block for long documents. Default 60. */
   block?: number;
+  /**
+   * After the lines are ranked, ask in a second request whether the top line itself gives the
+   * answer, and take the lower of that and the whole-document answer as `answered`. Measured on
+   * questions written to look answerable, it caught a few more of them, lost a few answers, and
+   * cut confident wrong verdicts most of the way, at twice the requests; the default threshold
+   * above did better without it. Default false.
+   */
+  confirm?: boolean;
   /** How many lines to return. Default 5. */
   top?: number;
   log?: SystemOneCall[];
@@ -48,7 +73,7 @@ export async function search(client: SystemOneClient, document: string | string[
       client,
       {
         parts: { document: doc, query },
-        questions: (at) => ({ answered: noul(`Some line of ${at("document")} states or directly implies the answer to ${at("query")}.`) }),
+        questions: (at) => ({ answered: answeredQuestion(at) }),
         read: (a) => readNoul(a.answered).probability,
       },
       { log: opts.log, title: "search" },
@@ -68,7 +93,7 @@ export async function search(client: SystemOneClient, document: string | string[
             `Which block of lines in ${at("document")} contains the answer to ${at("query")}?`,
             Object.fromEntries(blocks.map((b, i) => [`B${i}`, `Lines ${b[0]!.id} to ${b.at(-1)!.id}`])),
           ),
-          answered: noul(`Some line of ${at("document")} states or directly implies the answer to ${at("query")}.`),
+          answered: answeredQuestion(at),
         }),
         read: (a) => ({ block: Number(readChoice(a.block).value.slice(1)), answered: readNoul(a.answered).probability }),
       },
@@ -93,16 +118,34 @@ export async function search(client: SystemOneClient, document: string | string[
       parts: { document: doc, query },
       questions: (at) => ({
         line: choice(`Which line of ${at("document")} contains the answer to ${at("query")}?`, Object.fromEntries(pool.map((l) => [l.id, null]))),
-        answered: noul(`Some line of ${at("document")} states or directly implies the answer to ${at("query")}.`, {
-          true: "At least one line states or directly implies the answer.",
-          false: "No line addresses this.",
-        }),
+        answered: answeredQuestion(at),
       }),
       read: (a) => ({ probs: readChoice(a.line).probabilities, answered: readNoul(a.answered).probability }),
     },
     { log: opts.log, title: "search" },
   );
   answered = res.answered;
+  if (opts.confirm) {
+    const top = Object.entries(res.probs).sort((x, y) => y[1] - x[1])[0]?.[0];
+    const line = pool.find((l) => l.id === top);
+    if (line) {
+      const check = await run(
+        client,
+        {
+          parts: { line: line.text, query },
+          questions: (at) => ({
+            gives: noul(`${at("line")} gives the answer to ${at("query")}: it states the answer, or a fact it follows from directly.`, {
+              true: "The answer is in this line.",
+              false: "The line is about the same topic, or mentions the same people and things, but the answer to this question is not in it.",
+            }),
+          }),
+          read: (a) => readNoul(a.gives).probability,
+        },
+        { log: opts.log, title: "search: confirm" },
+      );
+      answered = Math.min(answered, check);
+    }
+  }
   return result(pool, res.probs, answered, opts);
 }
 
@@ -111,6 +154,6 @@ function result(pool: { id: string; line: number; text: string }[], probs: Recor
     .map((l) => ({ ...l, probability: probs[l.id] ?? 0 }))
     .sort((x, y) => y.probability - x.probability)
     .slice(0, opts.top ?? 5);
-  const verdict = answered >= (opts.foundAt ?? 0.7) ? "answered" : answered < (opts.absentBelow ?? 0.35) ? "not found" : "partly";
+  const verdict = answered >= (opts.foundAt ?? 0.7) ? "answered" : answered < (opts.absentBelow ?? 0.7) ? "not found" : "partly";
   return { verdict, answered, lines };
 }

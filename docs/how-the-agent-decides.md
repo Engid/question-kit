@@ -26,12 +26,13 @@ A gate turns a reading into one of three outcomes, recorded in the log with the 
 | Which optional step | `policy` | 0.9 | A change Jev leans toward is offered anyway (the read-back is the offer, so the customer decides); any other step isn't taken. |
 | What a phrase calls for, in a repeat step | `repeat` | 0.7 | The pick isn't acted on; if nothing in the message was, the agent asks again. The gate is lower than `policy` because each call is read back by the app's reply and can be undone with the next message, so acting on a likely pick is the offer. |
 
-The `yesNo` gate is on |2p − 1|, so 0.6 means p ≥ 0.8 or p ≤ 0.2.
+The `yesNo` gate is on `|2p − 1|`, so 0.6 means p ≥ 0.8 or p ≤ 0.2.
 
 These are the defaults the agent ran with in our evals; `defineService` takes a `gates` option
-to change any of them. Lower gates act more and ask less; higher gates ask more and
-hand off more. The log records every decision, so you can see where your service lands before
-moving one.
+to change any of them. Lower gates act more and ask less; higher gates ask more and hand off more.
+
+> [!TIP]
+> The log records every decision, so you can see where your service lands before moving a gate.
 
 ## Read-backs
 
@@ -54,7 +55,7 @@ reads everything back and asks "Is that right?" before going on, and reads the r
 correction. So a wrong pick that got past the gate still has to get past the check and the
 customer.
 
-One more thing happens before that gate. When an earlier phrase in the same message took a
+One more thing happens before the `repeat` gate. When an earlier phrase in the same message took a
 record off ("scratch the sprites"), changing that record and adding are the same action ("make it
 two lemonades"), so their probabilities are counted together before the pick is read. In our
 recorded runs this turned a 0.65 / 0.34 split into one pick at 0.98.

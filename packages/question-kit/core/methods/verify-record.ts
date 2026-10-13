@@ -34,7 +34,11 @@ export interface FieldSpec {
 export type Check = "mismatch" | "unsupported" | "off_target" | "incomplete" | "format" | "missing" | "date";
 
 export interface VerifyOptions {
-  /** Flag the record when any check's probability is above this. Default 0.7. */
+  /**
+   * Flag the record when any check's probability is above this. Default 0.8: on records with one
+   * planted error, 0.8 caught as many errors as the cookbook's 0.7 and raised half as many false
+   * alarms on correct records.
+   */
   flagAbove?: number;
   /** Today's date, as YYYY-MM-DD. Needed for date fields. */
   today?: string;
@@ -48,6 +52,8 @@ export interface DateCheck {
   matches: boolean;
   /** The source gives the date without a year, so `found` uses the year the field expects. */
   yearGuessed: boolean;
+  /** The source gives only a day of the month, so `found` uses the month the field expects (and matching compares the day only). */
+  monthGuessed: boolean;
   /** How sure the reading of the source's date is. */
   confidence: number;
 }
@@ -155,7 +161,7 @@ export function verifyRecord(source: Text, schema: Record<string, FieldSpec>, re
       return qs;
     },
     read: (a) => {
-      const threshold = opts.flagAbove ?? 0.7;
+      const threshold = opts.flagAbove ?? 0.8;
       const all: { field: string; check: Check; probability: number }[] = asked.map(([field, check]) => ({ field, check, probability: readNoul(a[`${field}.${check}`]).probability }));
       const dates: Record<string, DateCheck> = {};
       const review: { field: string; note: string }[] = [];
@@ -168,21 +174,22 @@ export function verifyRecord(source: Text, schema: Record<string, FieldSpec>, re
         else if (got.review) review.push({ field, note: "the date in the source was read without confidence" });
         if (empty) {
           // Empty is wrong when the source gives a date.
-          dates[field] = { found: got.date, matches: got.date === null, yearGuessed: got.yearGuessed, confidence: got.confidence };
+          dates[field] = { found: got.date, matches: got.date === null, yearGuessed: got.yearGuessed, monthGuessed: got.monthGuessed, confidence: got.confidence };
           all.push({ field, check: "missing", probability: unread ? 0.5 : got.date !== null ? got.confidence : 1 - got.confidence });
           continue;
         }
         if (typeof v !== "string" || !isDate(v)) {
-          dates[field] = { found: got.date, matches: false, yearGuessed: got.yearGuessed, confidence: got.confidence };
+          dates[field] = { found: got.date, matches: false, yearGuessed: got.yearGuessed, monthGuessed: got.monthGuessed, confidence: got.confidence };
           all.push({ field, check: "format", probability: 1 });
           continue;
         }
-        const matches = got.date !== null && (got.yearGuessed ? v.slice(5) === got.date.slice(5) : v === got.date);
-        dates[field] = { found: got.date, matches, yearGuessed: got.yearGuessed, confidence: got.confidence };
+        const matches = got.date !== null && (got.monthGuessed ? v.slice(8) === got.date.slice(8) : got.yearGuessed ? v.slice(5) === got.date.slice(5) : v === got.date);
+        dates[field] = { found: got.date, matches, yearGuessed: got.yearGuessed, monthGuessed: got.monthGuessed, confidence: got.confidence };
         const probability = unread ? 0.5 : matches ? 1 - got.confidence : got.confidence;
         all.push({ field, check: "date", probability });
         if (!matches && !unread && probability <= threshold) review.push({ field, note: `the source seems to give ${got.date ?? "no date"}, but the reading isn't sure enough to flag it` });
         if (matches && got.yearGuessed && v.slice(0, 4) !== got.date!.slice(0, 4)) review.push({ field, note: `the source gives no year; the record says ${v.slice(0, 4)}, the expected year is ${got.date!.slice(0, 4)}` });
+        if (matches && got.monthGuessed && v.slice(0, 7) !== got.date!.slice(0, 7)) review.push({ field, note: `the source gives only a day of the month; the record says ${v.slice(0, 7)}, the expected month is ${got.date!.slice(0, 7)}` });
       }
       all.sort((x, y) => y.probability - x.probability);
       const flagged = all.filter((c) => c.probability > threshold);

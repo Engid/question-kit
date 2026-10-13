@@ -20,6 +20,8 @@ export * from "./methods/verify-record.ts";
 export * from "./methods/check-claim.ts";
 export * from "./methods/search.ts";
 export * from "./methods/rerank.ts";
+export * from "./methods/rank-pairwise.ts";
+export * from "./methods/rank-by-score.ts";
 export * from "./methods/match-records.ts";
 export * from "./methods/screen.ts";
 export * from "./methods/filter-passages.ts";
