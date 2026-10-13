@@ -1,7 +1,7 @@
 {
   "name": "question-kit",
   "version": "0.2.0",
-  "description": "Building kits for System One models, starting with Jev: a service agent you configure, an order taker, and the building blocks they're made of.",
+  "description": "The standard library for System One models, starting with Jev: ready-made methods built by measurement, an order taker, and a service agent you configure.",
   "type": "module",
   "license": "MIT",
   "author": "Nick Gideo",

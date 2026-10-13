@@ -24,7 +24,8 @@ describe("the agent skill", () => {
   });
 
   test("SKILL.md has the frontmatter the Agent Skills format needs", () => {
-    const text = readFileSync(join(canonical, "question-kit", "SKILL.md"), "utf8");
+    // Line endings normalized: a Windows checkout has \r\n where the repository has \n.
+    const text = readFileSync(join(canonical, "question-kit", "SKILL.md"), "utf8").replace(/\r\n/g, "\n");
     const front = text.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
     expect(front).toMatch(/^name: question-kit$/m);
     expect(front).toMatch(/^description: \S/m);

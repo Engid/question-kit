@@ -1,6 +1,6 @@
 ---
 name: question-kit
-description: Build with question-kit, the TypeScript kit for Jev (TypeSafe's System One model). Use when writing code that classifies, extracts, verifies, searches or screens text with Jev, when configuring the question-kit service agent or order taker, or when writing questions for Jev directly. Covers the mental model, which method to use, composing methods in one request, thresholds, testing with the cache, and the traps.
+description: Build with question-kit, the TypeScript standard library for Jev (TypeSafe's System One model). Use when writing code that classifies, extracts, verifies, searches or screens text with Jev, when configuring the question-kit service agent or order taker, or when writing questions for Jev directly. Covers the mental model, which method to use, composing methods in one request, thresholds, testing with the cache, and the traps.
 ---
 
 # question-kit
@@ -10,6 +10,10 @@ One model. This file is the guide; `reference.md` next to it lists every export 
 and defaults. The package README (`README.md` in the same package) has worked examples per method.
 Version 0.2.x is an alpha: APIs change between 0.x releases, so check `reference.md` against the
 installed version rather than remembering an older one.
+
+The methods' question wording, defaults and thresholds come from evals against labeled data, so
+prefer a method over writing the same questions by hand, and change a default only when you've
+measured on your own cases. (For Python, the `question-kit-python` skill covers the port.)
 
 ## The mental model (read this first)
 

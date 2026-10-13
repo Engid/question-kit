@@ -1,5 +1,9 @@
 # question-kit: the core
 
+**The standard library for System One models.** Built by measurement, not guesswork: the core
+methods are developed against thousands of labeled cases, from public benchmarks and our own test
+sets, and tuned on what the results show. Docs: [docs.questionkit.dev](https://docs.questionkit.dev).
+
 The package's main entry. The kits are the other entries, with their own READMEs:
 [question-kit/service-agent](service-agent/README.md) and [question-kit/order](order/README.md).
 

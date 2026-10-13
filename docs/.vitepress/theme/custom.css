@@ -199,7 +199,7 @@
 }
 
 @media (min-width: 960px) {
-  .VPHero .text { max-width: 760px; }
+  .VPHero .text { max-width: 880px; }
   .VPHero .tagline { max-width: 640px; }
 }
 

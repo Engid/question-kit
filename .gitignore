@@ -17,3 +17,9 @@ docs/.vitepress/dist/
 docs/.vitepress/cache/
 # Wrangler's local state
 .wrangler/
+# Python (python/): virtual environments, build output, tool caches
+.venv/
+python/dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

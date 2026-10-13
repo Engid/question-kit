@@ -1,8 +1,14 @@
 # question-kit
 
-**Tool kits for System One models.** For now that means [Jev](https://docs.typesafe.ai), from TypeSafe.
+**The standard library for System One models.** For now that means [Jev](https://docs.typesafe.ai),
+from TypeSafe ([model support](#model-support)).
 
-see [model support](#model-support).
+**Built by measurement, not guesswork:** the core methods are developed against thousands of
+labeled cases, from public benchmarks and our own test sets, and tuned on what the results show.
+See [how it was built](#how-it-was-built).
+
+TypeScript is the full kit. A [Python port](python/README.md) is in preview: the core plumbing and a
+first set of methods, on PyPI as `question-kit`.
 
 > **Alpha.** question-kit is new, and its APIs will change between 0.x releases. Please try
 > it and tell us what breaks or feels awkward: [open an issue](https://github.com/Engid/question-kit/issues).
@@ -133,7 +139,8 @@ await pickOne(client, "the blender still hasn't come", customerOrders, { noun: "
 `classify`, `classifyTree`, `pickOne`, `extractValue`, `extractDate`, `callFunction`,
 `verifyRecord`, `checkClaim`, `search`, `rerank`, `matchRecords`, `screen`, `filterPassages`,
 `recoverStructure`, `rubric`, `featurize`, `stability`: each follows one of TypeSafe's
-[cookbooks](https://docs.typesafe.ai/cookbooks). The [package README](packages/question-kit/README.md)
+[cookbooks](https://docs.typesafe.ai/cookbooks). `rankByScore` and `rankPairwise` put a list in
+order, by levels you write or by comparing pairs. The [package README](packages/question-kit/README.md)
 has every one with examples, and the pieces they're made of: named state parts, question helpers,
 readings with TypeSafe's confidence formulas, a lint that catches badly formed questions before
 anything is sent, a cache, and a client for TypeSafe's API with retries and pacing.
@@ -150,6 +157,8 @@ option.
 ```sh
 npm install question-kit @typesafe-ai/sdk
 ```
+
+For Python (preview): `pip install "question-kit[typesafe]"`; see [`python/`](python/README.md).
 
 One package, three entries: `question-kit` (the building blocks), `question-kit/service-agent`
 and `question-kit/order`, plus `question-kit/typesafe`, `question-kit/cache` and
@@ -183,9 +192,12 @@ models may come later, each measured the same way.
 
 ## How it was built
 
-Every design here was chosen by measurement: we write the answers down first, run each design
-against them with answers cached, and keep what scores best. The evals aren't public, but the
-lessons they taught are all over the code:
+Every design here was chosen by measurement. We write the answers down first, run each design
+against them with Jev's answers cached (so every change is measured on the same inputs), and keep
+what scores best. That's thousands of labeled cases across the core methods, from public
+benchmarks where one fits the task and our own test sets where none does, plus recorded
+customer-service conversations for the agent. The evals themselves are private, but the lessons
+they taught are all over the code:
 
 - **Let code handle structure; ask Jev to classify.** Jev is very good at "which of these is this
   word?" and much weaker at "which of these words does this one attach to"; so code groups, Jev
@@ -208,6 +220,7 @@ packages/     the question-kit package: core/, order/ and service-agent/, one en
 examples/     the pizza shop (terminal and web), an outdoor store's support chat, a support-inbox triage, a one-message order taker
 docs/         the guide and the tutorials, as Markdown
 skills/       the skill for coding agents (a mirror of the package's; a test keeps them identical)
+python/       the Python port (preview): its own package, tests and skill, built to send the same requests
 smoke/        a few live checks per core method
 test/         offline unit tests
 ```

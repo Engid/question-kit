@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: question-kit
-  text: Building kits for System One models
-  tagline: The questions, written well, and the code around the answers. For Jev, from TypeSafe.
+  text: The standard library for System One models
+  tagline: "Built by measurement, not guesswork: methods developed against thousands of labeled cases, so you don't have to run the tests yourself. For Jev, from TypeSafe."
   actions:
     - theme: brand
       text: Get started
@@ -29,7 +29,7 @@ features:
     linkText: question-kit/order
   - icon: { src: /parts/core.svg, width: 150, height: 128 }
     title: The building blocks
-    details: Seventeen ready-made methods that write their own questions (classify, pick one of many, extract a value or a date, check a record, search, screen and more), each returning a typed result with a confidence.
+    details: Nineteen ready-made methods that write their own questions (classify, pick one of many, extract a value or a date, check a record, search, rank, screen and more), each returning a typed result with a confidence.
     link: /building-blocks
     linkText: question-kit
 ---
@@ -85,6 +85,8 @@ decision models yet, and want to before supporting them.
   and the loop. [The pizza shop](pizza-shop.md) shows all of it at a counter.
 - **[How the agent decides](how-the-agent-decides.md)**: gates, confidences, and what happens when
   Jev isn't sure.
+- **[Python (preview)](python/index.md)**: the core plumbing and a first set of methods, on PyPI as
+  `question-kit`, and what's supported in each language.
 
 > [!TIP]
 > **Building with a coding agent?** The package ships a skill for it: `skills/question-kit/SKILL.md` in

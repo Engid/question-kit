@@ -1,0 +1,47 @@
+[project]
+name = "question-kit"
+version = "0.1.0"
+description = "The standard library for System One models, starting with Jev: ready-made, measured methods that write the questions and read the answers."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Nick Gideo" }]
+requires-python = ">=3.10"
+dependencies = ["typing-extensions>=4.7"]
+keywords = ["jev", "typesafe", "system one", "decision model", "classification", "extraction", "ranking"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries",
+  "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+typesafe = ["typesafe-sdk>=0.7"]
+
+[project.urls]
+Homepage = "https://questionkit.dev"
+Documentation = "https://docs.questionkit.dev/python/"
+Repository = "https://github.com/Engid/question-kit"
+Issues = "https://github.com/Engid/question-kit/issues"
+Changelog = "https://github.com/Engid/question-kit/blob/main/python/CHANGELOG.md"
+
+[dependency-groups]
+dev = ["pytest>=8", "typesafe-sdk>=0.7"]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/question_kit"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/question_kit", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

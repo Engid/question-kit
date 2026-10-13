@@ -1,7 +1,7 @@
 {
   "name": "question-kit-repo",
   "version": "0.0.1",
-  "description": "question-kit: building kits for System One models, starting with Jev. The packages, examples and smoke checks.",
+  "description": "question-kit: the standard library for System One models, starting with Jev. The packages, examples, docs and smoke checks; the Python port is in python/.",
   "private": true,
   "type": "module",
   "license": "MIT",

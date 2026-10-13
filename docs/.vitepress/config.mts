@@ -4,14 +4,14 @@ import { defineConfig } from "vitepress";
 // Deployed to https://docs.questionkit.dev by Cloudflare on every push to main (see wrangler.jsonc).
 export default defineConfig({
   title: "question-kit",
-  description: "Building kits for System One models: a service agent you configure, an order taker, and the building blocks they're made of. Jev first.",
+  description: "The standard library for System One models: ready-made methods built by measurement, an order taker, and a service agent you configure. Jev first.",
   cleanUrls: true,
   sitemap: { hostname: "https://docs.questionkit.dev" },
   head: [
     ["link", { rel: "icon", type: "image/svg+xml", href: "/logo.svg" }],
     ["meta", { name: "theme-color", content: "#F4EEE2" }],
     ["meta", { property: "og:title", content: "question-kit" }],
-    ["meta", { property: "og:description", content: "Building kits for System One models. Jev first." }],
+    ["meta", { property: "og:description", content: "The standard library for System One models. Built by measurement, not guesswork." }],
     ["meta", { property: "og:url", content: "https://docs.questionkit.dev" }],
     ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
     ["link", { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "" }],
@@ -28,6 +28,7 @@ export default defineConfig({
     nav: [
       { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|service-agent|pizza-shop|how-the-agent-decides|building-blocks)" },
       { text: "Tutorials", link: "/tutorials/triage", activeMatch: "^/tutorials/" },
+      { text: "Python", link: "/python/", activeMatch: "^/python/" },
       { text: "questionkit.dev", link: "https://questionkit.dev" },
     ],
     sidebar: [
@@ -56,6 +57,10 @@ export default defineConfig({
       {
         text: "Underneath",
         items: [{ text: "The building blocks", link: "/building-blocks" }],
+      },
+      {
+        text: "Python (preview)",
+        items: [{ text: "question-kit for Python", link: "/python/" }],
       },
     ],
     socialLinks: [
