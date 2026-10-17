@@ -35,34 +35,23 @@ serves several System One models, Jev among them, behind the same request shape 
 - question-kit is built and tuned on Jev. Other models get the same questions, wording and
   thresholds, with nothing adjusted for them, and we're still measuring how they do.
 
-**We suggest Jev**, since question-kit is built and tuned on it. These are the models we've tested
-that work well enough to use with it, with Jev for comparison:
+**We suggest Jev**, since question-kit is built and tuned on it. We've tested these models with it,
+and they work reliably well:
 
-| Model | OpenRouter id | Methods, accuracy | Order kit, orders right | Cost per 1,000 requests |
-| --- | --- | --- | --- | --- |
-| Jev 1.13, through TypeSafe's API | (not OpenRouter) | 79.4% | 97.7% | $0.065 |
-| Jev 1.13, through OpenRouter | `typesafe/jev-1.13` | 79.5% | 96.8% | $0.065 |
-| Perplexity pplx-decider v1.1 | `perplexity/pplx-decider-v1.1-27b` | 83.8% | 98.6% | $0.072 |
-| Microsoft-Decision-1 | `microsoft/microsoft-decision-1` | 78.6% | 96.8% | $0.036 |
-| GPT-6 Luna Decisions | `openai/gpt-6-luna-decisions` | 76.1% | 97.1% | $0.145 |
-| Clef, Prime Intellect's host | `cloudflare/clef` | 76.1% | 75.6% | $0.067 |
-| Clef, Cloudflare's host | `cloudflare/clef` | 75.1% | 85.1% | $0.382 |
+| Model | OpenRouter id |
+| --- | --- |
+| Jev 1.13 (through OpenRouter) | `typesafe/jev-1.13` |
+| GPT-6 Luna Decisions | `openai/gpt-6-luna-decisions` |
+| Microsoft-Decision-1 | `microsoft/microsoft-decision-1` |
+| Perplexity pplx-decider v1.1 | `perplexity/pplx-decider-v1.1-27b` |
+| Clef | `cloudflare/clef` |
 
-How to read it:
+So far that testing has been limited, and more is needed. Every model gets the wording and
+thresholds tuned for Jev, and models, hosts and prices change. Before you rely on a model, test it
+on your own data.
 
-- **Methods, accuracy:** the average over 23 of our evals of question-kit's methods, such as
-  classifying, extracting, verifying, searching and ranking. That's several thousand cases, the same
-  ones for every model, with errors counted as wrong.
-- **Order kit:** the share of a few hundred spoken-style pizza orders that the
-  [order kit](https://github.com/Engid/question-kit/tree/main/packages/question-kit/order) got
-  entirely right.
-- **Cost:** what the methods' requests cost at OpenRouter's list prices. Requests vary in size;
-  these average about 1,500 input tokens on Jev, and each model counts tokens its own way.
-- Measured in October 2026.
-- **Treat small differences with care.** Several evals are built on public datasets, which a model
-  may have seen in training. Every model gets Jev's wording and thresholds.
-- **One model can differ by host,** in price and in results, as Clef does. Pin a host with
-  `provider: { order: ["<host>"], allow_fallbacks: false }`.
+One model can behave differently on different hosts, in price and in results. To pin a host, use
+`provider: { order: ["<host>"], allow_fallbacks: false }`.
 
 Other models in OpenRouter's [list of decision models](https://openrouter.ai/api/v1/models?output_modalities=decisions)
 should take the same requests. Either we haven't tested them, or they didn't do well enough in our
