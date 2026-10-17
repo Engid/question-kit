@@ -46,6 +46,8 @@ returns Jev's answers (the type is `SystemOneClient`). Three come with it:
   are free and repeatable.
 - **`fakeJev(answer)`** answers from a function you write, for tests.
 
+Other System One models, through OpenRouter, are [experimental](experimental.md).
+
 ## A first question
 
 ```ts

@@ -65,6 +65,11 @@
       "types": "./dist/core/typesafe.d.ts",
       "bun": "./core/typesafe.ts",
       "default": "./dist/core/typesafe.js"
+    },
+    "./experimental/openrouter": {
+      "types": "./dist/experimental/openrouter.d.ts",
+      "bun": "./experimental/openrouter.ts",
+      "default": "./dist/experimental/openrouter.js"
     }
   },
   "main": "./dist/core/index.js",

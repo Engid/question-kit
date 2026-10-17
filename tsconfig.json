@@ -29,6 +29,9 @@
       "question-kit/service-agent": [
         "./packages/question-kit/service-agent/index.ts"
       ],
+      "question-kit/experimental/*": [
+        "./packages/question-kit/experimental/*.ts"
+      ],
       "question-kit/*": [
         "./packages/question-kit/core/*.ts"
       ]

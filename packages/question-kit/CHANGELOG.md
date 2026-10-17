@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **`lint`** warns when a Noul's criteria give one side only.
+- **"None of these" where a Choice may have no right answer**: `callFunction`'s one-of-a-list
+  arguments (all functions' arguments are asked in one request, so most don't apply), `pickOne`'s
+  close look, and `search`'s line and block questions. A "none" argument is read as not given (its
+  default, or null, and listed in `omitted`); a "none" close look is no match (`no-fit`). `search`
+  still decides found or not from its "answered" question. Some models refuse a Choice where
+  nothing fits rather than pick one.
+- **`classifyTree`**: each level's question has a "none" option; a branch whose subcategories don't
+  fit gets a lower score instead of a forced pick.
+- **`callFunction`**: the "is this argument given?" questions are now `<function>.<param>.stated`
+  instead of `<function>.<param>?`, so every host on OpenRouter takes them. Recorded answers still
+  apply (ids aren't part of the cache key).
 - **`rankByScore`**: put a list in order by rating each item on levels you write (one Score per
   item, all in one request), sorted by the expected level: the probability-weighted average of the
   levels, so items that share a most likely level still come apart. Reports each item's expected
@@ -17,6 +29,24 @@
   the top item beats the runner-up. `bothOrders` asks each pair twice and reports `orderGap`, how
   much the offer order moved the answers; `opponents` compares each item with only k others for
   longer lists. `rankFromDuels`, `bradleyTerry`, `pairsFor` and `firstOf` are exported too.
+
+### Experimental
+
+New: experimental parts live under `question-kit/experimental/…` and can change in any release,
+including a patch ([what experimental means](https://docs.questionkit.dev/experimental)).
+
+- **`question-kit/experimental/openrouter`**: `openRouter({ model })`, a client for OpenRouter's
+  Decisions API, which serves Jev and other System One models behind the same request shape.
+  - It retries like the TypeSafe client.
+  - Question ids some hosts refuse (anything but up to 100 letters, digits, `_`, `.` and `-`, such
+    as `runAll`'s `<task>::<question>`) are renamed on the way out and back on the way in.
+  - Requests over a host's limits (Clef's: 64 questions, and 16k to 64k tokens by host; or
+    `maxQuestions` and `maxTokens`) are sent as several and the answers put back together. A host
+    that says a request is too big gets it again in halves.
+  - It refuses a Noul whose criteria give only one side before sending (OpenRouter answers 400),
+    treats an answer without probabilities as an error, and reports a model's refusal as its own
+    error kind.
+  - question-kit is built and tuned on Jev; other models get the same requests unchanged.
 
 ## 0.2.0 (2026-10-11)
 

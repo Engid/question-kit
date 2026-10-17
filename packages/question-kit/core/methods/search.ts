@@ -7,7 +7,7 @@
 // Based on the approach in TypeSafe's "Line-by-line search" cookbook.
 
 import type { SystemOneCall, SystemOneClient } from "../system-one.ts";
-import { choice, noul } from "../questions.ts";
+import { choice, NONE, noul } from "../questions.ts";
 import { readChoice, readNoul } from "../readings.ts";
 import type { Ref } from "../state.ts";
 import { run } from "../task.ts";
@@ -16,6 +16,17 @@ import { run } from "../task.ts";
  * Is the answer in the document at all? Phrased against the usual failure: lines about the same
  * topic, or the same people and things, with the answer itself missing.
  */
+const NO_LINE = "No line gives the answer.";
+
+/**
+ * "Which line answers it?", with a "none" option so a model is never made to pick a line when none
+ * fits (some refuse the question instead). Whether there's an answer at all is still decided by
+ * the "answered" question; the lines are ranked by their own probabilities.
+ */
+function lineQuestion(at: (name: string) => Ref, pool: { id: string }[]) {
+  return choice(`Which line of ${at("document")}, if any, contains the answer to ${at("query")}?`, Object.fromEntries(pool.map((l) => [l.id, null])), { none: NO_LINE });
+}
+
 function answeredQuestion(at: (name: string) => Ref) {
   return noul(`Some line of ${at("document")} gives the answer to ${at("query")}: states it, or states a fact it follows from directly.`, {
     true: "At least one line gives the answer itself.",
@@ -90,12 +101,14 @@ export async function search(client: SystemOneClient, document: string | string[
         parts: { document: doc, query },
         questions: (at) => ({
           block: choice(
-            `Which block of lines in ${at("document")} contains the answer to ${at("query")}?`,
+            `Which block of lines in ${at("document")}, if any, contains the answer to ${at("query")}?`,
             Object.fromEntries(blocks.map((b, i) => [`B${i}`, `Lines ${b[0]!.id} to ${b.at(-1)!.id}`])),
+            { none: NO_LINE },
           ),
           answered: answeredQuestion(at),
         }),
-        read: (a) => ({ block: Number(readChoice(a.block).value.slice(1)), answered: readNoul(a.answered).probability }),
+        // The likeliest block, never "none": whether there's an answer at all is `answered`'s to say.
+        read: (a) => ({ block: Number(readChoice(a.block).ranked.find(([id]) => id !== NONE)?.[0].slice(1) ?? 0), answered: readNoul(a.answered).probability }),
       },
       { log: opts.log, title: "search: block" },
     );
@@ -105,7 +118,7 @@ export async function search(client: SystemOneClient, document: string | string[
       client,
       {
         parts: { document: doc, query },
-        questions: (at) => ({ line: choice(`Which line of ${at("document")} contains the answer to ${at("query")}?`, Object.fromEntries(pool.map((l) => [l.id, null]))) }),
+        questions: (at) => ({ line: lineQuestion(at, pool) }),
         read: (a) => readChoice(a.line).probabilities,
       },
       { log: opts.log, title: "search: line" },
@@ -117,7 +130,7 @@ export async function search(client: SystemOneClient, document: string | string[
     {
       parts: { document: doc, query },
       questions: (at) => ({
-        line: choice(`Which line of ${at("document")} contains the answer to ${at("query")}?`, Object.fromEntries(pool.map((l) => [l.id, null]))),
+        line: lineQuestion(at, pool),
         answered: answeredQuestion(at),
       }),
       read: (a) => ({ probs: readChoice(a.line).probabilities, answered: readNoul(a.answered).probability }),
@@ -126,7 +139,7 @@ export async function search(client: SystemOneClient, document: string | string[
   );
   answered = res.answered;
   if (opts.confirm) {
-    const top = Object.entries(res.probs).sort((x, y) => y[1] - x[1])[0]?.[0];
+    const top = Object.entries(res.probs).filter(([id]) => id !== NONE).sort((x, y) => y[1] - x[1])[0]?.[0];
     const line = pool.find((l) => l.id === top);
     if (line) {
       const check = await run(

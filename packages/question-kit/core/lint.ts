@@ -7,7 +7,8 @@
 // - a Choice holds at most 255 options (https://docs.typesafe.ai/primitives/choice.md);
 // - a backticked path must exist in the state (https://docs.typesafe.ai/concepts/state.md);
 // - one condition per Noul, phrased so that yes means the thing
-//   (https://docs.typesafe.ai/primitives/noul.md);
+//   (https://docs.typesafe.ai/primitives/noul.md); its criteria give both sides or neither, since
+//   OpenRouter's Decisions API refuses one side;
 // - leave arithmetic, counting and dates to code
 //   (https://docs.typesafe.ai/model-jaggedness/jev-1.13.md).
 
@@ -41,6 +42,8 @@ export function lint(state: Entry, questions: Record<string, Question>): Problem
     }
     if (qn.type === "score" && qn.criteria.length < 2) err("a Score needs at least 2 levels");
     if (qn.type === "noul") {
+      const side = (k: "true" | "false") => qn.criteria?.[k] !== undefined && qn.criteria?.[k] !== null;
+      if (qn.criteria && side("true") !== side("false")) warn("criteria give one side only; give both sides or neither (OpenRouter refuses one side)");
       const plain = text.toLowerCase();
       if (/\bfree of\b|\bdoes not\b|\bdoesn't\b|\bisn't\b|\bis not\b/.test(plain)) warn("phrased in the negative; Nouls read best when yes means the thing you're looking for");
       if (/\?\s*\S.*\?/.test(text)) warn("asks more than one question; split it and combine the answers in code");

@@ -64,6 +64,12 @@ not their ids). With `{ mode: "replay" }` it never calls anything and throws `Ca
 request it hasn't seen, which suits tests and repeatable measurements. For tests, `fakeJev((id, question, state) => answer)` answers without
 calling anything.
 
+Other System One models, through [OpenRouter](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request),
+are experimental: `openRouter({ model })` from `question-kit/experimental/openrouter`. question-kit
+is built and tuned on Jev, and we suggest Jev. See
+[Experimental](https://docs.questionkit.dev/experimental) for the models we've tested and what can
+change.
+
 ## Methods
 
 One-request methods return a *task*: run it with `run(client, task)`, or send several together with
