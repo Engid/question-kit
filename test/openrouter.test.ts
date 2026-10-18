@@ -4,6 +4,7 @@ import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { checkAnswers, estimateOpenRouterTokens, limitsFor, OpenRouterError, openRouter, splitForLimits, wireIds } from "../packages/question-kit/experimental/openrouter.ts";
 import { lint } from "../packages/question-kit/core/lint.ts";
 import type { SystemOneRequest } from "../packages/question-kit/core/system-one.ts";
+import { standIn } from "./stand-in.ts";
 
 type Reply = (body: Record<string, unknown>) => Response;
 let replies: Reply[] = [];
@@ -20,15 +21,12 @@ const answerAll: Reply = (body) => {
   return Response.json({ id: "gen-dec-1", model: `${body.model}-20260917`, provider: "Stand-in", answers, usage: { input_tokens: 12, output_tokens: 0, cost: 0.0000005 } });
 };
 
-const server = Bun.serve({
-  port: 0,
-  async fetch(req) {
-    const body = (await req.json()) as Record<string, unknown>;
-    seen.push({ path: new URL(req.url).pathname, auth: req.headers.get("authorization"), body });
-    return (replies.shift() ?? answerAll)(body);
-  },
+const server = await standIn(async (req) => {
+  const body = (await req.json()) as Record<string, unknown>;
+  seen.push({ path: new URL(req.url).pathname, auth: req.headers.get("authorization"), body });
+  return (replies.shift() ?? answerAll)(body);
 });
-afterAll(() => server.stop(true));
+afterAll(() => server.stop());
 beforeEach(() => {
   replies = [];
   seen = [];

@@ -18,7 +18,7 @@ question helpers, readings with TypeSafe's confidence formulas, and checks that 
 questions before anything is sent.
 
 ```sh
-npm install question-kit @typesafe-ai/sdk
+npm install question-kit @typesafe-ai/sdk@^0.6.0
 ```
 
 > **Alpha.** question-kit is a prototype, and its APIs will change between 0.x releases. Please try

@@ -4,10 +4,12 @@
 
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const canonical = join(import.meta.dir, "..", "packages", "question-kit", "skills");
-const mirror = join(import.meta.dir, "..", "skills");
+const here = dirname(fileURLToPath(import.meta.url));
+const canonical = join(here, "..", "packages", "question-kit", "skills");
+const mirror = join(here, "..", "skills");
 
 function files(dir: string, prefix = ""): string[] {
   return readdirSync(dir, { withFileTypes: true })

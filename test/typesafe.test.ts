@@ -2,21 +2,19 @@
 
 import { afterAll, describe, expect, test } from "bun:test";
 import { typesafeJev } from "../packages/question-kit/core/typesafe.ts";
+import { standIn } from "./stand-in.ts";
 
 let failures = 0;
-const server = Bun.serve({
-  port: 0,
-  async fetch(req) {
-    if (failures > 0) {
-      failures--;
-      return Response.json({ detail: [{ msg: "The model is unavailable." }] }, { status: 503 });
-    }
-    const body = (await req.json()) as { questions: Record<string, unknown> };
-    const answers = Object.fromEntries(Object.keys(body.questions).map((k) => [k, { type: "noul", noul: 0.9 }]));
-    return Response.json({ model: "stand-in", answers, usage: { input_tokens: 10 } });
-  },
+const server = await standIn(async (req) => {
+  if (failures > 0) {
+    failures--;
+    return Response.json({ detail: [{ msg: "The model is unavailable." }] }, { status: 503 });
+  }
+  const body = (await req.json()) as { questions: Record<string, unknown> };
+  const answers = Object.fromEntries(Object.keys(body.questions).map((k) => [k, { type: "noul", noul: 0.9 }]));
+  return Response.json({ model: "stand-in", answers, usage: { input_tokens: 10 } });
 });
-afterAll(() => server.stop(true));
+afterAll(() => server.stop());
 
 const request = { state: "hello", questions: { q: { type: "noul" as const, instructions: "Is this a greeting?" } } };
 const fast = { backoffInitialMs: 5, backoffMaxMs: 20 };

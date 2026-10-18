@@ -1,4 +1,4 @@
-# question-kit reference (0.2.x)
+# question-kit reference (0.3.x)
 
 Every export, by entry point, with options and defaults. Readings share three shapes:
 
@@ -202,7 +202,7 @@ Two requests: boundaries (mid-sentence / starts a new unit per line), then types
 - `typesafeJev(opts?: TypeSafeOptions) → SystemOneClient`. Options: `apiKey?` (TYPESAFE_API_KEY), `model?`, `timeoutMs?` 60,000,
   `retry?: Partial<RetryPolicy>` over `DEFAULT_RETRY` (`maxRetries` 5, backoff about 1 s → 16 s with jitter, honours Retry-After; rate limits, server errors such as 503, timeouts, dropped connections),
   `onRetry?: (message) => void | false` (default: a line on stderr), `baseURL?`, `pace?: PaceOptions | false`.
-  Requires the optional peer `@typesafe-ai/sdk`.
+  Requires the optional peer `@typesafe-ai/sdk` 0.6 (0.7.0 fails every request under Bun).
 
 ## `question-kit/experimental/openrouter` (experimental: can change in any release)
 

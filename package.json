@@ -11,6 +11,8 @@
   "author": "Nick Gideo",
   "scripts": {
     "test": "bun test",
+    "test:node": "vitest run",
+    "check:node-package": "bash test/node-package/run.sh",
     "typecheck": "tsc --noEmit",
     "smoke": "bun smoke/run.ts",
     "order:pizza": "bun examples/order/pizza/take-order.ts",
@@ -33,6 +35,7 @@
     "@types/bun": "^1.4.2",
     "@types/node": "^22",
     "typescript": "^5.9.0",
-    "vitepress": "^1.6.4"
+    "vitepress": "^1.6.4",
+    "vitest": "^3.2.0"
   }
 }

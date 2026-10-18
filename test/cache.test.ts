@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fakeJev, type SystemOneRequest } from "question-kit";
 import { CacheMissError, cacheKey, cachedJev, rekeyCache } from "question-kit/cache";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 
 const request: SystemOneRequest = {
@@ -54,7 +54,7 @@ describe("cachedJev", () => {
 
   test("the key is SHA-256 of the model, state and question bodies in order", () => {
     const body = JSON.stringify({ model: null, state: request.state, questions: [request.questions.milk] });
-    expect(cacheKey(request)).toBe(new Bun.CryptoHasher("sha256").update(body).digest("hex"));
+    expect(cacheKey(request)).toBe(createHash("sha256").update(body).digest("hex"));
   });
 
   test("rekeyCache moves entries written under the old key (ids included) to the new one", async () => {
@@ -71,6 +71,6 @@ describe("cachedJev", () => {
     expect(await rekeyCache(dir)).toEqual({ seen: 1, inPlace: 1, moved: 0, collisions: 0, bad: 0 });
     // Back to the old formula, and the old path.
     expect((await rekeyCache(dir, { keyOf: oldKey })).moved).toBe(1);
-    expect(JSON.parse(await Bun.file(join(dir, old.slice(0, 2), `${old}.json`)).text()).key).toBe(old);
+    expect(JSON.parse(readFileSync(join(dir, old.slice(0, 2), `${old}.json`), "utf8")).key).toBe(old);
   });
 });
