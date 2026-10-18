@@ -3,10 +3,12 @@
 ## Install
 
 ```sh
-npm install question-kit @typesafe-ai/sdk
+npm install question-kit @typesafe-ai/sdk@^0.6.0
 # or
-bun add question-kit @typesafe-ai/sdk
+bun add question-kit @typesafe-ai/sdk@^0.6.0
 ```
+>Note:
+>Use TypeSafe's SDK 0.6 for now: 0.7.0 fails every request under Bun ("Body already used"), and Bun's installer would otherwise pick it.
 
 One package, with an entry per kit:
 
@@ -30,6 +32,20 @@ order kit and the agent all bundle for the browser.
 > pizza shop's [web page](pizza-shop.md#the-web-page) shows the shape, with a small server that
 > forwards the requests.
 
+## Node or Bun
+
+question-kit runs on both, and its tests run under both.
+
+- **Bun** runs TypeScript directly (`bun app.ts`) and reads `.env` by itself.
+- **Node 22.18 or later** also runs TypeScript directly (`node app.ts`), by stripping the types.
+  Syntax that needs compiling, such as `enum`, isn't supported that way.
+- **Node 20, or an earlier Node 22,** needs a runner such as `npx tsx app.ts`, or compile with
+  `tsc` first. Plain `.js` and `.mjs` files run as they are.
+- **Node reads `.env` only when asked:** `node --env-file=.env app.ts`, for `TYPESAFE_API_KEY`.
+
+The examples in this repository are run with Bun (`bun run triage`, `bun run pizza`), and some use
+Bun's own APIs, such as the pizza shop's web server.
+
 ## Connect Jev
 
 ```ts
@@ -45,6 +61,8 @@ returns Jev's answers (the type is `SystemOneClient`). Three come with it:
 - **`cachedJev(client, dir)`**, from `question-kit/cache`, keeps every answer on disk, so re-runs
   are free and repeatable.
 - **`fakeJev(answer)`** answers from a function you write, for tests.
+
+Other System One models, through OpenRouter, are [experimental](experimental.md).
 
 ## A first question
 

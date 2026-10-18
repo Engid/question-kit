@@ -26,7 +26,7 @@ export default defineConfig({
   themeConfig: {
     logo: "/logo.svg",
     nav: [
-      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|service-agent|pizza-shop|how-the-agent-decides|building-blocks)" },
+      { text: "Guide", link: "/getting-started", activeMatch: "^/(getting-started|service-agent|pizza-shop|how-the-agent-decides|building-blocks|experimental)" },
       { text: "Tutorials", link: "/tutorials/triage", activeMatch: "^/tutorials/" },
       { text: "Python", link: "/python/", activeMatch: "^/python/" },
       { text: "questionkit.dev", link: "https://questionkit.dev" },
@@ -44,6 +44,7 @@ export default defineConfig({
         items: [
           { text: "Sort a support inbox", link: "/tutorials/triage" },
           { text: "Build a service agent", link: "/tutorials/service-agent" },
+          { text: "Four questions, asked two ways", link: "/tutorials/two-ways" },
         ],
       },
       {
@@ -56,7 +57,10 @@ export default defineConfig({
       },
       {
         text: "Underneath",
-        items: [{ text: "The building blocks", link: "/building-blocks" }],
+        items: [
+          { text: "The building blocks", link: "/building-blocks" },
+          { text: "Experimental", link: "/experimental" },
+        ],
       },
       {
         text: "Python (preview)",

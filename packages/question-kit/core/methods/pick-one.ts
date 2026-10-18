@@ -113,14 +113,15 @@ export async function pickOne<K extends string>(client: SystemOneClient, text: T
   }
 
   // Request 2: look closely at the shortlist.
-  const close: Task<{ pick: K; probability: number; confidence: number; fits: Record<string, number> }> = {
+  const close: Task<{ pick: K | typeof NONE; probability: number; confidence: number; fits: Record<string, number> }> = {
     parts: t.parts,
     questions: (at) => {
       const r = t.ref(at);
       const qs: Record<string, ReturnType<typeof choice> | ReturnType<typeof noul>> = {
         pick: choice(
-          q`One of these ${noun}s is the one ${r} asks for. Which one? Go by what each one covers, not just its name.`,
+          q`Which of these ${noun}s, if any, is the one ${r} asks for? Go by what each one covers, not just its name.`,
           Object.fromEntries(top.map((id) => [id, catalog[id].full ?? catalog[id].short])),
+          { none: `None of these ${noun}s.` },
         ),
       };
       top.forEach((id, i) => {
@@ -133,7 +134,7 @@ export async function pickOne<K extends string>(client: SystemOneClient, text: T
       return qs;
     },
     read: (a) => {
-      const pick = readChoice<K>(a.pick);
+      const pick = readChoice<K | typeof NONE>(a.pick);
       return { pick: pick.value, probability: pick.probability, confidence: pick.confidence, fits: Object.fromEntries(top.map((id, i) => [id, readNoul(a[`fits${i}`]).probability])) };
     },
   };
@@ -156,8 +157,8 @@ export async function pickOne<K extends string>(client: SystemOneClient, text: T
   const second = await run(client, close, { log: opts.log, title: "pickOne: close look" });
   const shortlist = top.map((id, i) => ({ id, rank: i + 1, fits: second.fits[id] ?? 0 }));
   const bestFit = Math.max(...shortlist.map((s) => s.fits));
-  if (bestFit < (opts.fitsBelow ?? 0.7)) return { value: null, reason: "no-fit", probability: second.probability, confidence: second.confidence, gate: first.gate, shortlist };
-  return { value: second.pick, probability: second.probability, confidence: second.confidence, gate: first.gate, shortlist };
+  if (bestFit < (opts.fitsBelow ?? 0.7) || second.pick === NONE) return { value: null, reason: "no-fit", probability: second.probability, confidence: second.confidence, gate: first.gate, shortlist };
+  return { value: second.pick as K, probability: second.probability, confidence: second.confidence, gate: first.gate, shortlist };
 }
 
 /**

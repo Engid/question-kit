@@ -78,15 +78,17 @@ export function callFunction(text: string, functions: Record<string, FunctionSpe
         for (const [p, param] of Object.entries(spec.params ?? {})) {
           const id = `${fn}.${p}`;
           if (param.kind === "one") {
-            qs[id] = choice(q`In ${r}, what is ${param.about}?`, param.values);
-            if (param.default !== undefined) qs[`${id}?`] = noul(q`${r} states ${param.about}.`);
+            // "none": the text doesn't give it (or isn't about this function at all, since every
+            // function's questions go in the one request).
+            qs[id] = choice(q`In ${r}, what is ${param.about}?`, param.values, { none: "The text doesn't say." });
+            if (param.default !== undefined) qs[`${id}.stated`] = noul(q`${r} states ${param.about}.`);
           } else if (param.kind === "many") {
             for (const [v, desc] of Object.entries(param.values)) qs[`${id}.${v}`] = noul(q`As part of ${param.about}, ${r} asks for this: ${desc}`);
           } else if (param.kind === "flag") {
             qs[id] = noul(q`In ${r}: ${param.about}`);
           } else {
             Object.assign(qs, sub(id, param, r)!.questions(at));
-            qs[`${id}?`] = noul(q`${r} gives ${param.about}.`);
+            qs[`${id}.stated`] = noul(q`${r} gives ${param.about}.`);
           }
         }
       }
@@ -102,16 +104,21 @@ export function callFunction(text: string, functions: Record<string, FunctionSpe
       for (const [p, param] of Object.entries(functions[fn]?.params ?? {})) {
         const id = `${fn}.${p}`;
         if (param.kind === "one") {
-          const stated = a[`${id}?`];
+          const stated = a[`${id}.stated`];
           if (param.default !== undefined && stated && readNoul(stated).probability < 0.5) {
             args[p] = param.default;
             omitted.push(p);
-            confs.push([`${id}?`, readNoul(stated).confidence]);
+            confs.push([`${id}.stated`, readNoul(stated).confidence]);
             continue;
           }
           const r = readChoice(a[id]);
-          args[p] = r.value;
           confs.push([id, r.confidence]);
+          if (r.value === NONE) {
+            args[p] = param.default ?? null;
+            omitted.push(p);
+            continue;
+          }
+          args[p] = r.value;
         } else if (param.kind === "many") {
           const chosen: string[] = [];
           for (const v of Object.keys(param.values)) {
@@ -128,11 +135,11 @@ export function callFunction(text: string, functions: Record<string, FunctionSpe
           args[p] = r.value;
           confs.push([id, r.confidence]);
         } else {
-          const stated = readNoul(a[`${id}?`]);
+          const stated = readNoul(a[`${id}.stated`]);
           if (!stated.value) {
             args[p] = param.default ?? null;
             omitted.push(p);
-            confs.push([`${id}?`, stated.confidence]);
+            confs.push([`${id}.stated`, stated.confidence]);
             continue;
           }
           const result = sub(id, param, new Ref("text"))!.read(a);

@@ -1,4 +1,4 @@
-# question-kit reference (0.2.x)
+# question-kit reference (0.3.x)
 
 Every export, by entry point, with options and defaults. Readings share three shapes:
 
@@ -202,7 +202,17 @@ Two requests: boundaries (mid-sentence / starts a new unit per line), then types
 - `typesafeJev(opts?: TypeSafeOptions) → SystemOneClient`. Options: `apiKey?` (TYPESAFE_API_KEY), `model?`, `timeoutMs?` 60,000,
   `retry?: Partial<RetryPolicy>` over `DEFAULT_RETRY` (`maxRetries` 5, backoff about 1 s → 16 s with jitter, honours Retry-After; rate limits, server errors such as 503, timeouts, dropped connections),
   `onRetry?: (message) => void | false` (default: a line on stderr), `baseURL?`, `pace?: PaceOptions | false`.
-  Requires the optional peer `@typesafe-ai/sdk`.
+  Requires the optional peer `@typesafe-ai/sdk` 0.6 (0.7.0 fails every request under Bun).
+
+## `question-kit/experimental/openrouter` (experimental: can change in any release)
+
+- `openRouter(opts: OpenRouterOptions) → SystemOneClient`, for OpenRouter's Decisions API (`POST /api/alpha/decisions`). Options: `model` (required, such as
+  `typesafe/jev-1.13`; a request's `model` wins), `apiKey?` (OPENROUTER_API_KEY), `provider?` (OpenRouter routing, sent unchanged), `baseURL?`, `timeoutMs?` 60,000,
+  `retry?` (as `typesafeJev`), `onRetry?`, `pace?` (default off), `maxQuestions?` and `maxTokens?` (defaults: `KNOWN_LIMITS` for the model and the hosts
+  `provider` allows; a request over them is sent as several, each with the whole state, and a host's "too big" is retried in halves), `headers?`, `strict?` (default true).
+- Ids hosts refuse are renamed on the wire and back. Errors are `OpenRouterError { status?, kind: "request" | "answer" | "refused" | "too-big" | "http", model? }`.
+- Also: `checkRequest`, `checkAnswers`, `wireIds`, `limitsFor`, `KNOWN_LIMITS`, `splitForLimits`, `estimateOpenRouterTokens`, `OPENROUTER_BASE_URL`.
+- Built and tuned on Jev; other models get the same requests unchanged. No images yet.
 
 ## `question-kit/node`
 

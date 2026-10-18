@@ -406,7 +406,7 @@ describe("callFunction", () => {
   test("reads only the chosen function's arguments", async () => {
     const client = fakeJev((id) => {
       if (id === "fn") return "order_drink";
-      if (id === "order_drink.size?") return 0.1;
+      if (id === "order_drink.size.stated") return 0.1;
       if (id === "order_drink.extras.shot") return 0.9;
       if (id === "order_drink.extras.oat") return 0.2;
       if (id === "order_drink.to_go") return 0.8;
@@ -420,7 +420,7 @@ describe("callFunction", () => {
   test("exact values and dates use the extraction questions", async () => {
     const client = fakeJev((id) => {
       if (id === "fn") return "track_order";
-      if (id.endsWith("?")) return 0.9;
+      if (id.endsWith(".stated")) return 0.9;
       if (id === "track_order.order_number.value") return "3348917502";
       if (id === "track_order.expected.mode") return "relative";
       if (id === "track_order.expected.anchor") return "yesterday";

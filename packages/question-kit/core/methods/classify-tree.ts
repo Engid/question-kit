@@ -79,6 +79,9 @@ export async function classifyTree(client: SystemOneClient, text: Text, tree: Tr
                   choice(
                     p.path.length ? q`Which of these subcategories of "${p.path.join(" > ")}" best matches ${t.ref(at)}?` : q`Which of these categories best matches ${t.ref(at)}?`,
                     Object.fromEntries(Object.entries(p.node.children!).map(([id, c]) => [id, c.what ?? null])),
+                    // A branch the beam keeps may not fit at all; "none" lets a model say so (and
+                    // lowers that branch's score) instead of forcing a pick or refusing.
+                    { none: "None of these." },
                   ),
                 ]),
               ),

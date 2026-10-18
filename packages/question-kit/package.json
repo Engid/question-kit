@@ -1,6 +1,6 @@
 {
   "name": "question-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "The standard library for System One models, starting with Jev: ready-made methods built by measurement, an order taker, and a service agent you configure.",
   "type": "module",
   "license": "MIT",
@@ -65,6 +65,11 @@
       "types": "./dist/core/typesafe.d.ts",
       "bun": "./core/typesafe.ts",
       "default": "./dist/core/typesafe.js"
+    },
+    "./experimental/openrouter": {
+      "types": "./dist/experimental/openrouter.d.ts",
+      "bun": "./experimental/openrouter.ts",
+      "default": "./dist/experimental/openrouter.js"
     }
   },
   "main": "./dist/core/index.js",

@@ -18,7 +18,7 @@ question helpers, readings with TypeSafe's confidence formulas, and checks that 
 questions before anything is sent.
 
 ```sh
-npm install question-kit @typesafe-ai/sdk
+npm install question-kit @typesafe-ai/sdk@^0.6.0
 ```
 
 > **Alpha.** question-kit is a prototype, and its APIs will change between 0.x releases. Please try
@@ -63,6 +63,12 @@ changes it; `pacedJev(client, opts)` paces any client.
 not their ids). With `{ mode: "replay" }` it never calls anything and throws `CacheMissError` on a
 request it hasn't seen, which suits tests and repeatable measurements. For tests, `fakeJev((id, question, state) => answer)` answers without
 calling anything.
+
+Other System One models, through [OpenRouter](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request),
+are experimental: `openRouter({ model })` from `question-kit/experimental/openrouter`. question-kit
+is built and tuned on Jev, and we suggest Jev. See
+[Experimental](https://docs.questionkit.dev/experimental) for the models we've tested and what can
+change.
 
 ## Methods
 

@@ -1,6 +1,44 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 (2026-10-17)
+
+- **Install with TypeSafe's SDK 0.6** (`@typesafe-ai/sdk@^0.6.0`): SDK 0.7.0 fails every request
+  under Bun ("Body already used"), and Bun's installer picks it over the peer range. The peer range
+  stays `^0.6.0`.
+- **Node:** the tests now run under Node as well as Bun (`bun run test:node`, with vitest), and
+  `bun run check:node-package` installs the packed package with Node and checks every entry.
+  Checked on Node 20 and 22. Getting started has a "Node or Bun" section.
+- **`lint`** warns when a Noul's criteria give one side only.
+- **"None of these" where a Choice may have no right answer**: `callFunction`'s one-of-a-list
+  arguments (all functions' arguments are asked in one request, so most don't apply), `pickOne`'s
+  close look, and `search`'s line and block questions. A "none" argument is read as not given (its
+  default, or null, and listed in `omitted`); a "none" close look is no match (`no-fit`). `search`
+  still decides found or not from its "answered" question. Some models refuse a Choice where
+  nothing fits rather than pick one.
+- **`classifyTree`**: each level's question has a "none" option; a branch whose subcategories don't
+  fit gets a lower score instead of a forced pick.
+- **`callFunction`**: the "is this argument given?" questions are now `<function>.<param>.stated`
+  instead of `<function>.<param>?`, so every host on OpenRouter takes them. Recorded answers still
+  apply (ids aren't part of the cache key).
+### Experimental
+
+New: experimental parts live under `question-kit/experimental/…` and can change in any release,
+including a patch ([what experimental means](https://docs.questionkit.dev/experimental)).
+
+- **`question-kit/experimental/openrouter`**: `openRouter({ model })`, a client for OpenRouter's
+  Decisions API, which serves Jev and other System One models behind the same request shape.
+  - It retries like the TypeSafe client.
+  - Question ids some hosts refuse (anything but up to 100 letters, digits, `_`, `.` and `-`, such
+    as `runAll`'s `<task>::<question>`) are renamed on the way out and back on the way in.
+  - Requests over a host's limits (Clef's: 64 questions, and 16k to 64k tokens by host; or
+    `maxQuestions` and `maxTokens`) are sent as several and the answers put back together. A host
+    that says a request is too big gets it again in halves.
+  - It refuses a Noul whose criteria give only one side before sending (OpenRouter answers 400),
+    treats an answer without probabilities as an error, and reports a model's refusal as its own
+    error kind.
+  - question-kit is built and tuned on Jev; other models get the same requests unchanged.
+
+## 0.2.0 (2026-10-11)
 
 - **`rankByScore`**: put a list in order by rating each item on levels you write (one Score per
   item, all in one request), sorted by the expected level: the probability-weighted average of the
@@ -17,9 +55,6 @@
   the top item beats the runner-up. `bothOrders` asks each pair twice and reports `orderGap`, how
   much the offer order moved the answers; `opponents` compares each item with only k others for
   longer lists. `rankFromDuels`, `bradleyTerry`, `pairsFor` and `firstOf` are exported too.
-
-## 0.2.0 (2026-10-11)
-
 - **The methods have been through evals of their own**, and these changed as a result:
   - `extractDate` reads dates counted from today ("in three days", "two weeks ago", "a week from
     today"), month ends ("the end of this month") and a bare day of the month ("on the 2nd", with

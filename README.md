@@ -155,7 +155,7 @@ option.
 ## Install
 
 ```sh
-npm install question-kit @typesafe-ai/sdk
+npm install question-kit @typesafe-ai/sdk@^0.6.0
 ```
 
 For Python (preview): `pip install "question-kit[typesafe]"`; see [`python/`](python/README.md).

@@ -15,7 +15,8 @@
     "core/*.ts",
     "core/methods/*.ts",
     "order/*.ts",
-    "service-agent/*.ts"
+    "service-agent/*.ts",
+    "experimental/*.ts"
   ],
   "exclude": [
     "dist"
