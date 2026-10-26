@@ -14,6 +14,8 @@ case "$runtime" in
   node) run=(node --import ./scripts/node-source.mjs) ;;
   *) echo "usage: run.sh bun|node" >&2; exit 2 ;;
 esac
+# On Node, stop once here if it's too old (node-source.mjs says why), not once per example.
+if [[ "$runtime" == node ]] && ! out="$("${run[@]}" -e '' 2>&1)"; then echo "$out" >&2; exit 2; fi
 # A time limit per run where there's a tool for it (macOS has none built in; Homebrew's coreutils
 # has gtimeout). The ${limit[@]+…} form keeps an empty list safe under `set -u` in bash 3.2.
 if command -v timeout > /dev/null 2>&1; then limit=(timeout 120)

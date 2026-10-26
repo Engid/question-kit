@@ -2,7 +2,19 @@
 // on question-kit's TypeScript source, as Bun does through tsconfig.json's `paths`. Node strips the
 // types itself (22.18 or later). Published users don't need this: they get the built package.
 
-import { registerHooks } from "node:module";
+import * as nodeModule from "node:module";
+
+// Older Nodes have no registerHooks (and don't strip types), so stop with a clear message instead
+// of a link error. Type stripping is on by default from 22.18 (and 23.6).
+const [major, minor] = process.versions.node.split(".").map(Number);
+const supported = major >= 24 || (major === 23 && minor >= 6) || (major === 22 && minor >= 18);
+if (!supported || typeof nodeModule.registerHooks !== "function") {
+  console.error(
+    `question-kit's examples and scripts need Node 22.18 or later; this is Node ${process.versions.node} (${process.execPath}).`,
+  );
+  process.exit(1);
+}
+const { registerHooks } = nodeModule;
 
 const pkg = new URL("../packages/question-kit/", import.meta.url);
 

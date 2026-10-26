@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.4.0 (2026-10-26)
 
 - **Bun can import the package.** The published `exports` pointed Bun at TypeScript source
   that isn't in the package, so `import "question-kit"` failed under Bun in every earlier release
@@ -9,7 +9,8 @@
 - **TypeSafe's SDK 0.7** (`@typesafe-ai/sdk@^0.7.0`). Under Bun, `question-kit/typesafe` works around
   the SDK's "Body already used" bug, so every request works there too. The workaround goes away once
   the SDK or Bun is fixed; a test says when.
-- **Node 22 or later** (`engines`), as the SDK requires. Checked on Node 22.18, Node 24 and Bun.
+- **Node 22 or later** (`engines`), as the SDK requires. Checked with Node 24 and Bun on macOS and
+  Windows, and with Node 22.18, 22.23 and 24 and Bun on Linux.
 - **A pinned model on every request.** `typesafeJev()` always sends a model: its `model` option,
   else `TYPESAFE_DEFAULT_MODEL`, else `DEFAULT_JEV_MODEL` (`"jev-1.13.0"`). Before, a request with no
   model got whatever `jev-latest` pointed to, which is now 1.14. Pass
@@ -21,6 +22,8 @@
 - **Examples on Node and Bun:** every example and the smoke checks have a `:node` script
   (`npm run pizza:node`), and `examples:node` / `examples:bun` run them all with no key. The pizza
   web server is on `node:http` and esbuild instead of Bun's own APIs. `smoke` takes `--model`.
+  Running the repo's scripts on a Node older than 22.18 now stops with a message saying so, and
+  `order:pizza --replay` reports a cache miss like the other examples instead of crashing.
 - The source keeps to syntax Node can strip (`erasableSyntaxOnly`), so it runs on Node 22.18+
   without a build.
 
