@@ -5,18 +5,22 @@
 //   bun run order:pizza "…" --replay                    # cached answers only (never calls the API)
 //
 // Needs TYPESAFE_API_KEY in .env, unless every answer is cached.
+//
+// On Node (22.18 or later): npm run order:pizza:node, with the same options after --,
+// such as npm run order:pizza:node -- --replay.
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { type Design, takeOrder } from "question-kit/order";
-import { cachedJev } from "question-kit/cache";
+import { CacheMissError, cachedJev } from "question-kit/cache";
 import { typesafeJev } from "question-kit/typesafe";
 import { pizzaMenu } from "./menu.ts";
+import stringWidth from "string-width";
 
 /** A plain-text table: a header, a rule under each column, then the rows (numbers right-aligned). */
 function formatTable(header: string[], rows: string[][]): string[] {
   const cells = [header, ...rows];
-  const width = (s: string) => Bun.stringWidth(s);
+  const width = (s: string) => stringWidth(s);
   const widths = header.map((_, c) => Math.max(...cells.map((r) => width(r[c] ?? ""))));
   const isNum = (s: string) => /\d/.test(s) && /^[-\d.,%]+$/.test(s);
   const pad = (s: string, w: number, right: boolean) => (right ? " ".repeat(Math.max(0, w - width(s))) + s : s + " ".repeat(Math.max(0, w - width(s))));
@@ -34,11 +38,18 @@ const { values: args, positionals } = parseArgs({
 });
 
 const text = positionals.join(" ") || "two large pizzas with extra cheese and no onions and a diet coke";
-const cacheDir = join(import.meta.dir, "..", "..", "..", ".cache", "jev");
+const cacheDir = join(import.meta.dirname, "..", "..", "..", ".cache", "jev");
 const client = (args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir));
 const readBackAt = Number(args["read-back-at"]);
 
-const r = await takeOrder(text, pizzaMenu(), client, { design: args.design as Design, readBackAt });
+let r: Awaited<ReturnType<typeof takeOrder>>;
+try {
+  r = await takeOrder(text, pizzaMenu(), client, { design: args.design as Design, readBackAt });
+} catch (err) {
+  if (!(err instanceof CacheMissError)) throw err;
+  console.log("\n(That answer isn't cached: run without --replay to ask Jev.)");
+  process.exit(0);
+}
 
 console.log(`\nCustomer: ${text}\n`);
 console.log(

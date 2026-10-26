@@ -1,10 +1,14 @@
 // Cloudflare Workers config for the docs site, docs.questionkit.dev.
 // Static assets only: `bun run docs:build` writes the VitePress site to docs/.vitepress/dist, and
 // `npx wrangler deploy` uploads it. Workers Builds runs both on every push to main that touches
-// the docs (set up in the Cloudflare dashboard). The site itself is in a separate repository.
+// the docs (set up in the Cloudflare dashboard). Other branches get a Preview through
+// `npx wrangler preview`, which needs the `previews` block below; it stays empty because the site
+// has no bindings, and the custom domain route is production only. The site itself is in a
+// separate repository.
 {
   "name": "questionkit-docs",
   "compatibility_date": "2026-10-01",
+  "previews": {},
   "assets": {
     "directory": "./docs/.vitepress/dist",
     "not_found_handling": "404-page"

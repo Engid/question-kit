@@ -54,7 +54,9 @@ export function lint(state: Entry, questions: Record<string, Question>): Problem
 }
 
 export class LintError extends Error {
-  constructor(readonly problems: Problem[]) {
+  readonly problems: Problem[];
+  constructor(problems: Problem[]) {
     super(`request not sent:\n${problems.map((p) => `  ${p.question}: ${p.message}`).join("\n")}`);
+    this.problems = problems;
   }
 }

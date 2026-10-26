@@ -9,8 +9,12 @@
 // Needs TYPESAFE_API_KEY in .env, unless every answer is cached or --fake. Each kind of line has its own
 // mark and color: what Jev read (dim, with a ┊ margin), what the register did (⚙), what the agent
 // said (bold), and the order so far (a box).
+//
+// On Node (22.18 or later): npm run pizza:node, with the same options after --,
+// such as npm run pizza:node -- --replay.
 
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { parseArgs } from "node:util";
 import { type AgentEvent, defaultTemplates, type Phrase, turn, type TurnResult } from "question-kit/service-agent";
 import { type ChoiceAnswer, estimateCost, type Question, type SystemOneCall } from "question-kit";
@@ -20,9 +24,10 @@ import { fakeShopClient } from "./fake.ts";
 import { priceOf } from "./menu.ts";
 import { Register } from "./register.ts";
 import { shop, wording } from "./shop.ts";
+import stringWidth from "string-width";
 
 const { values: args } = parseArgs({ options: { trace: { type: "boolean", default: false }, quiet: { type: "boolean", default: false }, replay: { type: "boolean", default: false }, fake: { type: "boolean", default: false } } });
-const cacheDir = join(import.meta.dir, "..", "..", ".cache", "jev");
+const cacheDir = join(import.meta.dirname, "..", "..", ".cache", "jev");
 const client = args.fake ? fakeShopClient() : args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir);
 const calls: SystemOneCall[] = [];
 const opts = { client, calls, templates: { ...defaultTemplates, ...wording } };
@@ -85,8 +90,8 @@ function orderBox(reg: Register): string[] {
   if (!reg.lines.length) return [];
   const lines = reg.lines.map((l, k) => ({ n: `${k + 1}`, text: reg.readBack([l.item])[0]!, price: `$${priceOf(l.item).toFixed(2)}` }));
   lines.push({ n: "", text: "Total", price: `$${reg.total().toFixed(2)}` });
-  const width = Math.max(30, ...lines.map((l) => 3 + Bun.stringWidth(l.text) + 2 + l.price.length));
-  const row = (l: (typeof lines)[number]) => `│ ${l.n.padEnd(2)} ${l.text}${" ".repeat(width - 3 - Bun.stringWidth(l.text) - l.price.length)}${l.price} │`;
+  const width = Math.max(30, ...lines.map((l) => 3 + stringWidth(l.text) + 2 + l.price.length));
+  const row = (l: (typeof lines)[number]) => `│ ${l.n.padEnd(2)} ${l.text}${" ".repeat(width - 3 - stringWidth(l.text) - l.price.length)}${l.price} │`;
   const title = reg.orderNumber ? ` Order #${reg.orderNumber} ` : " Order ";
   return [`┌${title}${"─".repeat(width + 2 - title.length)}┐`, ...lines.map(row), `└${"─".repeat(width + 2)}┘`].map((l) => paint("33", ` ${l}`));
 }
@@ -97,15 +102,15 @@ function menuBox(lines: string[]): string[] {
   for (const line of lines) {
     let cur = "";
     for (const word of line.split(" ")) {
-      if (cur && Bun.stringWidth(`${cur} ${word}`) > 72) {
+      if (cur && stringWidth(`${cur} ${word}`) > 72) {
         wrapped.push(cur);
         cur = `   ${word}`;
       } else cur = cur ? `${cur} ${word}` : word;
     }
     wrapped.push(cur);
   }
-  const width = Math.max(...wrapped.map((l) => Bun.stringWidth(l)));
-  return ["", `┌ Menu ${"─".repeat(width - 4)}┐`, ...wrapped.map((l) => `│ ${l}${" ".repeat(width - Bun.stringWidth(l))} │`), `└${"─".repeat(width + 2)}┘`].map((l) => paint("33", ` ${l}`));
+  const width = Math.max(...wrapped.map((l) => stringWidth(l)));
+  return ["", `┌ Menu ${"─".repeat(width - 4)}┐`, ...wrapped.map((l) => `│ ${l}${" ".repeat(width - stringWidth(l))} │`), `└${"─".repeat(width + 2)}┘`].map((l) => paint("33", ` ${l}`));
 }
 
 const reg = new Register();
@@ -114,8 +119,9 @@ let seen = 0;
 console.log(`\nA made-up pizza counter. Type as the customer; an empty line leaves.${args.quiet ? "" : " Jev's reads are the dim ┊ lines; the register's work is marked ⚙."}`);
 if (args.fake) console.log(paint("33", " (--fake: a rule-of-thumb stand-in is answering, not Jev)"));
 console.log();
+const lines = createInterface({ input: process.stdin, terminal: false });
 process.stdout.write(" You    ");
-for await (const line of console) {
+for await (const line of lines) {
   const text = line.trim();
   if (!text) break;
   const said: string[] = [];

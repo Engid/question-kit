@@ -190,7 +190,9 @@ Two requests: boundaries (mid-sentence / starts a new unit per line), then types
 
 ## `question-kit/cache`
 
-- `cachedJev(client | undefined, dir, { mode?: "record" | "replay" }) → CachedJev` (`.stats { hits, misses }`).
+- `cachedJev(client | undefined, dir, { mode?: "record" | "replay", model? }) → CachedJev` (`.stats { hits, misses }`). Answers are kept per model:
+  a request's `model`, else `model`, else the client's `.model`; `UNNAMED_MODEL` (`"jev-1.13.0"`) is keyed with no model, as entries from before 0.4 are.
+  Replaying another model without a client needs `model` (`{ mode: "replay", model: "jev-1.14.0" }`).
   "record" (default): answer from the cache, else call the client and save. "replay": cache only; a miss throws `CacheMissError` (`.key`).
 - `cacheKey(request)`: SHA-256 of the model, state and question bodies in order; ids are not part of it.
 - `relabel(entry, request)`: a cached response mapped onto a request's ids by position.
@@ -199,10 +201,11 @@ Two requests: boundaries (mid-sentence / starts a new unit per line), then types
 
 ## `question-kit/typesafe`
 
-- `typesafeJev(opts?: TypeSafeOptions) → SystemOneClient`. Options: `apiKey?` (TYPESAFE_API_KEY), `model?`, `timeoutMs?` 60,000,
+- `typesafeJev(opts?: TypeSafeOptions) → SystemOneClient`. Options: `apiKey?` (TYPESAFE_API_KEY), `model?` (default TYPESAFE_DEFAULT_MODEL, then
+  `DEFAULT_JEV_MODEL` = `"jev-1.13.0"`; always sent, a request's `model` wins; the client's `.model` names it), `timeoutMs?` 60,000,
   `retry?: Partial<RetryPolicy>` over `DEFAULT_RETRY` (`maxRetries` 5, backoff about 1 s → 16 s with jitter, honours Retry-After; rate limits, server errors such as 503, timeouts, dropped connections),
   `onRetry?: (message) => void | false` (default: a line on stderr), `baseURL?`, `pace?: PaceOptions | false`.
-  Requires the optional peer `@typesafe-ai/sdk` 0.6 (0.7.0 fails every request under Bun).
+  Requires the optional peer `@typesafe-ai/sdk` 0.7 (under Bun, with a built-in workaround for its "Body already used" bug).
 
 ## `question-kit/experimental/openrouter` (experimental: can change in any release)
 

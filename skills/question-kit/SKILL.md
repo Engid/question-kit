@@ -5,10 +5,10 @@ description: Build with question-kit, the TypeScript standard library for Jev (T
 
 # question-kit
 
-question-kit is a TypeScript library (ESM, Node 20+ or Bun) for building on Jev, TypeSafe's System
+question-kit is a TypeScript library (ESM, Node 22+ or Bun) for building on Jev, TypeSafe's System
 One model. This file is the guide; `reference.md` next to it lists every export with its options
 and defaults. The package README (`README.md` in the same package) has worked examples per method.
-Version 0.3.x is an alpha: APIs change between 0.x releases, so check `reference.md` against the
+Version 0.4.x is an alpha: APIs change between 0.x releases, so check `reference.md` against the
 installed version rather than remembering an older one.
 
 The methods' question wording, defaults and thresholds come from evals against labeled data, so
@@ -44,7 +44,7 @@ Consequences that shape every design:
 ## Install and connect
 
 ```sh
-npm install question-kit @typesafe-ai/sdk@^0.6.0   # the SDK is an optional peer, used by question-kit/typesafe; 0.7 fails under Bun
+npm install question-kit @typesafe-ai/sdk   # the SDK is an optional peer, used by question-kit/typesafe
 ```
 
 ```ts

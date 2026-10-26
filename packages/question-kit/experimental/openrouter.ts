@@ -94,21 +94,22 @@ export interface OpenRouterResponse extends SystemOneResponse {
 
 /** An error from OpenRouter, or a request or answer this client won't pass on. */
 export class OpenRouterError extends Error {
-  constructor(
-    message: string,
-    /** The HTTP status, when there was a response. */
-    readonly status?: number,
-    /**
-     * `"request"`: refused before sending; `"answer"`: an answer the readings can't use;
-     * `"refused"`: the model declined a question (OpenRouter fails the whole request);
-     * `"too-big"`: the host says even one question is over its token limit; `"http"`: any other
-     * error from OpenRouter.
-     */
-    readonly kind: "request" | "answer" | "refused" | "too-big" | "http" = "http",
-    readonly model?: string,
-  ) {
+  /** The HTTP status, when there was a response. */
+  readonly status?: number;
+  /**
+   * `"request"`: refused before sending; `"answer"`: an answer the readings can't use;
+   * `"refused"`: the model declined a question (OpenRouter fails the whole request);
+   * `"too-big"`: the host says even one question is over its token limit; `"http"`: any other
+   * error from OpenRouter.
+   */
+  readonly kind: "request" | "answer" | "refused" | "too-big" | "http";
+  readonly model?: string;
+  constructor(message: string, status?: number, kind: OpenRouterError["kind"] = "http", model?: string) {
     super(message);
     this.name = "OpenRouterError";
+    this.status = status;
+    this.kind = kind;
+    this.model = model;
   }
 }
 

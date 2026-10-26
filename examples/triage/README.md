@@ -12,5 +12,7 @@ bun run triage --verbose    # also print every reading with its confidence
 bun run triage --replay     # cached answers only (never calls the API)
 ```
 
+On Node 22.18 or later: `npm run triage:node`, with the same options after `--`.
+
 It needs `TYPESAFE_API_KEY` in `.env` for the first run. It makes one request per message, plus
 one for each question the FAQ is searched for: a small fraction of a cent, printed at the end.

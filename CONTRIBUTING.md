@@ -18,12 +18,18 @@ welcome, with a test.
 ```sh
 bun install
 bun run typecheck && bun test        # offline: unit tests use a fake client
+bun run test:node                    # the same tests under Node (vitest)
+bun run examples:bun                 # every example, fake or from the cache (examples:node for Node)
+bun run check:node-package           # the packed package, installed and run as users get it (check:bun-package)
 bun run build                        # dist/ for the package, as published
 bun run smoke --client record        # live checks of the core methods (needs TYPESAFE_API_KEY)
 ```
 
-Tests run against the source (the package's `exports` have a `bun` condition pointing at it), so
-no build is needed to work on them. Answers from Jev are cached in `.cache/jev`, so re-running a
+Node 22.18 or later, Node 24 and Bun are the runtimes to keep working. Tests and examples run
+against the source, so no build is needed to work on them: Bun follows `tsconfig.json`'s `paths`,
+vitest has the same aliases, and the `:node` scripts load `scripts/node-source.mjs`, which does the
+same for Node. Keep to syntax Node can strip (`erasableSyntaxOnly` is on: no `enum`, no parameter
+properties). Answers from Jev are cached in `.cache/jev`, so re-running a
 live example is free; `--replay` on an example uses the cache only.
 
 ## Writing

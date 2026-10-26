@@ -25,8 +25,10 @@ export type CacheMode =
   | "replay";
 
 export class CacheMissError extends Error {
-  constructor(readonly key: string) {
+  readonly key: string;
+  constructor(key: string) {
     super(`no cached answer for request ${key.slice(0, 12)}… (record it first)`);
+    this.key = key;
   }
 }
 
@@ -43,6 +45,13 @@ export interface CacheEntry {
   request: SystemOneRequest;
   response: SystemOneResponse;
 }
+
+/**
+ * The model a request is cached under when it names none and its client asks this one. Before 0.4,
+ * requests named no model and Jev answered with 1.13, so the entries recorded then are keyed with no
+ * model. Keying 1.13 the same way keeps them; any other model is part of the key.
+ */
+export const UNNAMED_MODEL = "jev-1.13.0";
 
 /** The cache key of a request: its model, state and question bodies in order; ids left out. */
 export function cacheKey(request: SystemOneRequest): string {
@@ -67,26 +76,55 @@ export function relabel(entry: CacheEntry, request: SystemOneRequest): SystemOne
   return { ...entry.response, answers };
 }
 
-export function cachedJev(client: SystemOneClient | undefined, dir: string, opts: { mode?: CacheMode } = {}): CachedJev {
+export interface CachedJevOptions {
+  mode?: CacheMode;
+  /**
+   * The model answers are looked up and recorded for, when a request names none. Default: the
+   * client's (`typesafeJev({ model })`). Needed to replay another model than jev-1.13.0 without a
+   * client: `cachedJev(undefined, dir, { mode: "replay", model: "jev-1.14.0" })`.
+   */
+  model?: string;
+}
+
+/**
+ * The request as it's cached: with the model it'll be asked of, unless that's {@link UNNAMED_MODEL}
+ * (or unknown), which is keyed with no model, as before 0.4.
+ */
+function keyed(request: SystemOneRequest, model: string | undefined): SystemOneRequest {
+  if (model === undefined || model === UNNAMED_MODEL) {
+    if (request.model === undefined) return request;
+    const { model: _, ...rest } = request;
+    return rest;
+  }
+  return request.model === model ? request : { ...request, model };
+}
+
+export function cachedJev(client: SystemOneClient | undefined, dir: string, opts: CachedJevOptions = {}): CachedJev {
   const mode = opts.mode ?? "record";
   if (mode === "record" && !client) throw new Error('cachedJev: "record" mode needs a client to call on a miss');
+  const model = opts.model ?? client?.model;
   const stats = { hits: 0, misses: 0 };
   return {
     stats,
-    async systemOne(request) {
+    ...(model ? { model } : {}),
+    async systemOne(original) {
+      // Asked of: the request's model, else this cache's. Sent to the client as is; keyed and kept
+      // in the entry the way `keyed` gives.
+      const asked = original.model ?? model;
+      const request = keyed(original, asked);
       const key = cacheKey(request);
       const path = join(dir, key.slice(0, 2), `${key}.json`);
       try {
         const entry = JSON.parse(await readFile(path, "utf8")) as CacheEntry;
         stats.hits++;
-        return relabel(entry, request);
+        return relabel(entry, original);
       } catch (err) {
         if ((err as { code?: string }).code !== "ENOENT") throw err;
       }
       stats.misses++;
       if (mode === "replay" || !client) throw new CacheMissError(key);
       const t0 = performance.now();
-      const response = await client.systemOne(request);
+      const response = await client.systemOne(asked === undefined || asked === original.model ? original : { ...original, model: asked });
       const entry: CacheEntry = { key, recordedAt: new Date().toISOString(), ms: Math.round(performance.now() - t0), request, response };
       await mkdir(join(dir, key.slice(0, 2)), { recursive: true });
       await writeFile(path, JSON.stringify(entry));

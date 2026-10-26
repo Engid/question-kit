@@ -6,6 +6,9 @@
 //   bun run pizza:check --client fake        the rule-of-thumb stand-in, no Jev: a smoke test of the plumbing, and a cost estimate
 //   bun run pizza:check --only "change"      conversations whose name contains it
 //   bun run pizza:check --show               print each chat as it goes
+//
+// On Node (22.18 or later): npm run pizza:check:node, with the same options after --,
+// such as npm run pizza:check:node -- --replay.
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -19,7 +22,7 @@ import { Register } from "./register.ts";
 import { shop, wording } from "./shop.ts";
 
 const { values: args } = parseArgs({ options: { client: { type: "string", default: "record" }, only: { type: "string" }, show: { type: "boolean", default: false } } });
-const cacheDir = join(import.meta.dir, "..", "..", ".cache", "jev");
+const cacheDir = join(import.meta.dirname, "..", "..", ".cache", "jev");
 const client = args.client === "fake" ? fakeShopClient() : args.client === "replay" ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir);
 const calls: SystemOneCall[] = [];
 const templates = { ...defaultTemplates, ...wording };
@@ -34,7 +37,9 @@ const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1
 class Customer {
   moves: string[];
   corrections = 0;
-  constructor(readonly c: Conversation) {
+  readonly c: Conversation;
+  constructor(c: Conversation) {
+    this.c = c;
     this.moves = [...c.moves];
   }
   /** What the customer says next, or null when they give up. */

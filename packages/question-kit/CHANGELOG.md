@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.0 (2026-10-26)
+
+- **Bun can import the package.** The published `exports` pointed Bun at TypeScript source
+  that isn't in the package, so `import "question-kit"` failed under Bun in every earlier release
+  ("Cannot find package"). Bun now uses the built files, like Node. `bun run check:bun-package`
+  installs the packed package with Bun and checks every entry, as `check:node-package` does for Node.
+- **TypeSafe's SDK 0.7** (`@typesafe-ai/sdk@^0.7.0`). Under Bun, `question-kit/typesafe` works around
+  the SDK's "Body already used" bug, so every request works there too. The workaround goes away once
+  the SDK or Bun is fixed; a test says when.
+- **Node 22 or later** (`engines`), as the SDK requires. Checked with Node 24 and Bun on macOS and
+  Windows, and with Node 22.18, 22.23 and 24 and Bun on Linux.
+- **A pinned model on every request.** `typesafeJev()` always sends a model: its `model` option,
+  else `TYPESAFE_DEFAULT_MODEL`, else `DEFAULT_JEV_MODEL` (`"jev-1.13.0"`). Before, a request with no
+  model got whatever `jev-latest` pointed to, which is now 1.14. Pass
+  `model: "jev-1.14.0"` (or `"jev-latest"`) for the newer one. The client's `.model` names it.
+- **`cachedJev` keeps answers per model:** a request's `model`, else the new `model` option, else the
+  client's. jev-1.13.0 is keyed with no model, exactly as entries recorded before 0.4 are, so
+  existing caches replay unchanged; any other model gets its own entries. To replay another model
+  without a client: `cachedJev(undefined, dir, { mode: "replay", model: "jev-1.14.0" })`.
+- **Examples on Node and Bun:** every example and the smoke checks have a `:node` script
+  (`npm run pizza:node`), and `examples:node` / `examples:bun` run them all with no key. The pizza
+  web server is on `node:http` and esbuild instead of Bun's own APIs. `smoke` takes `--model`.
+  Running the repo's scripts on a Node older than 22.18 now stops with a message saying so, and
+  `order:pizza --replay` reports a cache miss like the other examples instead of crashing.
+- The source keeps to syntax Node can strip (`erasableSyntaxOnly`), so it runs on Node 22.18+
+  without a build.
+
 ## 0.3.0 (2026-10-17)
 
 - **Install with TypeSafe's SDK 0.6** (`@typesafe-ai/sdk@^0.6.0`): SDK 0.7.0 fails every request

@@ -10,6 +10,8 @@ bun run service:chat --gates    # also print each reading Jev made and what its 
 bun run service:chat --replay   # cached answers only (never calls the API)
 ```
 
+On Node 22.18 or later: `npm run service:chat:node`, with the same options after `--`.
+
 It needs `TYPESAFE_API_KEY` in `.env`. Each turn makes one to three requests, and the chat prints
 what it cost when it ends (well under a cent at $0.042 per million input tokens).
 

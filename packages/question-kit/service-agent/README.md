@@ -12,7 +12,7 @@ made no wrong one. It's an alpha, and it hasn't run on live chats yet, but we th
 play with.
 
 ```sh
-npm install question-kit @typesafe-ai/sdk@^0.6.0
+npm install question-kit @typesafe-ai/sdk
 ```
 
 > **Alpha.** question-kit is a prototype, and its APIs will change between 0.x releases. Please try

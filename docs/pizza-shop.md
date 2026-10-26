@@ -15,6 +15,8 @@ bun run pizza:web      # the same counter at http://localhost:8787
 bun run pizza --fake   # no key: a rule-of-thumb stand-in answers instead of Jev
 ```
 
+On Node 22.18 or later: `npm run pizza:node`, with the same options after `--` (`npm run pizza:web:node` for the page).
+
 In the terminal, `--trace` prints every question Jev was asked, and `--quiet` hides the reads.
 
 A session, as the terminal shows it (Jev's own numbers, replayed from the cache):
