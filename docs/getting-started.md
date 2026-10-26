@@ -3,12 +3,10 @@
 ## Install
 
 ```sh
-npm install question-kit @typesafe-ai/sdk@^0.6.0
+npm install question-kit @typesafe-ai/sdk
 # or
-bun add question-kit @typesafe-ai/sdk@^0.6.0
+bun add question-kit @typesafe-ai/sdk
 ```
->Note:
->Use TypeSafe's SDK 0.6 for now: 0.7.0 fails every request under Bun ("Body already used"), and Bun's installer would otherwise pick it.
 
 One package, with an entry per kit:
 
@@ -24,7 +22,7 @@ One package, with an entry per kit:
 TypeSafe's SDK is an optional peer: it's what `question-kit/typesafe` wraps, and you can leave it
 out if you bring your own client.
 
-It runs on Node 20 or later, or Bun. It's plain ES modules with type declarations, and the core, the
+It runs on Node 22 or later, or Bun. It's plain ES modules with type declarations, and the core, the
 order kit and the agent all bundle for the browser.
 
 > [!WARNING]
@@ -34,17 +32,38 @@ order kit and the agent all bundle for the browser.
 
 ## Node or Bun
 
-question-kit runs on both, and its tests run under both.
+question-kit runs on both, and its tests, examples and packed package are checked on Node 22, Node
+24 and Bun.
 
 - **Bun** runs TypeScript directly (`bun app.ts`) and reads `.env` by itself.
 - **Node 22.18 or later** also runs TypeScript directly (`node app.ts`), by stripping the types.
-  Syntax that needs compiling, such as `enum`, isn't supported that way.
-- **Node 20, or an earlier Node 22,** needs a runner such as `npx tsx app.ts`, or compile with
-  `tsc` first. Plain `.js` and `.mjs` files run as they are.
+  Syntax that needs compiling, such as `enum`, isn't supported that way. On an earlier Node 22, use
+  a runner such as `npx tsx app.ts`, or compile with `tsc` first. Plain `.js` and `.mjs` files run
+  as they are.
 - **Node reads `.env` only when asked:** `node --env-file=.env app.ts`, for `TYPESAFE_API_KEY`.
 
-The examples in this repository are run with Bun (`bun run triage`, `bun run pizza`), and some use
-Bun's own APIs, such as the pizza shop's web server.
+Every example in this repository runs on either: `bun run pizza`, or `npm run pizza:node` on Node,
+with the same options after `--` (`npm run pizza:node -- --fake`).
+
+> [!NOTE]
+> Under Bun, `question-kit/typesafe` works around a bug in TypeSafe's SDK 0.7.0, which fails every
+> request under Bun ("Body already used"). Nothing to do on your side; the workaround goes away once
+> the SDK or Bun is fixed.
+
+## Models
+
+`typesafeJev()` asks **jev-1.13.0** unless told otherwise. Both Jev versions TypeSafe serves work:
+
+```ts
+const client = typesafeJev();                          // jev-1.13.0
+const newer = typesafeJev({ model: "jev-1.14.0" });    // or set TYPESAFE_DEFAULT_MODEL
+await newer.systemOne({ ...request, model: "jev-latest" }); // a request's own model wins
+```
+
+The default is pinned per release (`DEFAULT_JEV_MODEL`), so TypeSafe moving `jev-latest` never
+changes your answers under you. It moves to 1.14 in a later release, once the methods have been
+measured on it. Answers cached with `question-kit/cache` are kept per model, so switching models
+never replays another model's answers.
 
 ## Connect Jev
 

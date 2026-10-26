@@ -9,6 +9,8 @@ bun run order:pizza "two large pizzas with extra cheese and no onions and a diet
 bun run order:pizza "…" --design every-word   # or pick; --replay uses cached answers only
 ```
 
+On Node 22.18 or later: `npm run order:pizza:node`, with the same options after `--`.
+
 `order:pizza` prints how each word was read (by the menu or by Jev, with Jev's probability), the
 order read back, the check's probabilities, and whether to accept the order or what to read back.
 

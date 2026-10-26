@@ -7,8 +7,12 @@
 // Needs TYPESAFE_API_KEY in .env, unless every answer is cached. Try order 1234567890 with
 // ana@example.com (delivered 12 days ago), 5550001111 (not shipped yet), or 9876543210 with
 // sam@example.com (delivered 45 days ago).
+//
+// On Node (22.18 or later): npm run service:chat:node, with the same options after --,
+// such as npm run service:chat:node -- --replay.
 
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { parseArgs } from "node:util";
 import { type AgentEvent, turn, type TurnResult } from "question-kit/service-agent";
 import { consoleRecorder, estimateTokens, type SystemOneCall, noRecorder, PRICE_PER_MILLION_INPUT } from "question-kit";
@@ -17,15 +21,16 @@ import { typesafeJev } from "question-kit/typesafe";
 import { runTool, service } from "./store.ts";
 
 const { values: args } = parseArgs({ options: { gates: { type: "boolean", default: false }, replay: { type: "boolean", default: false } } });
-const cacheDir = join(import.meta.dir, "..", "..", ".cache", "jev");
+const cacheDir = join(import.meta.dirname, "..", "..", ".cache", "jev");
 const client = args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir);
 const calls: SystemOneCall[] = [];
 const opts = { client, calls, recorder: args.gates ? consoleRecorder : noRecorder, today: new Date().toISOString().slice(0, 10) };
 
 let log: AgentEvent[] = [];
 console.log("A made-up outdoor store's support chat. Type as the customer; an empty line ends it.\n");
+const lines = createInterface({ input: process.stdin, terminal: false });
 process.stdout.write("You: ");
-for await (const line of console) {
+for await (const line of lines) {
   const text = line.trim();
   if (!text) break;
   let r: TurnResult;

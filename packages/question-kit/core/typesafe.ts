@@ -1,14 +1,22 @@
 // A client for TypeSafe's API, through their SDK (`@typesafe-ai/sdk`, installed separately).
 //
 //   import { typesafeJev } from "question-kit/typesafe";
-//   const client = typesafeJev();   // reads TYPESAFE_API_KEY
+//   const client = typesafeJev();                          // reads TYPESAFE_API_KEY; asks jev-1.13.0
+//   const newer = typesafeJev({ model: "jev-1.14.0" });
 //
 // The rest of question-kit only needs something with a `systemOne(request)` method, so this file is
 // the only one that touches the SDK.
 
-import { type Logger, type RetryPolicy, TypeSafeClient } from "@typesafe-ai/sdk";
+import { type Fetch, type Logger, type RetryPolicy, TypeSafeClient } from "@typesafe-ai/sdk";
 import type { SystemOneClient, SystemOneRequest, SystemOneResponse } from "./system-one.ts";
 import { type PaceOptions, pacedJev } from "./pace.ts";
+
+/**
+ * The Jev version asked when neither the request nor `typesafeJev({ model })` names one (nor the
+ * TYPESAFE_DEFAULT_MODEL environment variable). Pinned per release, so an upgrade of TypeSafe's
+ * `jev-latest` doesn't change answers under you; pass `"jev-latest"` to follow it instead.
+ */
+export const DEFAULT_JEV_MODEL = "jev-1.13.0";
 
 /**
  * Retries: HTTP 408, 429 and 5xx (such as 503 "model unavailable"), timeouts and dropped
@@ -22,6 +30,10 @@ export const DEFAULT_RETRY: Partial<RetryPolicy> = { maxRetries: 5, backoffIniti
 export interface TypeSafeOptions {
   /** Default: the TYPESAFE_API_KEY environment variable. */
   apiKey?: string;
+  /**
+   * The Jev version to ask, such as `"jev-1.14.0"`; a request's own `model` wins. Default: the
+   * TYPESAFE_DEFAULT_MODEL environment variable, then {@link DEFAULT_JEV_MODEL}.
+   */
   model?: string;
   /** Per-attempt timeout in ms. Default 60 000 (the SDK's own default is 10 000; big requests can take longer). */
   timeoutMs?: number;
@@ -47,24 +59,46 @@ const env = (name: string): string | undefined => (typeof process !== "undefined
 export function typesafeJev(opts: TypeSafeOptions = {}): SystemOneClient {
   const apiKey = opts.apiKey ?? env("TYPESAFE_API_KEY");
   if (!apiKey) throw new Error("typesafeJev: no API key (pass apiKey or set TYPESAFE_API_KEY)");
+  const model = opts.model ?? env("TYPESAFE_DEFAULT_MODEL") ?? DEFAULT_JEV_MODEL;
   const client = new TypeSafeClient({
     apiKey,
     timeout: opts.timeoutMs ?? 60_000,
     retry: { ...DEFAULT_RETRY, ...opts.retry },
-    ...(opts.model ? { defaultModel: opts.model } : {}),
+    defaultModel: model,
     ...(opts.baseURL ? { baseURL: opts.baseURL } : {}),
+    ...(isBun ? { fetch: bunFetch } : {}),
     ...retryLogging(opts.onRetry),
   });
   const direct: SystemOneClient = {
+    model,
     async systemOne(request: SystemOneRequest): Promise<SystemOneResponse> {
-      // Only what the API takes: never `meta`. Our wire types mirror the SDK's; the cast bridges its
-      // stricter generic question types.
-      const body = { state: request.state, questions: request.questions, ...(request.model ? { model: request.model } : {}) };
+      // Only what the API takes: never `meta`. Always a model, so the answer never depends on what
+      // `jev-latest` points to today. Our wire types mirror the SDK's; the cast bridges its stricter
+      // generic question types.
+      const body = { state: request.state, questions: request.questions, model: request.model ?? model };
       return (await client.systemOne(body as Parameters<TypeSafeClient["systemOne"]>[0])) as unknown as SystemOneResponse;
     },
   };
   return opts.pace === false ? direct : pacedJev(direct, opts.pace ?? {});
 }
+
+/**
+ * Bun workaround (temporary). SDK 0.7.0 takes a reader on each response's body to buffer it, then
+ * reads the body again; under Bun, taking a reader marks the body used, so every request fails with
+ * "Body already used" (Node follows the Streams spec here and works). Hiding `body` from the SDK
+ * skips its buffering; it then reads the body with `text()` as usual. The cost: the per-attempt
+ * timeout no longer covers reading the body. Remove once either side is fixed; test/bun-shim.test.ts
+ * fails when it is.
+ *   https://github.com/typesafe-ai/typesafe-sdk-js/issues/20
+ *   https://github.com/oven-sh/bun/issues/45306
+ */
+const isBun = typeof process !== "undefined" && Boolean(process.versions?.bun);
+
+const bunFetch: Fetch = async (input, init) => {
+  const response = await fetch(input, init);
+  Object.defineProperty(response, "body", { value: null, configurable: true });
+  return response;
+};
 
 /**
  * The SDK reports retries at its "info" log level, which is off by default ("warn"). To hear about

@@ -1,6 +1,6 @@
 {
   "name": "question-kit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "The standard library for System One models, starting with Jev: ready-made methods built by measurement, an order taker, and a service agent you configure.",
   "type": "module",
   "license": "MIT",
@@ -35,40 +35,36 @@
     "LICENSE"
   ],
   "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
   "exports": {
     ".": {
       "types": "./dist/core/index.d.ts",
-      "bun": "./core/index.ts",
       "default": "./dist/core/index.js"
     },
     "./order": {
       "types": "./dist/order/index.d.ts",
-      "bun": "./order/index.ts",
       "default": "./dist/order/index.js"
     },
     "./service-agent": {
       "types": "./dist/service-agent/index.d.ts",
-      "bun": "./service-agent/index.ts",
       "default": "./dist/service-agent/index.js"
     },
     "./cache": {
       "types": "./dist/core/cache.d.ts",
-      "bun": "./core/cache.ts",
       "default": "./dist/core/cache.js"
     },
     "./node": {
       "types": "./dist/core/node.d.ts",
-      "bun": "./core/node.ts",
       "default": "./dist/core/node.js"
     },
     "./typesafe": {
       "types": "./dist/core/typesafe.d.ts",
-      "bun": "./core/typesafe.ts",
       "default": "./dist/core/typesafe.js"
     },
     "./experimental/openrouter": {
       "types": "./dist/experimental/openrouter.d.ts",
-      "bun": "./experimental/openrouter.ts",
       "default": "./dist/experimental/openrouter.js"
     }
   },
@@ -78,7 +74,7 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "peerDependencies": {
-    "@typesafe-ai/sdk": "^0.6.0"
+    "@typesafe-ai/sdk": "^0.7.0"
   },
   "peerDependenciesMeta": {
     "@typesafe-ai/sdk": {
@@ -86,6 +82,6 @@
     }
   },
   "devDependencies": {
-    "@typesafe-ai/sdk": "^0.6.0"
+    "@typesafe-ai/sdk": "^0.7.0"
   }
 }

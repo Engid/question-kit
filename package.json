@@ -13,27 +13,39 @@
     "test": "bun test",
     "test:node": "vitest run",
     "check:node-package": "bash test/node-package/run.sh",
+    "check:bun-package": "bash test/node-package/run.sh bun",
     "typecheck": "tsc --noEmit",
     "smoke": "bun smoke/run.ts",
+    "smoke:node": "node --env-file-if-exists=.env --import ./scripts/node-source.mjs smoke/run.ts",
     "order:pizza": "bun examples/order/pizza/take-order.ts",
+    "order:pizza:node": "node --env-file-if-exists=.env --import ./scripts/node-source.mjs examples/order/pizza/take-order.ts",
     "service:chat": "bun examples/service-agent/chat.ts",
+    "service:chat:node": "node --env-file-if-exists=.env --import ./scripts/node-source.mjs examples/service-agent/chat.ts",
     "triage": "bun examples/triage/triage.ts",
+    "triage:node": "node --env-file-if-exists=.env --import ./scripts/node-source.mjs examples/triage/triage.ts",
     "pizza": "bun examples/pizza-shop/chat.ts",
+    "pizza:node": "node --env-file-if-exists=.env --import ./scripts/node-source.mjs examples/pizza-shop/chat.ts",
     "pizza:check": "bun examples/pizza-shop/check.ts",
+    "pizza:check:node": "node --env-file-if-exists=.env --import ./scripts/node-source.mjs examples/pizza-shop/check.ts",
     "pizza:web": "bun examples/pizza-shop/web/server.ts",
+    "pizza:web:node": "node --env-file-if-exists=.env --import ./scripts/node-source.mjs examples/pizza-shop/web/server.ts",
     "build": "bun run --cwd packages/question-kit build",
     "clean": "rm -rf packages/question-kit/dist",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "examples:bun": "bash test/examples/run.sh bun",
+    "examples:node": "bash test/examples/run.sh node"
   },
   "dependencies": {
     "question-kit": "workspace:*",
-    "@typesafe-ai/sdk": "^0.6.0"
+    "@typesafe-ai/sdk": "^0.7.0"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/node": "^22",
+    "esbuild": "^0.28.2",
+    "string-width": "^8.3.0",
     "typescript": "^5.9.0",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.0"

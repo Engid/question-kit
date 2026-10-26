@@ -13,6 +13,8 @@ bun run pizza --fake         # no key: a rule-of-thumb stand-in answers instead 
 bun run pizza:web            # the same counter as a web page, at http://localhost:8787 (--replay and --fake work here too)
 ```
 
+On Node 22.18 or later: `npm run pizza:node`, with the same options after `--` (`npm run pizza:web:node` for the page).
+
 ## A session
 
 Jev's own numbers, replayed from the cache:

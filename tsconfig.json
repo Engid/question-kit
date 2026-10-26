@@ -19,6 +19,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
     "paths": {
       "question-kit": [
         "./packages/question-kit/core/index.ts"

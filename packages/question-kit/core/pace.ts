@@ -36,6 +36,7 @@ export function pacedJev(client: SystemOneClient, opts: PaceOptions = {}): Syste
   let budgetFreeAt = -Infinity;
   const paced = {
     waitedMs: 0,
+    ...(client.model ? { model: client.model } : {}),
     async systemOne(request: SystemOneRequest): Promise<SystemOneResponse> {
       // Reserve this request's slot before waiting, so concurrent callers queue behind it.
       const t = now();

@@ -76,6 +76,7 @@ echo "TYPESAFE_API_KEY=..." > .env
 bun run pizza                # the terminal chat; --trace prints every question Jev was asked
 bun run pizza:web            # the same counter at http://localhost:8787
 bun run pizza --fake         # no key: a rule-of-thumb stand-in answers, to see the screen
+npm run pizza:node -- --fake # the same on Node (every example has a :node script)
 ```
 
 A session (Jev's own numbers, replayed from the cache):
@@ -155,14 +156,14 @@ option.
 ## Install
 
 ```sh
-npm install question-kit @typesafe-ai/sdk@^0.6.0
+npm install question-kit @typesafe-ai/sdk
 ```
 
 For Python (preview): `pip install "question-kit[typesafe]"`; see [`python/`](python/README.md).
 
 One package, three entries: `question-kit` (the building blocks), `question-kit/service-agent`
 and `question-kit/order`, plus `question-kit/typesafe`, `question-kit/cache` and
-`question-kit/node`. Node 20 or later, or Bun; plain ES modules with type declarations; all of it
+`question-kit/node`. Node 22 or later, or Bun; plain ES modules with type declarations; all of it
 bundles for the browser except the `node` and `cache` entries. `@typesafe-ai/sdk` is an optional
 peer, used by `question-kit/typesafe`. Calls to Jev need `TYPESAFE_API_KEY`; `question-kit/cache`
 keeps answers on disk so re-runs are free.

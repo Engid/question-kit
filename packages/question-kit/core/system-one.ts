@@ -70,6 +70,11 @@ export interface SystemOneResponse {
 /** Anything that answers a System One request. */
 export interface SystemOneClient {
   systemOne(request: SystemOneRequest): Promise<SystemOneResponse>;
+  /**
+   * The model this client asks when a request names none. `cachedJev` keys answers on it, so two
+   * models' answers never share a cache entry.
+   */
+  readonly model?: string;
 }
 
 /** One request and its answers, for logs, explaining a result, and cost. */

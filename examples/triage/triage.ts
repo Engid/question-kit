@@ -8,6 +8,9 @@
 // it at once (what it's about, the order number, the date, whether a person should take it); a
 // question for the FAQ then gets a second, line-by-line search of the FAQ. Code acts only on
 // readings over a confidence; the rest goes to a person with what Jev did read.
+//
+// On Node (22.18 or later): npm run triage:node, with the same options after --,
+// such as npm run triage:node -- --replay.
 
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -27,7 +30,7 @@ import { CacheMissError, cachedJev } from "question-kit/cache";
 import { typesafeJev } from "question-kit/typesafe";
 
 const { values: args } = parseArgs({ options: { replay: { type: "boolean", default: false }, verbose: { type: "boolean", default: false } } });
-const cacheDir = join(import.meta.dir, "..", "..", ".cache", "jev");
+const cacheDir = join(import.meta.dirname, "..", "..", ".cache", "jev");
 const client = args.replay ? cachedJev(undefined, cacheDir, { mode: "replay" }) : cachedJev(typesafeJev(), cacheDir);
 
 // A fixed "today", so the dates come out the same on every run (and replay from the cache).

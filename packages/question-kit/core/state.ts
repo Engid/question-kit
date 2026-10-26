@@ -9,7 +9,10 @@ import type { Entry, Json } from "./system-one.ts";
 
 /** A dotted path to a part of the state, written in questions as `path`. */
 export class Ref {
-  constructor(readonly path: string) {}
+  readonly path: string;
+  constructor(path: string) {
+    this.path = path;
+  }
   /** A part inside this one: ref("orders").at("o2") is `orders.o2`. */
   at(key: string | number): Ref {
     return new Ref(this.path ? `${this.path}.${key}` : String(key));
