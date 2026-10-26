@@ -14,6 +14,11 @@ case "$runtime" in
   node) run=(node --import ./scripts/node-source.mjs) ;;
   *) echo "usage: run.sh bun|node" >&2; exit 2 ;;
 esac
+# A time limit per run where there's a tool for it (macOS has none built in; Homebrew's coreutils
+# has gtimeout). The ${limit[@]+…} form keeps an empty list safe under `set -u` in bash 3.2.
+if command -v timeout > /dev/null 2>&1; then limit=(timeout 120)
+elif command -v gtimeout > /dev/null 2>&1; then limit=(gtimeout 120)
+else limit=(); fi
 echo "examples on $runtime $("${run[0]}" --version)"
 failed=0
 ok() { echo "ok    $1"; }
@@ -22,7 +27,7 @@ fail() { echo "FAIL  $1"; echo "$2" | tail -15 | sed 's/^/      /'; failed=1; }
 # check <name> <pattern the output must contain> <stdin> <args…>
 check() {
   local name="$1" want="$2" input="$3"; shift 3
-  local out; out="$(printf '%b' "$input" | timeout 120 "${run[@]}" "$@" 2>&1)"; local code=$?
+  local out; out="$(printf '%b' "$input" | ${limit[@]+"${limit[@]}"} "${run[@]}" "$@" 2>&1)"; local code=$?
   if [[ "$want" == "@replay" && ( "$out" == *"isn't cached"* || "$out" == *"not cached"* ) ]]; then echo "skip  $name (answers not cached here)"; return; fi
   if [[ $code -ne 0 ]]; then fail "$name (exit $code)" "$out"; return; fi
   if [[ "$want" != "@replay" && "$out" != *"$want"* ]]; then fail "$name (no \"$want\" in the output)" "$out"; return; fi
@@ -33,7 +38,7 @@ check "smoke, dry run" "requests, about" "" smoke/run.ts --client dry
 # smoke from the cache, per Jev version: every answer cached is a pass, none cached a skip, some a
 # failure (the cache keys moved).
 for model in jev-1.13.0 jev-1.14.0; do
-  out="$(timeout 120 "${run[@]}" smoke/run.ts --model "$model" 2>&1)"
+  out="$(${limit[@]+"${limit[@]}"} "${run[@]}" smoke/run.ts --model "$model" 2>&1)"
   counts="$(echo "$out" | grep -o 'cache: [0-9]* hits, [0-9]* misses' | tail -1)"
   hits="$(echo "$counts" | awk '{print $2}')"; misses="$(echo "$counts" | awk '{print $4}')"
   if [[ -z "$counts" ]]; then fail "smoke on $model, from the cache" "$out"
